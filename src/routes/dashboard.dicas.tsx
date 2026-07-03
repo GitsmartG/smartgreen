@@ -1,5 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
+import { lookupBetInFeed, type FeedLookupResult } from "@/lib/feed-odds.functions";
+import { Loader2, AlertCircle } from "lucide-react";
 import {
   Search,
   RefreshCw,
@@ -497,6 +500,11 @@ function NovoTicketModal({
   const [banca, setBanca] = useState("10");
   const [esporte, setEsporte] = useState("Futebol");
 
+  // auto lookup
+  const [loading, setLoading] = useState(false);
+  const [feedResult, setFeedResult] = useState<FeedLookupResult | null>(null);
+  const lookup = useServerFn(lookupBetInFeed);
+
   const overlay =
     "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm";
   const box =
@@ -513,25 +521,53 @@ function NovoTicketModal({
 
   const parceiroLabel = PARCEIROS.find((p) => p.value === parceiro)?.label ?? "";
 
+  const buscarNoFeed = async () => {
+    if (!url.trim()) return;
+    setLoading(true);
+    setFeedResult(null);
+    try {
+      const r = await lookup({ data: { url, parceiro } });
+      setFeedResult(r);
+    } catch (err) {
+      setFeedResult({
+        ok: false,
+        error: err instanceof Error ? err.message : "Erro ao buscar no feed.",
+        betId: null,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const submit = () => {
     if (mode === "auto") {
       if (!url.trim()) return;
-      // "buscar aposta" fake: gera um ticket a partir da URL
+      if (!feedResult) {
+        void buscarNoFeed();
+        return;
+      }
+      if (!feedResult.ok) return;
       onCreate({
-        id: crypto.randomUUID().slice(0, 8).toUpperCase(),
+        id: String(feedResult.betId).slice(-8).toUpperCase(),
         status: "ao_vivo",
         type: "Simples",
-        league: parceiroLabel,
-        event: "Aposta importada",
+        league: feedResult.competition,
+        event: feedResult.event,
         palpite: "Palpite importado do parceiro",
-        odd: 1.5,
-        banca: 10,
-        esporte: "Futebol",
-        date: new Date().toLocaleDateString("pt-BR", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        }),
+        odd: Number(odd) || 1.5,
+        banca: Number(banca) || 10,
+        esporte: feedResult.sport,
+        date: feedResult.startTs
+          ? new Date(feedResult.startTs * 1000).toLocaleDateString("pt-BR", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+          : new Date().toLocaleDateString("pt-BR", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            }),
         entradas: 1,
         parceiro,
         url,
@@ -563,6 +599,7 @@ function NovoTicketModal({
   return (
     <div className={overlay} onClick={onClose}>
       <div className={box} onClick={(e) => e.stopPropagation()}>
+
         {/* Header */}
         <div className="p-5 flex items-start justify-between">
           <div className="flex items-start gap-3">
@@ -700,13 +737,99 @@ function NovoTicketModal({
           {/* URL */}
           <div>
             <label className={`text-xs ${muted}`}>URL da aposta</label>
-            <input
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://..."
-              className={field + " mt-1"}
-            />
+            <div className="flex gap-2 mt-1">
+              <input
+                value={url}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  setFeedResult(null);
+                }}
+                placeholder="https://..."
+                className={field}
+              />
+              {mode === "auto" && (
+                <button
+                  onClick={buscarNoFeed}
+                  disabled={loading || !url.trim()}
+                  className={
+                    "h-10 px-3 rounded-md text-sm font-medium inline-flex items-center gap-2 shrink-0 " +
+                    (isDark
+                      ? "bg-neutral-800 hover:bg-neutral-700 text-neutral-100"
+                      : "bg-neutral-100 hover:bg-neutral-200 text-neutral-800") +
+                    (loading || !url.trim() ? " opacity-50 cursor-not-allowed" : "")
+                  }
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  Buscar
+                </button>
+              )}
+            </div>
           </div>
+
+          {mode === "auto" && feedResult && (
+            <div
+              className={
+                "rounded-lg border p-3 text-xs " +
+                (feedResult.ok
+                  ? "border-emerald-600/40 bg-emerald-500/5"
+                  : "border-red-600/40 bg-red-500/5")
+              }
+            >
+              {feedResult.ok ? (
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-1.5 text-emerald-500 font-semibold">
+                    <Check className="h-3.5 w-3.5" /> Aposta encontrada no feed
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 mt-2">
+                    <Info label="Evento" value={feedResult.event} muted={muted} />
+                    <Info label="Esporte" value={feedResult.sport} muted={muted} />
+                    <Info label="Competição" value={feedResult.competition} muted={muted} />
+                    <Info label="Região" value={feedResult.region} muted={muted} />
+                    <Info label="Bet ID" value={String(feedResult.betId)} muted={muted} />
+                    {feedResult.startTs && (
+                      <Info
+                        label="Início"
+                        value={new Date(feedResult.startTs * 1000).toLocaleString("pt-BR")}
+                        muted={muted}
+                      />
+                    )}
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <label className="block">
+                      <span className={"text-[10px] uppercase tracking-wider " + muted}>Odd</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={odd}
+                        onChange={(e) => setOdd(e.target.value)}
+                        placeholder="1.85"
+                        className={field + " mt-0.5"}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className={"text-[10px] uppercase tracking-wider " + muted}>Banca %</span>
+                      <input
+                        type="number"
+                        value={banca}
+                        onChange={(e) => setBanca(e.target.value)}
+                        className={field + " mt-0.5"}
+                      />
+                    </label>
+                  </div>
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-1.5 text-red-500">
+                  <AlertCircle className="h-3.5 w-3.5" /> {feedResult.error}
+                  {feedResult.betId && <span className={muted}>(id: {feedResult.betId})</span>}
+                </div>
+              )}
+            </div>
+          )}
+
 
           {mode === "manual" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -827,5 +950,14 @@ function ParceiroBadge({ parceiro }: { parceiro: Parceiro }) {
     <span className="h-6 w-6 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center text-[10px] font-bold">
       H2
     </span>
+  );
+}
+
+function Info({ label, value, muted }: { label: string; value: string; muted: string }) {
+  return (
+    <div>
+      <div className={"text-[10px] uppercase tracking-wider " + muted}>{label}</div>
+      <div className="text-xs font-medium truncate">{value || "—"}</div>
+    </div>
   );
 }
