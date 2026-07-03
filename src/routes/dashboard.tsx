@@ -72,13 +72,6 @@ function DashboardLayout() {
         ? "Gerencie e publique tickets de tips esportivas."
         : "Bem-vindo de volta 👋";
 
-  const headerTitle =
-    pathname === "/dashboard/usuarios" ? "Gerenciar Usuários" : "Visão geral";
-  const headerSub =
-    pathname === "/dashboard/usuarios"
-      ? "Visualize e gerencie os usuários do seu app."
-      : "Bem-vindo de volta 👋";
-
   return (
     <div className={`min-h-screen font-sans flex ${bg} ${text} transition-colors`}>
       <aside className={`hidden md:flex w-64 flex-col border-r ${panel} transition-colors`}>
