@@ -1008,9 +1008,15 @@ function NovoTicketModal({
             className="h-10 px-5 rounded-md text-white text-sm font-semibold inline-flex items-center gap-2 hover:brightness-110 active:brightness-95 shadow-sm"
           >
             {mode === "auto" ? (
-              <>
-                <Sparkles className="h-4 w-4" /> Buscar aposta
-              </>
+              selected ? (
+                <>
+                  <Plus className="h-4 w-4" /> Criar ticket
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" /> Buscar aposta
+                </>
+              )
             ) : (
               <>
                 <Plus className="h-4 w-4" /> Criar ticket
