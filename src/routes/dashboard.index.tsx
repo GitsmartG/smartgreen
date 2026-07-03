@@ -7,15 +7,14 @@ import {
   DollarSign,
   Activity,
 } from "lucide-react";
+import { useIsDark } from "@/hooks/use-is-dark";
 
 export const Route = createFileRoute("/dashboard/")({
   component: OverviewPage,
 });
 
 function OverviewPage() {
-  const isDark =
-    typeof document !== "undefined" &&
-    document.documentElement.classList.contains("dark");
+  const isDark = useIsDark();
   const panel = isDark
     ? "bg-neutral-900 border-neutral-800"
     : "bg-white border-neutral-200";

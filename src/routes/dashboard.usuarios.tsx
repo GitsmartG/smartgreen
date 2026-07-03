@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Search, RefreshCw, UserPlus, MoreHorizontal } from "lucide-react";
+import { useIsDark } from "@/hooks/use-is-dark";
 
 type Status = "ativo" | "suspenso";
 type Role = "admin" | "user";
@@ -32,9 +33,7 @@ export const Route = createFileRoute("/dashboard/usuarios")({
 });
 
 function UsuariosPage() {
-  const isDark =
-    typeof document !== "undefined" &&
-    document.documentElement.classList.contains("dark");
+  const isDark = useIsDark();
 
   const panel = isDark
     ? "bg-neutral-900 border-neutral-800"
