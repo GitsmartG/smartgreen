@@ -16,11 +16,15 @@ export const Route = createFileRoute("/")({
 });
 
 function LoginPage() {
+  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("sg-theme") as "light" | "dark" | null;
@@ -35,11 +39,17 @@ function LoginPage() {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    setError(null);
+    if (mode === "signup" && password !== confirmPassword) {
+      setError("As senhas não coincidem");
+      return;
+    }
     setLoading(true);
     setTimeout(() => setLoading(false), 1200);
   };
 
   const isDark = theme === "dark";
+  const isSignup = mode === "signup";
 
   return (
     <div
