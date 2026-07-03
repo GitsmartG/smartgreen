@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
-import { Eye, EyeOff, Loader2, Mail, Lock, Sun, Moon } from "lucide-react";
+import { Eye, EyeOff, Loader2, Mail, Lock, Sun, Moon, User } from "lucide-react";
 
 const LOGO_URL =
   "https://wffylwohekfpecslflgc.supabase.co/storage/v1/object/public/files/uploads/t7QtTgpHfAeBSDZvo5b7DViqtR73/1783110032648-mkbpm-logo_smartgreen.png";
@@ -16,11 +16,15 @@ export const Route = createFileRoute("/")({
 });
 
 function LoginPage() {
+  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("sg-theme") as "light" | "dark" | null;
@@ -35,11 +39,17 @@ function LoginPage() {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    setError(null);
+    if (mode === "signup" && password !== confirmPassword) {
+      setError("As senhas não coincidem");
+      return;
+    }
     setLoading(true);
     setTimeout(() => setLoading(false), 1200);
   };
 
   const isDark = theme === "dark";
+  const isSignup = mode === "signup";
 
   return (
     <div
@@ -91,18 +101,40 @@ function LoginPage() {
                 (isDark ? "text-neutral-50" : "text-neutral-900")
               }
             >
-              Acesse sua conta
+              {isSignup ? "Criar sua conta" : "Acesse sua conta"}
             </h1>
             <p
               className={
                 "text-sm mt-1 " + (isDark ? "text-neutral-400" : "text-neutral-500")
               }
             >
-              Entre com suas credenciais Smart Green
+              {isSignup
+                ? "Preencha os dados para começar"
+                : "Entre com suas credenciais Smart Green"}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignup && (
+              <Field
+                id="name"
+                label="Nome completo"
+                icon={<User className="h-4 w-4" />}
+                isDark={isDark}
+              >
+                <input
+                  id="name"
+                  type="text"
+                  required
+                  autoComplete="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Seu nome"
+                  className={inputCls(isDark, false)}
+                />
+              </Field>
+            )}
+
             <Field
               id="email"
               label="E-mail"
@@ -132,17 +164,19 @@ function LoginPage() {
                 >
                   Senha
                 </label>
-                <a
-                  href="#"
-                  className={
-                    "text-xs font-medium " +
-                    (isDark
-                      ? "text-emerald-400 hover:text-emerald-300"
-                      : "text-emerald-700 hover:text-emerald-800")
-                  }
-                >
-                  Esqueci minha senha
-                </a>
+                {!isSignup && (
+                  <a
+                    href="#"
+                    className={
+                      "text-xs font-medium " +
+                      (isDark
+                        ? "text-emerald-400 hover:text-emerald-300"
+                        : "text-emerald-700 hover:text-emerald-800")
+                    }
+                  >
+                    Esqueci minha senha
+                  </a>
+                )}
               </div>
               <div className="relative">
                 <Lock
@@ -181,18 +215,44 @@ function LoginPage() {
               </div>
             </div>
 
-            <label
-              className={
-                "flex items-center gap-2 text-sm select-none pt-1 " +
-                (isDark ? "text-neutral-400" : "text-neutral-600")
-              }
-            >
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-neutral-300 text-emerald-700 focus:ring-emerald-600"
-              />
-              Manter conectado
-            </label>
+            {isSignup && (
+              <Field
+                id="confirmPassword"
+                label="Confirmar senha"
+                icon={<Lock className="h-4 w-4" />}
+                isDark={isDark}
+              >
+                <input
+                  id="confirmPassword"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className={inputCls(isDark, false)}
+                />
+              </Field>
+            )}
+
+            {!isSignup && (
+              <label
+                className={
+                  "flex items-center gap-2 text-sm select-none pt-1 " +
+                  (isDark ? "text-neutral-400" : "text-neutral-600")
+                }
+              >
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-neutral-300 text-emerald-700 focus:ring-emerald-600"
+                />
+                Manter conectado
+              </label>
+            )}
+
+            {error && (
+              <p className="text-sm text-red-500 -mt-1">{error}</p>
+            )}
 
             <button
               type="submit"
@@ -206,8 +266,10 @@ function LoginPage() {
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Entrando...
+                  {isSignup ? "Criando conta..." : "Entrando..."}
                 </>
+              ) : isSignup ? (
+                "Criar conta"
               ) : (
                 "Entrar"
               )}
@@ -222,9 +284,13 @@ function LoginPage() {
                 : "border-neutral-200 text-neutral-500")
             }
           >
-            Não tem uma conta?{" "}
-            <a
-              href="#"
+            {isSignup ? "Já tem uma conta?" : "Não tem uma conta?"}{" "}
+            <button
+              type="button"
+              onClick={() => {
+                setMode(isSignup ? "login" : "signup");
+                setError(null);
+              }}
               className={
                 "font-semibold " +
                 (isDark
@@ -232,8 +298,8 @@ function LoginPage() {
                   : "text-emerald-700 hover:text-emerald-800")
               }
             >
-              Solicitar acesso
-            </a>
+              {isSignup ? "Entrar" : "Criar conta"}
+            </button>
           </div>
         </div>
 
