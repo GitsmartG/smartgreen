@@ -284,10 +284,45 @@ function gameMatchesCandidate(game: any, cand: string): string | null {
 }
 
 
+function findEventInGame(
+  game: any,
+  cand: string,
+): { market: string; odd: number } | null {
+  const markets = game.market || game.markets || {};
+  const iter = (obj: any, cb: (v: any, k: string) => void) => {
+    if (Array.isArray(obj)) obj.forEach((v, i) => cb(v, String(i)));
+    else if (obj && typeof obj === "object") {
+      for (const k of Object.keys(obj)) cb(obj[k], k);
+    }
+  };
+  let hit: { market: string; odd: number } | null = null;
+  iter(markets, (m) => {
+    if (hit) return;
+    const mName = m?.name || m?.market_name || m?.caption || m?.type || "";
+    const events = m?.event || m?.events || {};
+    iter(events, (ev) => {
+      if (hit) return;
+      if (!ev || typeof ev !== "object") return;
+      if (String(ev.id ?? "") !== cand) return;
+      const odd = Number(ev.price ?? ev.coefficient ?? ev.odd ?? ev.k ?? NaN);
+      const evName = ev.name || ev.caption || ev.type_1 || "";
+      const label = [mName, evName].filter(Boolean).join(" — ");
+      if (Number.isFinite(odd)) hit = { market: label || String(mName), odd };
+    });
+  });
+  return hit;
+}
+
 function findGameInFeed(
   feed: any,
   candidates: string[],
-): { match: MatchInfo; matchedBy: "id" | "game_number"; matchedValue: string } | null {
+): {
+  match: MatchInfo;
+  matchedBy: "id" | "game_number";
+  matchedValue: string;
+  feedMarket?: string;
+  feedOdd?: number;
+} | null {
   const games = walkFeedGames(feed);
   for (const cand of candidates) {
     for (const { game, sport, region, competition } of games) {
@@ -297,9 +332,12 @@ function findGameInFeed(
         game.team1_name || game.team1 || game.home || game.home_team || "";
       const team2 =
         game.team2_name || game.team2 || game.away || game.away_team || "";
+      const ev = matchedField === "event_id" ? findEventInGame(game, cand) : null;
       return {
         matchedBy: matchedField === "game_number" ? "game_number" : "id",
         matchedValue: cand,
+        feedMarket: ev?.market,
+        feedOdd: ev?.odd,
         match: {
           sport,
           region,
@@ -316,6 +354,7 @@ function findGameInFeed(
   }
   return null;
 }
+
 
 
 // ------------------------------------------------------------------
