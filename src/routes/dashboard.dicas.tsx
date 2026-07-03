@@ -37,9 +37,11 @@ type Ticket = {
   esporte: string;
   date: string;
   entradas: number;
+  parceiro?: Parceiro;
+  url?: string;
 };
 
-const TICKETS: Ticket[] = [
+const INITIAL_TICKETS: Ticket[] = [
   {
     id: "E461FBEF",
     status: "ao_vivo",
