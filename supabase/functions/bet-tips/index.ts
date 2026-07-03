@@ -59,16 +59,12 @@ function getProxyClient(): Deno.HttpClient | null {
   const pass = Deno.env.get("PROXY_PASS");
   if (!host || !port) return null;
   try {
-    const opts: any = {
-      proxy: {
-        url: `http://${host}:${port}`,
-      },
-    };
-    if (user && pass) {
-      opts.proxy.basicAuth = { username: user, password: pass };
-    }
+    const auth = user && pass
+      ? `${encodeURIComponent(user)}:${encodeURIComponent(pass)}@`
+      : "";
+    const proxyUrl = `http://${auth}${host}:${port}`;
     // @ts-ignore Deno.createHttpClient exists on Deno runtime
-    cachedClient = Deno.createHttpClient(opts) as Deno.HttpClient;
+    cachedClient = Deno.createHttpClient({ proxy: { url: proxyUrl } }) as Deno.HttpClient;
     return cachedClient;
   } catch (err) {
     console.error("Falha criando proxy client:", err);
