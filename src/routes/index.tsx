@@ -101,14 +101,16 @@ function LoginPage() {
                 (isDark ? "text-neutral-50" : "text-neutral-900")
               }
             >
-              Acesse sua conta
+              {isSignup ? "Criar sua conta" : "Acesse sua conta"}
             </h1>
             <p
               className={
                 "text-sm mt-1 " + (isDark ? "text-neutral-400" : "text-neutral-500")
               }
             >
-              Entre com suas credenciais Smart Green
+              {isSignup
+                ? "Preencha os dados para começar"
+                : "Entre com suas credenciais Smart Green"}
             </p>
           </div>
 
