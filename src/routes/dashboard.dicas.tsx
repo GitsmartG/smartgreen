@@ -165,7 +165,7 @@ function DicasPage() {
         <div>
           <h2 className="text-xl font-semibold tracking-tight">Tickets de Tips</h2>
           <p className={`text-xs ${muted} mt-0.5 flex items-center gap-2`}>
-            <span>{TICKETS.length} tickets no total</span>
+            <span>{tickets.length} tickets no total</span>
             <span>·</span>
             <span className="inline-flex items-center gap-1 text-emerald-500">
               <Radio className="h-3 w-3" /> Tempo real ativo
