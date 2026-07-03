@@ -122,21 +122,23 @@ function DicasPage() {
       ? "bg-neutral-950 border-neutral-800 text-neutral-100 focus:border-emerald-600"
       : "bg-white border-neutral-300 text-neutral-900 focus:border-emerald-700");
 
+  const [tickets, setTickets] = useState<Ticket[]>(INITIAL_TICKETS);
   const [tab, setTab] = useState<Tab>("todos");
   const [query, setQuery] = useState("");
   const [esporte, setEsporte] = useState("todos");
   const [tipo, setTipo] = useState("todos");
+  const [modalOpen, setModalOpen] = useState(false);
 
   const counts = useMemo(() => {
     return {
-      ao_vivo: TICKETS.filter((t) => t.status === "ao_vivo").length,
-      green: TICKETS.filter((t) => t.status === "green").length,
-      red: TICKETS.filter((t) => t.status === "red").length,
+      ao_vivo: tickets.filter((t) => t.status === "ao_vivo").length,
+      green: tickets.filter((t) => t.status === "green").length,
+      red: tickets.filter((t) => t.status === "red").length,
     };
-  }, []);
+  }, [tickets]);
 
   const filtered = useMemo(() => {
-    return TICKETS.filter((t) => {
+    return tickets.filter((t) => {
       if (tab !== "todos" && t.status !== tab) return false;
       if (tipo !== "todos" && t.type.toLowerCase() !== tipo) return false;
       if (esporte !== "todos" && t.esporte.toLowerCase() !== esporte) return false;
@@ -152,7 +154,9 @@ function DicasPage() {
       }
       return true;
     });
-  }, [tab, tipo, esporte, query]);
+  }, [tickets, tab, tipo, esporte, query]);
+
+  const addTicket = (t: Ticket) => setTickets((prev) => [t, ...prev]);
 
   return (
     <div className="space-y-4">
