@@ -474,3 +474,358 @@ function StatusPill({ status }: { status: TipStatus }) {
     </span>
   );
 }
+
+function NovoTicketModal({
+  isDark,
+  onClose,
+  onCreate,
+}: {
+  isDark: boolean;
+  onClose: () => void;
+  onCreate: (t: Ticket) => void;
+}) {
+  const [mode, setMode] = useState<"auto" | "manual">("auto");
+  const [parceiro, setParceiro] = useState<Parceiro>("seubet");
+  const [url, setUrl] = useState("");
+  const [dropOpen, setDropOpen] = useState(false);
+
+  // manual fields
+  const [event, setEvent] = useState("");
+  const [league, setLeague] = useState("");
+  const [palpite, setPalpite] = useState("");
+  const [odd, setOdd] = useState("");
+  const [banca, setBanca] = useState("10");
+  const [esporte, setEsporte] = useState("Futebol");
+
+  const overlay =
+    "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm";
+  const box =
+    "w-full max-w-2xl rounded-2xl border shadow-2xl " +
+    (isDark
+      ? "bg-neutral-900 border-neutral-800 text-neutral-100"
+      : "bg-white border-neutral-200 text-neutral-900");
+  const muted = isDark ? "text-neutral-400" : "text-neutral-500";
+  const field =
+    "h-10 w-full rounded-md border px-3 text-sm outline-none transition-colors " +
+    (isDark
+      ? "bg-neutral-950 border-neutral-800 text-neutral-100 focus:border-emerald-600"
+      : "bg-white border-neutral-300 text-neutral-900 focus:border-emerald-700");
+
+  const parceiroLabel = PARCEIROS.find((p) => p.value === parceiro)?.label ?? "";
+
+  const submit = () => {
+    if (mode === "auto") {
+      if (!url.trim()) return;
+      // "buscar aposta" fake: gera um ticket a partir da URL
+      onCreate({
+        id: crypto.randomUUID().slice(0, 8).toUpperCase(),
+        status: "ao_vivo",
+        type: "Simples",
+        league: parceiroLabel,
+        event: "Aposta importada",
+        palpite: "Palpite importado do parceiro",
+        odd: 1.5,
+        banca: 10,
+        esporte: "Futebol",
+        date: new Date().toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }),
+        entradas: 1,
+        parceiro,
+        url,
+      });
+    } else {
+      if (!event.trim() || !palpite.trim() || !odd) return;
+      onCreate({
+        id: crypto.randomUUID().slice(0, 8).toUpperCase(),
+        status: "ao_vivo",
+        type: "Simples",
+        league: league || event,
+        event,
+        palpite,
+        odd: Number(odd) || 1,
+        banca: Number(banca) || 10,
+        esporte,
+        date: new Date().toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }),
+        entradas: 1,
+        parceiro,
+        url: url || undefined,
+      });
+    }
+  };
+
+  return (
+    <div className={overlay} onClick={onClose}>
+      <div className={box} onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="p-5 flex items-start justify-between">
+          <div className="flex items-start gap-3">
+            <div className="h-10 w-10 rounded-lg bg-emerald-500/15 text-emerald-500 flex items-center justify-center">
+              <Plus className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Novo Ticket de Tip</h3>
+              <p className={`text-xs ${muted}`}>
+                Crie automaticamente a partir de um parceiro ou preencha manualmente.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className={
+              "h-8 w-8 rounded-md inline-flex items-center justify-center " +
+              (isDark ? "hover:bg-neutral-800" : "hover:bg-neutral-100")
+            }
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="px-5">
+          <div
+            className={
+              "grid grid-cols-2 rounded-lg border p-1 " +
+              (isDark ? "border-neutral-800 bg-neutral-950" : "border-neutral-200 bg-neutral-100")
+            }
+          >
+            {(["auto", "manual"] as const).map((m) => {
+              const active = mode === m;
+              return (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  className={
+                    "h-9 rounded-md text-sm font-medium inline-flex items-center justify-center gap-2 transition " +
+                    (active
+                      ? isDark
+                        ? "bg-neutral-800 text-white"
+                        : "bg-white text-neutral-900 shadow-sm"
+                      : muted)
+                  }
+                >
+                  {m === "auto" ? <Wand2 className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+                  {m === "auto" ? "Automático" : "Manual"}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
+          {mode === "auto" && (
+            <div
+              className={
+                "rounded-lg border p-3 flex items-start gap-2 text-xs " +
+                "border-emerald-600/40 bg-emerald-500/5 text-emerald-500"
+              }
+            >
+              <Sparkles className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>
+                Cole a URL de compartilhamento da aposta no parceiro. Nós buscamos os detalhes,
+                montamos o palpite e anexamos o link de afiliado automaticamente.
+              </span>
+            </div>
+          )}
+
+          {/* Parceiro dropdown */}
+          <div>
+            <label className={`text-xs ${muted}`}>Parceiro</label>
+            <div className="relative mt-1">
+              <button
+                onClick={() => setDropOpen((v) => !v)}
+                className={
+                  field +
+                  " flex items-center justify-between text-left"
+                }
+              >
+                <span className="inline-flex items-center gap-2">
+                  <ParceiroBadge parceiro={parceiro} />
+                  {parceiroLabel}
+                </span>
+                <span className={muted}>▾</span>
+              </button>
+              {dropOpen && (
+                <div
+                  className={
+                    "absolute z-10 mt-1 w-full rounded-md border shadow-lg overflow-hidden " +
+                    (isDark
+                      ? "bg-neutral-950 border-neutral-800"
+                      : "bg-white border-neutral-200")
+                  }
+                >
+                  {PARCEIROS.map((p) => (
+                    <button
+                      key={p.value}
+                      onClick={() => {
+                        setParceiro(p.value);
+                        setDropOpen(false);
+                      }}
+                      className={
+                        "w-full flex items-center justify-between gap-2 px-3 py-2.5 text-sm text-left " +
+                        (isDark ? "hover:bg-neutral-800" : "hover:bg-neutral-50")
+                      }
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <ParceiroBadge parceiro={p.value} />
+                        {p.label}
+                        {p.hint && <span className={"text-xs " + muted}>{p.hint}</span>}
+                      </span>
+                      {parceiro === p.value && <Check className="h-4 w-4 text-emerald-500" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <p className={`text-[11px] ${muted} mt-1.5`}>
+              Exemplo:{" "}
+              <code
+                className={
+                  "px-1.5 py-0.5 rounded " +
+                  (isDark ? "bg-neutral-800 text-neutral-300" : "bg-neutral-100 text-neutral-700")
+                }
+              >
+                https://www.seu.bet.br/pre-jogo?bet_id=6249772946
+              </code>
+            </p>
+          </div>
+
+          {/* URL */}
+          <div>
+            <label className={`text-xs ${muted}`}>URL da aposta</label>
+            <input
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://..."
+              className={field + " mt-1"}
+            />
+          </div>
+
+          {mode === "manual" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className={`text-xs ${muted}`}>Evento / Partida</label>
+                <input
+                  value={event}
+                  onChange={(e) => setEvent(e.target.value)}
+                  placeholder="Ex: Brasil x Argentina"
+                  className={field + " mt-1"}
+                />
+              </div>
+              <div>
+                <label className={`text-xs ${muted}`}>Campeonato</label>
+                <input
+                  value={league}
+                  onChange={(e) => setLeague(e.target.value)}
+                  placeholder="Ex: Brasileirão Série A"
+                  className={field + " mt-1"}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className={`text-xs ${muted}`}>Palpite</label>
+                <input
+                  value={palpite}
+                  onChange={(e) => setPalpite(e.target.value)}
+                  placeholder="Ex: Mais de 2.5 gols"
+                  className={field + " mt-1"}
+                />
+              </div>
+              <div>
+                <label className={`text-xs ${muted}`}>Odd</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={odd}
+                  onChange={(e) => setOdd(e.target.value)}
+                  placeholder="1.85"
+                  className={field + " mt-1"}
+                />
+              </div>
+              <div>
+                <label className={`text-xs ${muted}`}>Banca (%)</label>
+                <input
+                  type="number"
+                  value={banca}
+                  onChange={(e) => setBanca(e.target.value)}
+                  className={field + " mt-1"}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className={`text-xs ${muted}`}>Esporte</label>
+                <select
+                  value={esporte}
+                  onChange={(e) => setEsporte(e.target.value)}
+                  className={field + " mt-1"}
+                >
+                  <option>Futebol</option>
+                  <option>Basquete</option>
+                  <option>Tênis</option>
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div
+          className={
+            "p-4 flex items-center justify-end gap-2 border-t " +
+            (isDark ? "border-neutral-800" : "border-neutral-200")
+          }
+        >
+          <button
+            onClick={onClose}
+            className={
+              "h-10 px-4 rounded-md text-sm font-medium " +
+              (isDark
+                ? "bg-neutral-800 hover:bg-neutral-700 text-neutral-100"
+                : "bg-neutral-100 hover:bg-neutral-200 text-neutral-800")
+            }
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={submit}
+            style={{
+              backgroundImage:
+                "linear-gradient(90deg, #0f5f2a 0%, #1f8a3a 55%, #54ee2b 100%)",
+            }}
+            className="h-10 px-5 rounded-md text-white text-sm font-semibold inline-flex items-center gap-2 hover:brightness-110 active:brightness-95 shadow-sm"
+          >
+            {mode === "auto" ? (
+              <>
+                <Sparkles className="h-4 w-4" /> Buscar aposta
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4" /> Criar ticket
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ParceiroBadge({ parceiro }: { parceiro: Parceiro }) {
+  if (parceiro === "seubet") {
+    return (
+      <span className="h-6 w-6 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center text-[10px] font-bold">
+        SB
+      </span>
+    );
+  }
+  return (
+    <span className="h-6 w-6 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center text-[10px] font-bold">
+      H2
+    </span>
+  );
+}
