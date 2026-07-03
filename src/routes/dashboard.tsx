@@ -58,7 +58,7 @@ function DashboardLayout() {
     { label: "Usuários", icon: Users, to: "/dashboard/usuarios" },
     { label: "Dicas de Apostas", icon: Ticket, to: "/dashboard/dicas" },
     { label: "Notificações Push", icon: Bell, to: "/dashboard/notificacoes" },
-    { label: "Configurações", icon: Settings, to: "/dashboard" },
+    { label: "Configurações", icon: Settings, to: "/dashboard/configuracoes" },
   ];
 
   const headerTitle =
