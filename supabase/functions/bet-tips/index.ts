@@ -199,7 +199,7 @@ async function fetchFeed(parceiro: Parceiro): Promise<any> {
   if (cached && Date.now() - cached.at < FEED_TTL_MS) return cached.data;
 
   const url = `https://feedodds.com/feed/json?language=por_2&timeZone=UTC&brandId=${cfg.brandId}&key=${cfg.key}`;
-  const res = await proxiedFetch(url);
+  const res = await plainFetch(url);
   if (!res.ok) throw new Error(`feedodds retornou ${res.status}`);
   const data = await res.json();
   FEED_CACHE.set(cacheKey, { at: Date.now(), data });
