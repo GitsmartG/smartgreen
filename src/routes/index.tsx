@@ -215,18 +215,44 @@ function LoginPage() {
               </div>
             </div>
 
-            <label
-              className={
-                "flex items-center gap-2 text-sm select-none pt-1 " +
-                (isDark ? "text-neutral-400" : "text-neutral-600")
-              }
-            >
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-neutral-300 text-emerald-700 focus:ring-emerald-600"
-              />
-              Manter conectado
-            </label>
+            {isSignup && (
+              <Field
+                id="confirmPassword"
+                label="Confirmar senha"
+                icon={<Lock className="h-4 w-4" />}
+                isDark={isDark}
+              >
+                <input
+                  id="confirmPassword"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className={inputCls(isDark, false)}
+                />
+              </Field>
+            )}
+
+            {!isSignup && (
+              <label
+                className={
+                  "flex items-center gap-2 text-sm select-none pt-1 " +
+                  (isDark ? "text-neutral-400" : "text-neutral-600")
+                }
+              >
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-neutral-300 text-emerald-700 focus:ring-emerald-600"
+                />
+                Manter conectado
+              </label>
+            )}
+
+            {error && (
+              <p className="text-sm text-red-500 -mt-1">{error}</p>
+            )}
 
             <button
               type="submit"
@@ -240,8 +266,10 @@ function LoginPage() {
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Entrando...
+                  {isSignup ? "Criando conta..." : "Entrando..."}
                 </>
+              ) : isSignup ? (
+                "Criar conta"
               ) : (
                 "Entrar"
               )}
@@ -256,9 +284,13 @@ function LoginPage() {
                 : "border-neutral-200 text-neutral-500")
             }
           >
-            Não tem uma conta?{" "}
-            <a
-              href="#"
+            {isSignup ? "Já tem uma conta?" : "Não tem uma conta?"}{" "}
+            <button
+              type="button"
+              onClick={() => {
+                setMode(isSignup ? "login" : "signup");
+                setError(null);
+              }}
               className={
                 "font-semibold " +
                 (isDark
@@ -266,8 +298,8 @@ function LoginPage() {
                   : "text-emerald-700 hover:text-emerald-800")
               }
             >
-              Solicitar acesso
-            </a>
+              {isSignup ? "Entrar" : "Criar conta"}
+            </button>
           </div>
         </div>
 
