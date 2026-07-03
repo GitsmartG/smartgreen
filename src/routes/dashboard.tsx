@@ -55,8 +55,22 @@ function DashboardLayout() {
   const nav = [
     { label: "Visão geral", icon: LayoutDashboard, to: "/dashboard" },
     { label: "Usuários", icon: Users, to: "/dashboard/usuarios" },
+    { label: "Dicas de Apostas", icon: Ticket, to: "/dashboard/dicas" },
     { label: "Configurações", icon: Settings, to: "/dashboard" },
   ];
+
+  const headerTitle =
+    pathname === "/dashboard/usuarios"
+      ? "Gerenciar Usuários"
+      : pathname === "/dashboard/dicas"
+        ? "Dicas de Apostas"
+        : "Visão geral";
+  const headerSub =
+    pathname === "/dashboard/usuarios"
+      ? "Visualize e gerencie os usuários do seu app."
+      : pathname === "/dashboard/dicas"
+        ? "Gerencie e publique tickets de tips esportivas."
+        : "Bem-vindo de volta 👋";
 
   const headerTitle =
     pathname === "/dashboard/usuarios" ? "Gerenciar Usuários" : "Visão geral";
