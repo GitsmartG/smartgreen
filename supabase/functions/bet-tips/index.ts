@@ -482,15 +482,25 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Scraping opcional do HTML pra pegar mercado + odd
-    const html = await fetchBilheteHtml(url);
-    const { market, odd } = html
-      ? extractMarketAndOdd(html, parsed.betId || parsed.gameId)
-      : { market: null, odd: null };
+    // Prefere market/odd que veio direto do feed (via event_id).
+    // Se não veio, tenta scraping do HTML.
+    let market: string | null = found.feedMarket ?? null;
+    let odd: number | null = found.feedOdd ?? null;
+    let htmlOk = false;
+    if (market == null || odd == null) {
+      const html = await fetchBilheteHtml(url);
+      htmlOk = !!html;
+      if (html) {
+        const scraped = extractMarketAndOdd(html, parsed.betId || parsed.gameId);
+        market = market ?? scraped.market;
+        odd = odd ?? scraped.odd;
+      }
+    }
 
     const titulo = `${found.match.team1} x ${found.match.team2}${
       market ? ` — ${market}` : ""
     }`;
+
 
     const result: BetTipsResult = {
       ok: true,
