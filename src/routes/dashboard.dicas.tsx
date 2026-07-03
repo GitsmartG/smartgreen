@@ -503,11 +503,8 @@ function NovoTicketModal({
   // auto lookup
   const [loading, setLoading] = useState(false);
   const [feedResult, setFeedResult] = useState<FeedLookupResult | null>(null);
-  const [selectedIdx, setSelectedIdx] = useState(0);
-  const [query, setQuery] = useState("");
   const lookup = useServerFn(lookupBetInFeed);
-  const selected =
-    feedResult && feedResult.ok ? feedResult.matches[selectedIdx] : null;
+  const selected = feedResult && feedResult.ok ? feedResult.match : null;
 
   const overlay =
     "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm";
@@ -525,25 +522,29 @@ function NovoTicketModal({
 
   const parceiroLabel = PARCEIROS.find((p) => p.value === parceiro)?.label ?? "";
 
+  // Detecta parceiro pela URL e valida contra o selecionado
+  const urlParceiro: Parceiro | null = (() => {
+    const s = url.toLowerCase();
+    if (!s.trim()) return null;
+    if (s.includes("seu.bet") || s.includes("seubet")) return "seubet";
+    if (s.includes("h2.bet") || s.includes("h2bet")) return "h2bet";
+    return null;
+  })();
+  const urlMismatch = urlParceiro && urlParceiro !== parceiro;
+
   const buscarNoFeed = async () => {
-    if (!url.trim() && !query.trim()) return;
+    if (!url.trim()) return;
     setLoading(true);
     setFeedResult(null);
-    setSelectedIdx(0);
     try {
-      const r = await lookup({
-        data: {
-          url: url.trim() || undefined,
-          query: query.trim() || undefined,
-          parceiro,
-        },
-      });
+      const r = await lookup({ data: { url: url.trim(), parceiro } });
       setFeedResult(r);
     } catch (err) {
       setFeedResult({
         ok: false,
         error: err instanceof Error ? err.message : "Erro ao buscar no feed.",
-        betId: null,
+        triedIds: [],
+        parceiro,
       });
     } finally {
       setLoading(false);
@@ -566,8 +567,8 @@ function NovoTicketModal({
         odd: Number(odd) || 1.5,
         banca: Number(banca) || 10,
         esporte: selected.sport,
-        date: selected.startTs
-          ? new Date(selected.startTs * 1000).toLocaleDateString("pt-BR", {
+        date: selected.startMs
+          ? new Date(selected.startMs).toLocaleDateString("pt-BR", {
               day: "2-digit",
               month: "short",
               year: "numeric",
