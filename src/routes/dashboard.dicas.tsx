@@ -745,7 +745,7 @@ function NovoTicketModal({
 
           {/* URL */}
           <div>
-            <label className={`text-xs ${muted}`}>URL da aposta</label>
+            <label className={`text-xs ${muted}`}>URL da aposta (opcional)</label>
             <div className="flex gap-2 mt-1">
               <input
                 value={url}
@@ -756,16 +756,42 @@ function NovoTicketModal({
                 placeholder="https://..."
                 className={field}
               />
-              {mode === "auto" && (
+            </div>
+          </div>
+
+          {/* Busca por texto (funciona pro H2Bet) */}
+          {mode === "auto" && (
+            <div>
+              <label className={`text-xs ${muted}`}>
+                Buscar por time ou competição
+              </label>
+              <div className="flex gap-2 mt-1">
+                <input
+                  value={query}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setFeedResult(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void buscarNoFeed();
+                    }
+                  }}
+                  placeholder="Ex: Flamengo, Brasileirão, Real Madrid..."
+                  className={field}
+                />
                 <button
                   onClick={buscarNoFeed}
-                  disabled={loading || !url.trim()}
+                  disabled={loading || (!url.trim() && !query.trim())}
                   className={
                     "h-10 px-3 rounded-md text-sm font-medium inline-flex items-center gap-2 shrink-0 " +
                     (isDark
                       ? "bg-neutral-800 hover:bg-neutral-700 text-neutral-100"
                       : "bg-neutral-100 hover:bg-neutral-200 text-neutral-800") +
-                    (loading || !url.trim() ? " opacity-50 cursor-not-allowed" : "")
+                    (loading || (!url.trim() && !query.trim())
+                      ? " opacity-50 cursor-not-allowed"
+                      : "")
                   }
                 >
                   {loading ? (
@@ -775,9 +801,12 @@ function NovoTicketModal({
                   )}
                   Buscar
                 </button>
-              )}
+              </div>
+              <p className={`text-[11px] ${muted} mt-1.5`}>
+                Pro H2Bet o <code>bet_id</code> da URL não bate com o feed — busque pelo nome do time.
+              </p>
             </div>
-          </div>
+          )}
 
           {mode === "auto" && feedResult && (
             <div
@@ -789,25 +818,65 @@ function NovoTicketModal({
               }
             >
               {feedResult.ok ? (
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <div className="inline-flex items-center gap-1.5 text-emerald-500 font-semibold">
-                    <Check className="h-3.5 w-3.5" /> Aposta encontrada no feed
+                    <Check className="h-3.5 w-3.5" />
+                    {feedResult.kind === "id"
+                      ? "Aposta encontrada por ID"
+                      : `${feedResult.matches.length} resultado(s) — escolha um`}
                   </div>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 mt-2">
-                    <Info label="Evento" value={feedResult.event} muted={muted} />
-                    <Info label="Esporte" value={feedResult.sport} muted={muted} />
-                    <Info label="Competição" value={feedResult.competition} muted={muted} />
-                    <Info label="Região" value={feedResult.region} muted={muted} />
-                    <Info label="Bet ID" value={String(feedResult.betId)} muted={muted} />
-                    {feedResult.startTs && (
-                      <Info
-                        label="Início"
-                        value={new Date(feedResult.startTs * 1000).toLocaleString("pt-BR")}
-                        muted={muted}
-                      />
-                    )}
+
+                  <div
+                    className={
+                      "max-h-56 overflow-y-auto rounded-md border divide-y " +
+                      (isDark
+                        ? "border-neutral-800 divide-neutral-800"
+                        : "border-neutral-200 divide-neutral-200")
+                    }
+                  >
+                    {feedResult.matches.map((m, i) => {
+                      const active = i === selectedIdx;
+                      return (
+                        <button
+                          key={`${m.betId}-${i}`}
+                          onClick={() => setSelectedIdx(i)}
+                          className={
+                            "w-full text-left px-3 py-2 flex items-start justify-between gap-2 transition-colors " +
+                            (active
+                              ? isDark
+                                ? "bg-emerald-500/10"
+                                : "bg-emerald-500/10"
+                              : isDark
+                                ? "hover:bg-neutral-800"
+                                : "hover:bg-neutral-50")
+                          }
+                        >
+                          <div className="min-w-0">
+                            <div className="text-xs font-semibold truncate">
+                              {m.event}
+                            </div>
+                            <div className={"text-[11px] " + muted + " truncate"}>
+                              {m.sport} · {m.competition}
+                              {m.startTs
+                                ? " · " +
+                                  new Date(m.startTs * 1000).toLocaleString("pt-BR", {
+                                    day: "2-digit",
+                                    month: "short",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })
+                                : ""}
+                            </div>
+                          </div>
+                          {active && (
+                            <Check className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
+
+                  <div className="grid grid-cols-2 gap-2">
                     <label className="block">
                       <span className={"text-[10px] uppercase tracking-wider " + muted}>Odd</span>
                       <input
@@ -831,9 +900,16 @@ function NovoTicketModal({
                   </div>
                 </div>
               ) : (
-                <div className="inline-flex items-center gap-1.5 text-red-500">
-                  <AlertCircle className="h-3.5 w-3.5" /> {feedResult.error}
-                  {feedResult.betId && <span className={muted}>(id: {feedResult.betId})</span>}
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-1.5 text-red-500">
+                    <AlertCircle className="h-3.5 w-3.5" /> {feedResult.error}
+                    {feedResult.betId && (
+                      <span className={muted}>(id: {feedResult.betId})</span>
+                    )}
+                  </div>
+                  {feedResult.hint && (
+                    <div className={"text-[11px] " + muted}>{feedResult.hint}</div>
+                  )}
                 </div>
               )}
             </div>
