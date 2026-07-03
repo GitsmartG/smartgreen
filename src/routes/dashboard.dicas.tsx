@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { lookupBetInFeed, type FeedLookupResult } from "@/lib/feed-odds.functions";
+import { importBetTip, type BetTipsResult } from "@/lib/bet-tips";
 import { Loader2, AlertCircle } from "lucide-react";
 import {
   Search,
@@ -502,8 +501,7 @@ function NovoTicketModal({
 
   // auto lookup
   const [loading, setLoading] = useState(false);
-  const [feedResult, setFeedResult] = useState<FeedLookupResult | null>(null);
-  const lookup = useServerFn(lookupBetInFeed);
+  const [feedResult, setFeedResult] = useState<BetTipsResult | null>(null);
   const selected = feedResult && feedResult.ok ? feedResult.match : null;
 
   const overlay =
@@ -537,8 +535,13 @@ function NovoTicketModal({
     setLoading(true);
     setFeedResult(null);
     try {
-      const r = await lookup({ data: { url: url.trim(), parceiro } });
+      const r = await importBetTip(parceiro, url.trim());
       setFeedResult(r);
+      // Se veio odd/mercado do scraping, prepopula os campos
+      if (r.ok) {
+        if (r.odd != null && !odd) setOdd(String(r.odd));
+        if (r.market && !palpite) setPalpite(r.market);
+      }
     } catch (err) {
       setFeedResult({
         ok: false,
