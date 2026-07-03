@@ -75,6 +75,7 @@ function LoginPage() {
                 </a>
               </div>
               <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                 <input
                   id="password"
                   type={showPassword ? "text" : "password"}
@@ -83,7 +84,7 @@ function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full h-11 rounded-lg border border-slate-200 bg-white px-4 pr-11 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                  className="w-full h-11 rounded-lg border border-slate-200 bg-white pl-10 pr-11 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
                 />
                 <button
                   type="button"
