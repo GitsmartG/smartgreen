@@ -58,7 +58,7 @@ function DashboardLayout() {
     { label: "Usuários", icon: Users, to: "/dashboard/usuarios" },
     { label: "Dicas de Apostas", icon: Ticket, to: "/dashboard/dicas" },
     { label: "Notificações Push", icon: Bell, to: "/dashboard/notificacoes" },
-    { label: "Configurações", icon: Settings, to: "/dashboard" },
+    { label: "Configurações", icon: Settings, to: "/dashboard/configuracoes" },
   ];
 
   const headerTitle =
@@ -68,7 +68,9 @@ function DashboardLayout() {
         ? "Dicas de Apostas"
         : pathname === "/dashboard/notificacoes"
           ? "Notificações Push"
-          : "Visão geral";
+          : pathname === "/dashboard/configuracoes"
+            ? "Configurações"
+            : "Visão geral";
   const headerSub =
     pathname === "/dashboard/usuarios"
       ? "Visualize e gerencie os usuários do seu app."
@@ -76,7 +78,9 @@ function DashboardLayout() {
         ? "Gerencie e publique tickets de tips esportivas."
         : pathname === "/dashboard/notificacoes"
           ? "Envie e agende notificações push."
-          : "Bem-vindo de volta 👋";
+          : pathname === "/dashboard/configuracoes"
+            ? "Personalize seu painel e sua conta."
+            : "Bem-vindo de volta 👋";
 
 
   return (
