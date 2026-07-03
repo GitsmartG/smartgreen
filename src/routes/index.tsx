@@ -189,7 +189,11 @@ function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-11 rounded-md bg-emerald-700 text-white text-sm font-semibold transition-colors hover:bg-emerald-800 active:bg-emerald-900 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
+              style={{
+                backgroundImage:
+                  "linear-gradient(90deg, #0f5f2a 0%, #1f8a3a 55%, #54ee2b 100%)",
+              }}
+              className="w-full h-11 rounded-md text-white text-sm font-semibold transition-[filter,opacity] hover:brightness-110 active:brightness-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2 shadow-sm"
             >
               {loading ? (
                 <>
