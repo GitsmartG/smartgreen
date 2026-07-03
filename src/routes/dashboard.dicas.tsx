@@ -184,6 +184,7 @@ function DicasPage() {
             <RefreshCw className="h-4 w-4" /> Atualizar
           </button>
           <button
+            onClick={() => setModalOpen(true)}
             style={{
               backgroundImage:
                 "linear-gradient(90deg, #0f5f2a 0%, #1f8a3a 55%, #54ee2b 100%)",
