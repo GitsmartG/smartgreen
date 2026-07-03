@@ -500,6 +500,11 @@ function NovoTicketModal({
   const [banca, setBanca] = useState("10");
   const [esporte, setEsporte] = useState("Futebol");
 
+  // auto lookup
+  const [loading, setLoading] = useState(false);
+  const [feedResult, setFeedResult] = useState<FeedLookupResult | null>(null);
+  const lookup = useServerFn(lookupBetInFeed);
+
   const overlay =
     "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm";
   const box =
@@ -516,25 +521,53 @@ function NovoTicketModal({
 
   const parceiroLabel = PARCEIROS.find((p) => p.value === parceiro)?.label ?? "";
 
+  const buscarNoFeed = async () => {
+    if (!url.trim()) return;
+    setLoading(true);
+    setFeedResult(null);
+    try {
+      const r = await lookup({ data: { url, parceiro } });
+      setFeedResult(r);
+    } catch (err) {
+      setFeedResult({
+        ok: false,
+        error: err instanceof Error ? err.message : "Erro ao buscar no feed.",
+        betId: null,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const submit = () => {
     if (mode === "auto") {
       if (!url.trim()) return;
-      // "buscar aposta" fake: gera um ticket a partir da URL
+      if (!feedResult) {
+        void buscarNoFeed();
+        return;
+      }
+      if (!feedResult.ok) return;
       onCreate({
-        id: crypto.randomUUID().slice(0, 8).toUpperCase(),
+        id: String(feedResult.betId).slice(-8).toUpperCase(),
         status: "ao_vivo",
         type: "Simples",
-        league: parceiroLabel,
-        event: "Aposta importada",
+        league: feedResult.competition,
+        event: feedResult.event,
         palpite: "Palpite importado do parceiro",
-        odd: 1.5,
-        banca: 10,
-        esporte: "Futebol",
-        date: new Date().toLocaleDateString("pt-BR", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        }),
+        odd: Number(odd) || 1.5,
+        banca: Number(banca) || 10,
+        esporte: feedResult.sport,
+        date: feedResult.startTs
+          ? new Date(feedResult.startTs * 1000).toLocaleDateString("pt-BR", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+          : new Date().toLocaleDateString("pt-BR", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            }),
         entradas: 1,
         parceiro,
         url,
@@ -566,6 +599,7 @@ function NovoTicketModal({
   return (
     <div className={overlay} onClick={onClose}>
       <div className={box} onClick={(e) => e.stopPropagation()}>
+
         {/* Header */}
         <div className="p-5 flex items-start justify-between">
           <div className="flex items-start gap-3">
