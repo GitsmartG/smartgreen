@@ -952,3 +952,12 @@ function ParceiroBadge({ parceiro }: { parceiro: Parceiro }) {
     </span>
   );
 }
+
+function Info({ label, value, muted }: { label: string; value: string; muted: string }) {
+  return (
+    <div>
+      <div className={"text-[10px] uppercase tracking-wider " + muted}>{label}</div>
+      <div className="text-xs font-medium truncate">{value || "—"}</div>
+    </div>
+  );
+}
