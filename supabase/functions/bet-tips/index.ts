@@ -255,25 +255,34 @@ function walkFeedGames(
 }
 
 function gameMatchesCandidate(game: any, cand: string): string | null {
-  // Compara candidate contra qualquer campo numérico/string do game
-  // que pareça ser um ID (id, game_id, betradar_id, etc.)
+  // 1) Campos diretos de ID
   for (const [k, v] of Object.entries(game)) {
-    if (v == null) continue;
-    if (typeof v === "object") continue;
-    const s = String(v);
-    if (s !== cand) continue;
-    if (
-      /id$/i.test(k) ||
-      /number$/i.test(k) ||
-      k === "id" ||
-      k === "game_id" ||
-      k === "game_number"
-    ) {
+    if (v == null || typeof v === "object") continue;
+    if (String(v) !== cand) continue;
+    if (/id$/i.test(k) || /number$/i.test(k) || k === "id" || k === "game_id") {
       return k;
     }
   }
-  return null;
+  // 2) Procura em markets → events (bet_id do Betconstruct = event id)
+  const markets = game.market || game.markets || {};
+  const iter = (obj: any, cb: (v: any) => void) => {
+    if (Array.isArray(obj)) obj.forEach(cb);
+    else if (obj && typeof obj === "object") Object.values(obj).forEach(cb);
+  };
+  let hit: string | null = null;
+  iter(markets, (m) => {
+    if (hit) return;
+    const events = m?.event || m?.events || {};
+    iter(events, (ev) => {
+      if (hit) return;
+      if (ev && typeof ev === "object" && String(ev.id ?? "") === cand) {
+        hit = "event_id";
+      }
+    });
+  });
+  return hit;
 }
+
 
 function findGameInFeed(
   feed: any,
