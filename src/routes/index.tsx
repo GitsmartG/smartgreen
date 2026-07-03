@@ -65,12 +65,20 @@ function LoginPage() {
       <div className="w-full max-w-md">
         <div
           className={
-            "rounded-lg border p-8 sm:p-10 transition-colors " +
+            "relative overflow-hidden rounded-lg border p-8 sm:p-10 transition-colors " +
             (isDark
               ? "bg-neutral-900 border-neutral-800"
               : "bg-white border-neutral-200")
           }
         >
+          <div
+            aria-hidden
+            className="absolute inset-x-0 top-0 h-0.5"
+            style={{
+              backgroundImage:
+                "linear-gradient(90deg, #0f5f2a 0%, #1f8a3a 55%, #54ee2b 100%)",
+            }}
+          />
           <div className="flex flex-col items-center mb-8">
             <img
               src={LOGO_URL}
