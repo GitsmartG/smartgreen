@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Users,
+  Ticket,
   Settings,
   LogOut,
   Sun,
@@ -54,15 +55,22 @@ function DashboardLayout() {
   const nav = [
     { label: "Visão geral", icon: LayoutDashboard, to: "/dashboard" },
     { label: "Usuários", icon: Users, to: "/dashboard/usuarios" },
+    { label: "Dicas de Apostas", icon: Ticket, to: "/dashboard/dicas" },
     { label: "Configurações", icon: Settings, to: "/dashboard" },
   ];
 
   const headerTitle =
-    pathname === "/dashboard/usuarios" ? "Gerenciar Usuários" : "Visão geral";
+    pathname === "/dashboard/usuarios"
+      ? "Gerenciar Usuários"
+      : pathname === "/dashboard/dicas"
+        ? "Dicas de Apostas"
+        : "Visão geral";
   const headerSub =
     pathname === "/dashboard/usuarios"
       ? "Visualize e gerencie os usuários do seu app."
-      : "Bem-vindo de volta 👋";
+      : pathname === "/dashboard/dicas"
+        ? "Gerencie e publique tickets de tips esportivas."
+        : "Bem-vindo de volta 👋";
 
   return (
     <div className={`min-h-screen font-sans flex ${bg} ${text} transition-colors`}>
