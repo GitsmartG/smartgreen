@@ -535,8 +535,13 @@ function NovoTicketModal({
     setLoading(true);
     setFeedResult(null);
     try {
-      const r = await lookup({ data: { url: url.trim(), parceiro } });
+      const r = await importBetTip(parceiro, url.trim());
       setFeedResult(r);
+      // Se veio odd/mercado do scraping, prepopula os campos
+      if (r.ok) {
+        if (r.odd != null && !odd) setOdd(String(r.odd));
+        if (r.market && !palpite) setPalpite(r.market);
+      }
     } catch (err) {
       setFeedResult({
         ok: false,
