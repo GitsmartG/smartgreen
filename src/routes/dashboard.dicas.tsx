@@ -9,8 +9,19 @@ import {
   TrendingUp,
   Calendar,
   Eye,
+  X,
+  Wand2,
+  Pencil,
+  Sparkles,
+  Check,
 } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
+
+type Parceiro = "seubet" | "h2bet";
+const PARCEIROS: { value: Parceiro; label: string; hint?: string }[] = [
+  { value: "seubet", label: "SeuBet" },
+  { value: "h2bet", label: "H2Bet", hint: "(manual)" },
+];
 
 type TipStatus = "ao_vivo" | "green" | "red";
 
