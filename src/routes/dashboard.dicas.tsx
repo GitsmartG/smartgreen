@@ -1,5 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
+import { lookupBetInFeed, type FeedLookupResult } from "@/lib/feed-odds.functions";
+import { Loader2, AlertCircle } from "lucide-react";
 import {
   Search,
   RefreshCw,
