@@ -526,11 +526,18 @@ function NovoTicketModal({
   const parceiroLabel = PARCEIROS.find((p) => p.value === parceiro)?.label ?? "";
 
   const buscarNoFeed = async () => {
-    if (!url.trim()) return;
+    if (!url.trim() && !query.trim()) return;
     setLoading(true);
     setFeedResult(null);
+    setSelectedIdx(0);
     try {
-      const r = await lookup({ data: { url, parceiro } });
+      const r = await lookup({
+        data: {
+          url: url.trim() || undefined,
+          query: query.trim() || undefined,
+          parceiro,
+        },
+      });
       setFeedResult(r);
     } catch (err) {
       setFeedResult({
@@ -545,24 +552,22 @@ function NovoTicketModal({
 
   const submit = () => {
     if (mode === "auto") {
-      if (!url.trim()) return;
-      if (!feedResult) {
+      if (!feedResult || !feedResult.ok || !selected) {
         void buscarNoFeed();
         return;
       }
-      if (!feedResult.ok) return;
       onCreate({
-        id: String(feedResult.betId).slice(-8).toUpperCase(),
+        id: String(selected.betId).slice(-8).toUpperCase(),
         status: "ao_vivo",
         type: "Simples",
-        league: feedResult.competition,
-        event: feedResult.event,
+        league: selected.competition,
+        event: selected.event,
         palpite: "Palpite importado do parceiro",
         odd: Number(odd) || 1.5,
         banca: Number(banca) || 10,
-        esporte: feedResult.sport,
-        date: feedResult.startTs
-          ? new Date(feedResult.startTs * 1000).toLocaleDateString("pt-BR", {
+        esporte: selected.sport,
+        date: selected.startTs
+          ? new Date(selected.startTs * 1000).toLocaleDateString("pt-BR", {
               day: "2-digit",
               month: "short",
               year: "numeric",
@@ -574,7 +579,7 @@ function NovoTicketModal({
             }),
         entradas: 1,
         parceiro,
-        url,
+        url: url || undefined,
       });
     } else {
       if (!event.trim() || !palpite.trim() || !odd) return;
