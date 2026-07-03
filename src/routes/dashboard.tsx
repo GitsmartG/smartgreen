@@ -83,7 +83,7 @@ function DashboardPage() {
             <button
               key={item.label}
               className={
-                "w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors " +
+                "w-full flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-colors " +
                 (item.active
                   ? isDark
                     ? "bg-neutral-800 text-white"
@@ -93,7 +93,7 @@ function DashboardPage() {
                     : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900")
               }
             >
-              <item.icon className="h-4 w-4" />
+              <item.icon className="h-6 w-6 shrink-0" strokeWidth={1.75} />
               {item.label}
             </button>
           ))}
@@ -102,13 +102,13 @@ function DashboardPage() {
           <button
             onClick={handleLogout}
             className={
-              "w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors " +
+              "w-full flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-colors " +
               (isDark
                 ? "text-neutral-400 hover:bg-neutral-800 hover:text-white"
                 : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900")
             }
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-6 w-6 shrink-0" strokeWidth={1.75} />
             Sair
           </button>
         </div>
