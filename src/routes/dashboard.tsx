@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Users,
   Ticket,
+  Bell,
   Settings,
   LogOut,
   Sun,
