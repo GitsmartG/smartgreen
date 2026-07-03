@@ -563,7 +563,7 @@ function NovoTicketModal({
         type: "Simples",
         league: selected.competition,
         event: selected.event,
-        palpite: "Palpite importado do parceiro",
+        palpite: palpite.trim() || "Palpite do parceiro",
         odd: Number(odd) || 1.5,
         banca: Number(banca) || 10,
         esporte: selected.sport,
