@@ -511,7 +511,8 @@ Deno.serve(async (req) => {
       market,
       odd,
       titulo_sugerido: titulo,
-      htmlOk: !!html,
+      htmlOk,
+
     };
     return json(result);
   } catch (err) {
