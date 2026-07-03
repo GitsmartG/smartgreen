@@ -37,6 +37,8 @@ function LoginPage() {
     localStorage.setItem("sg-theme", theme);
   }, [theme]);
 
+  const navigate = useNavigate();
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -45,7 +47,11 @@ function LoginPage() {
       return;
     }
     setLoading(true);
-    setTimeout(() => setLoading(false), 1200);
+    setTimeout(() => {
+      setLoading(false);
+      localStorage.setItem("sg-auth", "1");
+      navigate({ to: "/dashboard" });
+    }, 900);
   };
 
   const isDark = theme === "dark";
