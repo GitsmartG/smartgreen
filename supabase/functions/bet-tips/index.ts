@@ -254,6 +254,27 @@ function walkFeedGames(
   return out;
 }
 
+function gameMatchesCandidate(game: any, cand: string): string | null {
+  // Compara candidate contra qualquer campo numérico/string do game
+  // que pareça ser um ID (id, game_id, betradar_id, etc.)
+  for (const [k, v] of Object.entries(game)) {
+    if (v == null) continue;
+    if (typeof v === "object") continue;
+    const s = String(v);
+    if (s !== cand) continue;
+    if (
+      /id$/i.test(k) ||
+      /number$/i.test(k) ||
+      k === "id" ||
+      k === "game_id" ||
+      k === "game_number"
+    ) {
+      return k;
+    }
+  }
+  return null;
+}
+
 function findGameInFeed(
   feed: any,
   candidates: string[],
@@ -261,33 +282,32 @@ function findGameInFeed(
   const games = walkFeedGames(feed);
   for (const cand of candidates) {
     for (const { game, sport, region, competition } of games) {
-      const id = String(game.id ?? "");
-      const gnum = String(game.game_number ?? "");
-      if (id === cand || gnum === cand) {
-        const team1 =
-          game.team1_name || game.team1 || game.home || game.home_team || "";
-        const team2 =
-          game.team2_name || game.team2 || game.away || game.away_team || "";
-        return {
-          matchedBy: id === cand ? "id" : "game_number",
-          matchedValue: cand,
-          match: {
-            sport,
-            region,
-            competition,
-            event: `${team1} x ${team2}`.trim(),
-            team1: String(team1),
-            team2: String(team2),
-            betId: String(game.id ?? cand),
-            gameNumber: game.game_number ?? null,
-            startMs: parseStartTs(game.start_ts ?? game.startTs ?? game.start_time),
-          },
-        };
-      }
+      const matchedField = gameMatchesCandidate(game, cand);
+      if (!matchedField) continue;
+      const team1 =
+        game.team1_name || game.team1 || game.home || game.home_team || "";
+      const team2 =
+        game.team2_name || game.team2 || game.away || game.away_team || "";
+      return {
+        matchedBy: matchedField === "game_number" ? "game_number" : "id",
+        matchedValue: cand,
+        match: {
+          sport,
+          region,
+          competition,
+          event: `${team1} x ${team2}`.trim(),
+          team1: String(team1),
+          team2: String(team2),
+          betId: String(game.id ?? cand),
+          gameNumber: game.game_number ?? null,
+          startMs: parseStartTs(game.start_ts ?? game.startTs ?? game.start_time),
+        },
+      };
     }
   }
   return null;
 }
+
 
 // ------------------------------------------------------------------
 // HTML scraping do bilhete (mercado + odd)
