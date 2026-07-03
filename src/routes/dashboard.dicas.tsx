@@ -501,8 +501,7 @@ function NovoTicketModal({
 
   // auto lookup
   const [loading, setLoading] = useState(false);
-  const [feedResult, setFeedResult] = useState<FeedLookupResult | null>(null);
-  const lookup = useServerFn(lookupBetInFeed);
+  const [feedResult, setFeedResult] = useState<BetTipsResult | null>(null);
   const selected = feedResult && feedResult.ok ? feedResult.match : null;
 
   const overlay =
