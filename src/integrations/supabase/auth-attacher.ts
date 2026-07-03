@@ -6,8 +6,15 @@ import { supabase } from './client'
 // the browser never attaches the bearer token to serverFn RPCs.
 export const attachSupabaseAuth = createMiddleware({ type: 'function' }).client(
   async ({ next }) => {
-    const { data } = await supabase.auth.getSession()
-    const token = data.session?.access_token
+    let token: string | undefined
+    if (typeof window !== 'undefined') {
+      try {
+        const result = await supabase.auth.getSession()
+        token = result?.data?.session?.access_token
+      } catch {
+        token = undefined
+      }
+    }
     return next({
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
