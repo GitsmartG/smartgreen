@@ -115,6 +115,26 @@ function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignup && (
+              <Field
+                id="name"
+                label="Nome completo"
+                icon={<User className="h-4 w-4" />}
+                isDark={isDark}
+              >
+                <input
+                  id="name"
+                  type="text"
+                  required
+                  autoComplete="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Seu nome"
+                  className={inputCls(isDark, false)}
+                />
+              </Field>
+            )}
+
             <Field
               id="email"
               label="E-mail"
@@ -135,6 +155,29 @@ function LoginPage() {
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
+                <label
+                  htmlFor="password"
+                  className={
+                    "block text-sm font-medium " +
+                    (isDark ? "text-neutral-300" : "text-neutral-700")
+                  }
+                >
+                  Senha
+                </label>
+                {!isSignup && (
+                  <a
+                    href="#"
+                    className={
+                      "text-xs font-medium " +
+                      (isDark
+                        ? "text-emerald-400 hover:text-emerald-300"
+                        : "text-emerald-700 hover:text-emerald-800")
+                    }
+                  >
+                    Esqueci minha senha
+                  </a>
+                )}
+              </div>
                 <label
                   htmlFor="password"
                   className={
