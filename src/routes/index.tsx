@@ -178,27 +178,6 @@ function LoginPage() {
                   </a>
                 )}
               </div>
-                <label
-                  htmlFor="password"
-                  className={
-                    "block text-sm font-medium " +
-                    (isDark ? "text-neutral-300" : "text-neutral-700")
-                  }
-                >
-                  Senha
-                </label>
-                <a
-                  href="#"
-                  className={
-                    "text-xs font-medium " +
-                    (isDark
-                      ? "text-emerald-400 hover:text-emerald-300"
-                      : "text-emerald-700 hover:text-emerald-800")
-                  }
-                >
-                  Esqueci minha senha
-                </a>
-              </div>
               <div className="relative">
                 <Lock
                   className={
