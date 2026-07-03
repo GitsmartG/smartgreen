@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
-import { Eye, EyeOff, Loader2, Mail, Lock, Sun, Moon } from "lucide-react";
+import { Eye, EyeOff, Loader2, Mail, Lock, Sun, Moon, User } from "lucide-react";
 
 const LOGO_URL =
   "https://wffylwohekfpecslflgc.supabase.co/storage/v1/object/public/files/uploads/t7QtTgpHfAeBSDZvo5b7DViqtR73/1783110032648-mkbpm-logo_smartgreen.png";
