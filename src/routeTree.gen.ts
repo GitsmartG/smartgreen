@@ -13,6 +13,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as DashboardUsuariosRouteImport } from './routes/dashboard.usuarios'
+import { Route as DashboardNotificacoesRouteImport } from './routes/dashboard.notificacoes'
 import { Route as DashboardDicasRouteImport } from './routes/dashboard.dicas'
 
 const DashboardRoute = DashboardRouteImport.update({
@@ -35,6 +36,11 @@ const DashboardUsuariosRoute = DashboardUsuariosRouteImport.update({
   path: '/usuarios',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardNotificacoesRoute = DashboardNotificacoesRouteImport.update({
+  id: '/notificacoes',
+  path: '/notificacoes',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardDicasRoute = DashboardDicasRouteImport.update({
   id: '/dicas',
   path: '/dicas',
@@ -45,12 +51,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/dashboard/dicas': typeof DashboardDicasRoute
+  '/dashboard/notificacoes': typeof DashboardNotificacoesRoute
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard/dicas': typeof DashboardDicasRoute
+  '/dashboard/notificacoes': typeof DashboardNotificacoesRoute
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard': typeof DashboardIndexRoute
 }
@@ -59,6 +67,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/dashboard/dicas': typeof DashboardDicasRoute
+  '/dashboard/notificacoes': typeof DashboardNotificacoesRoute
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
@@ -68,15 +77,22 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/dashboard/dicas'
+    | '/dashboard/notificacoes'
     | '/dashboard/usuarios'
     | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard/dicas' | '/dashboard/usuarios' | '/dashboard'
+  to:
+    | '/'
+    | '/dashboard/dicas'
+    | '/dashboard/notificacoes'
+    | '/dashboard/usuarios'
+    | '/dashboard'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
     | '/dashboard/dicas'
+    | '/dashboard/notificacoes'
     | '/dashboard/usuarios'
     | '/dashboard/'
   fileRoutesById: FileRoutesById
@@ -116,6 +132,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardUsuariosRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/notificacoes': {
+      id: '/dashboard/notificacoes'
+      path: '/notificacoes'
+      fullPath: '/dashboard/notificacoes'
+      preLoaderRoute: typeof DashboardNotificacoesRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/dicas': {
       id: '/dashboard/dicas'
       path: '/dicas'
@@ -128,12 +151,14 @@ declare module '@tanstack/react-router' {
 
 interface DashboardRouteChildren {
   DashboardDicasRoute: typeof DashboardDicasRoute
+  DashboardNotificacoesRoute: typeof DashboardNotificacoesRoute
   DashboardUsuariosRoute: typeof DashboardUsuariosRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardDicasRoute: DashboardDicasRoute,
+  DashboardNotificacoesRoute: DashboardNotificacoesRoute,
   DashboardUsuariosRoute: DashboardUsuariosRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }
