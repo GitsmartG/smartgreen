@@ -48,33 +48,39 @@ interface BetTipsResult {
 }
 
 // ------------------------------------------------------------------
-// Proxy helper (Bright Data via Deno.createHttpClient)
+// Fetch helpers
 // ------------------------------------------------------------------
-let cachedClient: Deno.HttpClient | null = null;
-function getProxyClient(): Deno.HttpClient | null {
-  if (cachedClient) return cachedClient;
+// O runtime edge do Supabase NÃO suporta Deno.createHttpClient / proxy
+// via CONNECT. Se PROXY_HOST estiver configurado, a gente tenta usar
+// mesmo assim (funciona em runtimes que suportam) e cai pra fetch
+// direto se falhar. Feedodds funciona direto sem proxy; só o HTML da
+// casa de apostas geralmente precisa.
+let cachedClient: any = null;
+let clientTried = false;
+function getProxyClient(): any {
+  if (clientTried) return cachedClient;
+  clientTried = true;
   const host = Deno.env.get("PROXY_HOST");
   const port = Deno.env.get("PROXY_PORT");
   const user = Deno.env.get("PROXY_USER");
   const pass = Deno.env.get("PROXY_PASS");
-  if (!host || !port) return null;
+  // @ts-ignore
+  if (!host || !port || typeof Deno.createHttpClient !== "function") return null;
   try {
     const auth = user && pass
       ? `${encodeURIComponent(user)}:${encodeURIComponent(pass)}@`
       : "";
-    const proxyUrl = `http://${auth}${host}:${port}`;
-    // @ts-ignore Deno.createHttpClient exists on Deno runtime
-    cachedClient = Deno.createHttpClient({ proxy: { url: proxyUrl } }) as Deno.HttpClient;
+    // @ts-ignore
+    cachedClient = Deno.createHttpClient({ proxy: { url: `http://${auth}${host}:${port}` } });
     return cachedClient;
   } catch (err) {
-    console.error("Falha criando proxy client:", err);
+    console.warn("Falha criando proxy client (esperado no edge runtime):", err);
     return null;
   }
 }
 
-async function proxiedFetch(url: string, init: RequestInit = {}) {
-  const client = getProxyClient();
-  const merged: any = {
+async function plainFetch(url: string, init: RequestInit = {}) {
+  return fetch(url, {
     ...init,
     headers: {
       "User-Agent":
@@ -82,9 +88,29 @@ async function proxiedFetch(url: string, init: RequestInit = {}) {
       "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
       ...(init.headers || {}),
     },
-  };
-  if (client) merged.client = client;
-  return fetch(url, merged);
+  });
+}
+
+async function proxiedFetch(url: string, init: RequestInit = {}) {
+  const client = getProxyClient();
+  if (client) {
+    try {
+      const merged: any = {
+        ...init,
+        client,
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+          "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+          ...(init.headers || {}),
+        },
+      };
+      return await fetch(url, merged);
+    } catch (err) {
+      console.warn("Proxy fetch falhou, tentando direto:", err);
+    }
+  }
+  return plainFetch(url, init);
 }
 
 // ------------------------------------------------------------------
