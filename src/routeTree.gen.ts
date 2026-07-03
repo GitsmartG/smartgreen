@@ -13,6 +13,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as DashboardUsuariosRouteImport } from './routes/dashboard.usuarios'
+import { Route as DashboardDicasRouteImport } from './routes/dashboard.dicas'
 
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
@@ -34,15 +35,22 @@ const DashboardUsuariosRoute = DashboardUsuariosRouteImport.update({
   path: '/usuarios',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardDicasRoute = DashboardDicasRouteImport.update({
+  id: '/dicas',
+  path: '/dicas',
+  getParentRoute: () => DashboardRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/dashboard/dicas': typeof DashboardDicasRoute
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/dashboard/dicas': typeof DashboardDicasRoute
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard': typeof DashboardIndexRoute
 }
@@ -50,15 +58,27 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/dashboard/dicas': typeof DashboardDicasRoute
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/dashboard/usuarios' | '/dashboard/'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/dashboard/dicas'
+    | '/dashboard/usuarios'
+    | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard/usuarios' | '/dashboard'
-  id: '__root__' | '/' | '/dashboard' | '/dashboard/usuarios' | '/dashboard/'
+  to: '/' | '/dashboard/dicas' | '/dashboard/usuarios' | '/dashboard'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/dashboard/dicas'
+    | '/dashboard/usuarios'
+    | '/dashboard/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -96,15 +116,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardUsuariosRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/dicas': {
+      id: '/dashboard/dicas'
+      path: '/dicas'
+      fullPath: '/dashboard/dicas'
+      preLoaderRoute: typeof DashboardDicasRouteImport
+      parentRoute: typeof DashboardRoute
+    }
   }
 }
 
 interface DashboardRouteChildren {
+  DashboardDicasRoute: typeof DashboardDicasRoute
   DashboardUsuariosRoute: typeof DashboardUsuariosRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardDicasRoute: DashboardDicasRoute,
   DashboardUsuariosRoute: DashboardUsuariosRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }
