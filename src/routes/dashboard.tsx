@@ -68,7 +68,9 @@ function DashboardLayout() {
         ? "Dicas de Apostas"
         : pathname === "/dashboard/notificacoes"
           ? "Notificações Push"
-          : "Visão geral";
+          : pathname === "/dashboard/configuracoes"
+            ? "Configurações"
+            : "Visão geral";
   const headerSub =
     pathname === "/dashboard/usuarios"
       ? "Visualize e gerencie os usuários do seu app."
@@ -76,7 +78,9 @@ function DashboardLayout() {
         ? "Gerencie e publique tickets de tips esportivas."
         : pathname === "/dashboard/notificacoes"
           ? "Envie e agende notificações push."
-          : "Bem-vindo de volta 👋";
+          : pathname === "/dashboard/configuracoes"
+            ? "Personalize seu painel e sua conta."
+            : "Bem-vindo de volta 👋";
 
 
   return (
