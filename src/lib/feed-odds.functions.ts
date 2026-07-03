@@ -1,11 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 
 type FeedGame = {
-  id: number;
+  id: number | string;
   team1_name?: string;
   team2_name?: string;
-  start_ts?: number;
-  game_number?: number;
+  start_ts?: number | string;
+  game_number?: number | string;
 };
 
 type Feed = {
@@ -35,9 +35,9 @@ const FEEDS = {
     "https://feedodds.com/feed/json?language=por_2&timeZone=UTC&brandId=18749751&key=f3609270d523d50c90eb13de4153fd00",
 } as const;
 
-type Parceiro = keyof typeof FEEDS;
+export type Parceiro = keyof typeof FEEDS;
 
-// Cache leve por processo (5min) — evita bater feed a cada busca.
+// Cache do feed por 5 min (por processo)
 const feedCache = new Map<Parceiro, { at: number; data: Feed }>();
 const CACHE_TTL = 5 * 60 * 1000;
 
@@ -51,35 +51,47 @@ async function getFeed(parceiro: Parceiro): Promise<Feed> {
   return data;
 }
 
-function extractBetId(url: string): number | null {
-  try {
-    const u = new URL(url);
-    const params = ["bet_id", "game_id", "id", "gameId", "betId"];
-    for (const p of params) {
-      const v = u.searchParams.get(p);
-      if (v && /^\d+$/.test(v)) return Number(v);
-    }
-    const last = url.match(/(\d{6,})(?!.*\d{6,})/);
-    if (last) return Number(last[1]);
-  } catch {
-    const m = url.match(/(\d{6,})/);
-    if (m) return Number(m[1]);
-  }
+// Detecta o parceiro pelo domínio da URL
+export function detectParceiroFromUrl(url: string): Parceiro | null {
+  const s = url.toLowerCase();
+  if (/(?:^|\/\/|\.)seu\.?bet(?:\.|\/)/.test(s) || s.includes("seubet")) return "seubet";
+  if (/(?:^|\/\/|\.)h2\.?bet(?:\.|\/)/.test(s) || s.includes("h2bet")) return "h2bet";
   return null;
 }
 
-function norm(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9 ]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+// Extrai TODOS os números candidatos da URL (>=4 dígitos), ordenados por prioridade
+function extractCandidateIds(url: string): number[] {
+  const cands = new Set<number>();
+  try {
+    const u = new URL(url);
+    // params conhecidos primeiro
+    for (const p of ["bet_id", "game_id", "id", "gameId", "betId", "eventId", "event_id"]) {
+      const v = u.searchParams.get(p);
+      if (v && /^\d+$/.test(v)) cands.add(Number(v));
+    }
+  } catch {
+    /* ignora URL malformada */
+  }
+  // depois qualquer número >=4 dígitos que aparecer na string
+  const all = url.match(/\d{4,}/g) ?? [];
+  for (const n of all) cands.add(Number(n));
+  return [...cands];
 }
 
-type Match = {
+// start_ts pode vir como "YYYY-MM-DD HH:MM:SS" (UTC) ou unix seconds
+function parseStart(v: FeedGame["start_ts"]): number | null {
+  if (v == null) return null;
+  if (typeof v === "number") return v * 1000;
+  if (/^\d+$/.test(v)) return Number(v) * 1000;
+  // "2026-07-03 22:00:00" -> ISO com Z (feed é UTC)
+  const iso = v.replace(" ", "T") + "Z";
+  const t = Date.parse(iso);
+  return Number.isNaN(t) ? null : t;
+}
+
+export type FeedMatch = {
   betId: number;
+  gameNumber: number | null;
   parceiro: Parceiro;
   sport: string;
   competition: string;
@@ -87,104 +99,101 @@ type Match = {
   event: string;
   team1: string;
   team2: string;
-  startTs: number | null;
+  startMs: number | null;
 };
 
-function walkFeed(feed: Feed, parceiro: Parceiro, cb: (m: Match) => void) {
-  for (const sport of Object.values(feed.sport ?? {})) {
-    for (const region of Object.values(sport.region ?? {})) {
-      for (const comp of Object.values(region.competition ?? {})) {
-        for (const game of Object.values(comp.game ?? {})) {
-          const team1 = game.team1_name ?? "";
-          const team2 = game.team2_name ?? "";
-          cb({
-            betId: Number(game.id),
-            parceiro,
-            sport: sport.name,
-            competition: comp.name,
-            region: region.alias,
-            event: team1 && team2 ? `${team1} x ${team2}` : team1 || team2 || comp.name,
-            team1,
-            team2,
-            startTs: game.start_ts ?? null,
-          });
-        }
-      }
-    }
-  }
-}
-
 export type FeedLookupResult =
-  | { ok: true; kind: "id" | "search"; matches: Match[] }
-  | { ok: false; error: string; betId: number | null; hint?: string };
+  | { ok: true; match: FeedMatch; matchedBy: "id" | "game_number"; matchedValue: number }
+  | { ok: false; error: string; triedIds: number[]; parceiro: Parceiro | null };
 
 export const lookupBetInFeed = createServerFn({ method: "POST" })
-  .inputValidator((input: { url?: string; query?: string; parceiro: Parceiro }) => {
-    if (input.parceiro !== "seubet" && input.parceiro !== "h2bet")
-      throw new Error("parceiro inválido");
-    if (!input.url && !input.query) throw new Error("informe url ou query");
+  .inputValidator((input: { url: string; parceiro?: Parceiro }) => {
+    if (!input || typeof input.url !== "string" || !input.url.trim())
+      throw new Error("url obrigatória");
     return input;
   })
   .handler(async ({ data }): Promise<FeedLookupResult> => {
+    const detected = detectParceiroFromUrl(data.url);
+    const parceiro = detected ?? data.parceiro ?? null;
+
+    if (!parceiro)
+      return {
+        ok: false,
+        error: "Não reconheci o parceiro da URL. Use um link do SeuBet ou H2Bet.",
+        triedIds: [],
+        parceiro: null,
+      };
+
+    if (data.parceiro && detected && detected !== data.parceiro)
+      return {
+        ok: false,
+        error: `URL é do ${detected === "seubet" ? "SeuBet" : "H2Bet"}, mas o parceiro selecionado é ${data.parceiro === "seubet" ? "SeuBet" : "H2Bet"}. Troca o parceiro ou cola a URL certa.`,
+        triedIds: [],
+        parceiro: detected,
+      };
+
+    const candidates = extractCandidateIds(data.url);
+    if (candidates.length === 0)
+      return {
+        ok: false,
+        error: "Não achei nenhum ID numérico na URL.",
+        triedIds: [],
+        parceiro,
+      };
+
     let feed: Feed;
     try {
-      feed = await getFeed(data.parceiro);
+      feed = await getFeed(parceiro);
     } catch (e) {
       return {
         ok: false,
-        error: e instanceof Error ? e.message : "Erro no feed",
-        betId: null,
+        error: e instanceof Error ? e.message : "Erro ao buscar o feed",
+        triedIds: candidates,
+        parceiro,
       };
     }
 
-    // 1) tentativa por ID quando temos URL
-    const betId = data.url ? extractBetId(data.url) : null;
-    if (betId) {
-      const found: Match[] = [];
-      walkFeed(feed, data.parceiro, (m) => {
-        if (m.betId === betId) found.push(m);
-      });
-      if (found.length > 0) return { ok: true, kind: "id", matches: found };
+    // Indexa feed por id e por game_number
+    const byId = new Map<number, FeedMatch>();
+    const byGameNumber = new Map<number, FeedMatch>();
+    for (const sport of Object.values(feed.sport ?? {})) {
+      for (const region of Object.values(sport.region ?? {})) {
+        for (const comp of Object.values(region.competition ?? {})) {
+          for (const game of Object.values(comp.game ?? {})) {
+            const team1 = game.team1_name ?? "";
+            const team2 = game.team2_name ?? "";
+            const m: FeedMatch = {
+              betId: Number(game.id),
+              gameNumber: game.game_number != null ? Number(game.game_number) : null,
+              parceiro,
+              sport: sport.name,
+              competition: comp.name,
+              region: region.alias,
+              event: team1 && team2 ? `${team1} x ${team2}` : team1 || team2 || comp.name,
+              team1,
+              team2,
+              startMs: parseStart(game.start_ts),
+            };
+            byId.set(m.betId, m);
+            if (m.gameNumber != null) byGameNumber.set(m.gameNumber, m);
+          }
+        }
+      }
     }
 
-    // 2) fallback: busca textual. Deriva query da URL se não veio explícita.
-    const queryRaw =
-      data.query?.trim() ||
-      (data.url
-        ? decodeURIComponent(data.url)
-            .replace(/https?:\/\/[^/]+/, "")
-            .replace(/[?&#].*$/, "")
-            .replace(/[/_-]+/g, " ")
-            .replace(/\d+/g, " ")
-            .trim()
-        : "");
-
-    if (queryRaw && queryRaw.length >= 2) {
-      const tokens = norm(queryRaw).split(" ").filter((t) => t.length >= 2);
-      if (tokens.length > 0) {
-        const scored: { m: Match; score: number }[] = [];
-        walkFeed(feed, data.parceiro, (m) => {
-          const hay = norm(`${m.team1} ${m.team2} ${m.competition} ${m.region}`);
-          let score = 0;
-          for (const t of tokens) if (hay.includes(t)) score += 1;
-          if (score > 0) scored.push({ m, score });
-        });
-        scored.sort((a, b) => b.score - a.score || (a.m.startTs ?? 0) - (b.m.startTs ?? 0));
-        const top = scored.slice(0, 20).map((s) => s.m);
-        if (top.length > 0) return { ok: true, kind: "search", matches: top };
-      }
+    for (const cand of candidates) {
+      const hit = byId.get(cand);
+      if (hit) return { ok: true, match: hit, matchedBy: "id", matchedValue: cand };
+    }
+    for (const cand of candidates) {
+      const hit = byGameNumber.get(cand);
+      if (hit) return { ok: true, match: hit, matchedBy: "game_number", matchedValue: cand };
     }
 
     return {
       ok: false,
-      error:
-        betId != null
-          ? "Aposta não encontrada por ID. Tente buscar pelos nomes dos times."
-          : "Nada encontrado. Digite o nome de um time ou da competição.",
-      betId,
-      hint:
-        data.parceiro === "h2bet"
-          ? "O bet_id do H2Bet não bate com o game_id do feed. Use a busca por time."
-          : undefined,
+      error: "Aposta não encontrada no feed desse parceiro.",
+      triedIds: candidates,
+      parceiro,
     };
   });
