@@ -503,7 +503,11 @@ function NovoTicketModal({
   // auto lookup
   const [loading, setLoading] = useState(false);
   const [feedResult, setFeedResult] = useState<FeedLookupResult | null>(null);
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const [query, setQuery] = useState("");
   const lookup = useServerFn(lookupBetInFeed);
+  const selected =
+    feedResult && feedResult.ok ? feedResult.matches[selectedIdx] : null;
 
   const overlay =
     "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm";
