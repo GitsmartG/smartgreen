@@ -277,6 +277,17 @@ function DicasPage() {
           ))}
         </div>
       )}
+
+      {modalOpen && (
+        <NovoTicketModal
+          isDark={isDark}
+          onClose={() => setModalOpen(false)}
+          onCreate={(t) => {
+            addTicket(t);
+            setModalOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }
