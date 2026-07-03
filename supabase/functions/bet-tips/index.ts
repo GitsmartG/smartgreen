@@ -254,40 +254,108 @@ function walkFeedGames(
   return out;
 }
 
+function gameMatchesCandidate(game: any, cand: string): string | null {
+  // 1) Campos diretos de ID
+  for (const [k, v] of Object.entries(game)) {
+    if (v == null || typeof v === "object") continue;
+    if (String(v) !== cand) continue;
+    if (/id$/i.test(k) || /number$/i.test(k) || k === "id" || k === "game_id") {
+      return k;
+    }
+  }
+  // 2) Procura em markets → events (bet_id do Betconstruct = event id)
+  const markets = game.market || game.markets || {};
+  const iter = (obj: any, cb: (v: any) => void) => {
+    if (Array.isArray(obj)) obj.forEach(cb);
+    else if (obj && typeof obj === "object") Object.values(obj).forEach(cb);
+  };
+  let hit: string | null = null;
+  iter(markets, (m) => {
+    if (hit) return;
+    const events = m?.event || m?.events || {};
+    iter(events, (ev) => {
+      if (hit) return;
+      if (ev && typeof ev === "object" && String(ev.id ?? "") === cand) {
+        hit = "event_id";
+      }
+    });
+  });
+  return hit;
+}
+
+
+function findEventInGame(
+  game: any,
+  cand: string,
+): { market: string; odd: number } | null {
+  const markets = game.market || game.markets || {};
+  const iter = (obj: any, cb: (v: any, k: string) => void) => {
+    if (Array.isArray(obj)) obj.forEach((v, i) => cb(v, String(i)));
+    else if (obj && typeof obj === "object") {
+      for (const k of Object.keys(obj)) cb(obj[k], k);
+    }
+  };
+  let hit: { market: string; odd: number } | null = null;
+  iter(markets, (m) => {
+    if (hit) return;
+    const mName = m?.name || m?.market_name || m?.caption || m?.type || "";
+    const events = m?.event || m?.events || {};
+    iter(events, (ev) => {
+      if (hit) return;
+      if (!ev || typeof ev !== "object") return;
+      if (String(ev.id ?? "") !== cand) return;
+      const odd = Number(ev.price ?? ev.coefficient ?? ev.odd ?? ev.k ?? NaN);
+      const evName = ev.name || ev.caption || ev.type_1 || "";
+      const label = [mName, evName].filter(Boolean).join(" — ");
+      if (Number.isFinite(odd)) hit = { market: label || String(mName), odd };
+    });
+  });
+  return hit;
+}
+
 function findGameInFeed(
   feed: any,
   candidates: string[],
-): { match: MatchInfo; matchedBy: "id" | "game_number"; matchedValue: string } | null {
+): {
+  match: MatchInfo;
+  matchedBy: "id" | "game_number";
+  matchedValue: string;
+  feedMarket?: string;
+  feedOdd?: number;
+} | null {
   const games = walkFeedGames(feed);
   for (const cand of candidates) {
     for (const { game, sport, region, competition } of games) {
-      const id = String(game.id ?? "");
-      const gnum = String(game.game_number ?? "");
-      if (id === cand || gnum === cand) {
-        const team1 =
-          game.team1_name || game.team1 || game.home || game.home_team || "";
-        const team2 =
-          game.team2_name || game.team2 || game.away || game.away_team || "";
-        return {
-          matchedBy: id === cand ? "id" : "game_number",
-          matchedValue: cand,
-          match: {
-            sport,
-            region,
-            competition,
-            event: `${team1} x ${team2}`.trim(),
-            team1: String(team1),
-            team2: String(team2),
-            betId: String(game.id ?? cand),
-            gameNumber: game.game_number ?? null,
-            startMs: parseStartTs(game.start_ts ?? game.startTs ?? game.start_time),
-          },
-        };
-      }
+      const matchedField = gameMatchesCandidate(game, cand);
+      if (!matchedField) continue;
+      const team1 =
+        game.team1_name || game.team1 || game.home || game.home_team || "";
+      const team2 =
+        game.team2_name || game.team2 || game.away || game.away_team || "";
+      const ev = matchedField === "event_id" ? findEventInGame(game, cand) : null;
+      return {
+        matchedBy: matchedField === "game_number" ? "game_number" : "id",
+        matchedValue: cand,
+        feedMarket: ev?.market,
+        feedOdd: ev?.odd,
+        match: {
+          sport,
+          region,
+          competition,
+          event: `${team1} x ${team2}`.trim(),
+          team1: String(team1),
+          team2: String(team2),
+          betId: String(game.id ?? cand),
+          gameNumber: game.game_number ?? null,
+          startMs: parseStartTs(game.start_ts ?? game.startTs ?? game.start_time),
+        },
+      };
     }
   }
   return null;
 }
+
+
 
 // ------------------------------------------------------------------
 // HTML scraping do bilhete (mercado + odd)
@@ -414,15 +482,25 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Scraping opcional do HTML pra pegar mercado + odd
-    const html = await fetchBilheteHtml(url);
-    const { market, odd } = html
-      ? extractMarketAndOdd(html, parsed.betId || parsed.gameId)
-      : { market: null, odd: null };
+    // Prefere market/odd que veio direto do feed (via event_id).
+    // Se não veio, tenta scraping do HTML.
+    let market: string | null = found.feedMarket ?? null;
+    let odd: number | null = found.feedOdd ?? null;
+    let htmlOk = false;
+    if (market == null || odd == null) {
+      const html = await fetchBilheteHtml(url);
+      htmlOk = !!html;
+      if (html) {
+        const scraped = extractMarketAndOdd(html, parsed.betId || parsed.gameId);
+        market = market ?? scraped.market;
+        odd = odd ?? scraped.odd;
+      }
+    }
 
     const titulo = `${found.match.team1} x ${found.match.team2}${
       market ? ` — ${market}` : ""
     }`;
+
 
     const result: BetTipsResult = {
       ok: true,
@@ -433,7 +511,8 @@ Deno.serve(async (req) => {
       market,
       odd,
       titulo_sugerido: titulo,
-      htmlOk: !!html,
+      htmlOk,
+
     };
     return json(result);
   } catch (err) {
