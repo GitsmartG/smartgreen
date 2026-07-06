@@ -47,6 +47,20 @@ interface BetTipsResult {
   debug?: Record<string, unknown>;
 }
 
+interface SwarmSelection {
+  sport: string;
+  region: string;
+  competition: string;
+  gameId: string;
+  gameNumber?: number | null;
+  team1: string;
+  team2: string;
+  startMs?: number | null;
+  market: string | null;
+  odd: number | null;
+  eventId: string;
+}
+
 // ------------------------------------------------------------------
 // Fetch helpers
 // ------------------------------------------------------------------
@@ -186,6 +200,27 @@ function feedConfig(parceiro: Parceiro) {
   return {
     brandId: Deno.env.get("FEEDODDS_H2BET_BRAND_ID"),
     key: Deno.env.get("FEEDODDS_H2BET_KEY"),
+  };
+}
+
+function swarmConfig(parceiro: Parceiro) {
+  if (parceiro === "seubet") {
+    return {
+      siteId: 18749911,
+      urls: [
+        Deno.env.get("SWARM_SEUBET_URL"),
+        "wss://swarm-novo.sistemas-086.workers.dev/",
+        "wss://swarm-novo.seu.bet.br",
+      ].filter(Boolean) as string[],
+    };
+  }
+  return {
+    siteId: 18749751,
+    urls: [
+      Deno.env.get("SWARM_H2BET_URL"),
+      "wss://swarm-novo.h2.bet.br",
+      "wss://swarm-novo.sistemas-086.workers.dev/",
+    ].filter(Boolean) as string[],
   };
 }
 
@@ -355,6 +390,228 @@ function findGameInFeed(
   return null;
 }
 
+// ------------------------------------------------------------------
+// BetConstruct Swarm WebSocket lookup (mercado + odd)
+// ------------------------------------------------------------------
+function translate(v: any): string {
+  if (v == null) return "";
+  if (typeof v === "string" || typeof v === "number") return String(v);
+  if (typeof v !== "object") return "";
+  for (const key of ["pt-br", "por", "por_2", "br", "eng", "en", "name"]) {
+    if (v[key]) return String(v[key]);
+  }
+  const first = Object.values(v).find((x) => typeof x === "string" || typeof x === "number");
+  return first == null ? "" : String(first);
+}
+
+function appendBase(name: string, base: any): string {
+  const baseText = base == null ? "" : String(base);
+  if (!baseText || name.includes(baseText)) return name;
+  return `${name} (${baseText})`;
+}
+
+function formatMarket(market: any, event: any): string | null {
+  const marketName = appendBase(translate(market?.name), market?.base).trim();
+  const eventName = appendBase(translate(event?.name), event?.base).trim();
+  if (marketName && eventName && marketName !== eventName) return `${marketName} — ${eventName}`;
+  return marketName || eventName || null;
+}
+
+function numberOrNull(v: any): number | null {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function entries(obj: any): Array<[string, any]> {
+  if (!obj || typeof obj !== "object") return [];
+  return Object.entries(obj);
+}
+
+function flattenSwarmSelections(payload: any): SwarmSelection[] {
+  const root = payload?.data?.data ?? payload?.data ?? payload;
+  const sports = root?.sport ?? {};
+  const out: SwarmSelection[] = [];
+
+  for (const [sportId, sport] of entries(sports)) {
+    const sportName = translate(sport?.name) || translate(sport?.alias) || sportId;
+    for (const [regionId, region] of entries(sport?.region)) {
+      const regionName = translate(region?.name) || translate(region?.alias) || regionId;
+      for (const [, competition] of entries(region?.competition)) {
+        const competitionName = translate(competition?.name);
+        for (const [gameId, game] of entries(competition?.game)) {
+          const team1 = translate(game?.team1_name || game?.team1);
+          const team2 = translate(game?.team2_name || game?.team2);
+          for (const [, market] of entries(game?.market)) {
+            for (const [eventId, event] of entries(market?.event)) {
+              const odd = numberOrNull(event?.price);
+              out.push({
+                sport: sportName,
+                region: regionName,
+                competition: competitionName,
+                gameId: String(game?.id ?? gameId),
+                gameNumber: game?.game_number ?? null,
+                team1,
+                team2,
+                startMs: parseStartTs(game?.start_ts ?? game?.start_time),
+                market: formatMarket(market, event),
+                odd,
+                eventId: String(event?.id ?? eventId),
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return out;
+}
+
+function swarmWhat() {
+  return {
+    sport: ["alias", "id", "type", "name"],
+    region: ["name", "alias", "id"],
+    competition: ["name", "id"],
+    game: ["id", "team1_name", "team2_name", "start_ts", "game_number", "type"],
+    market: ["name", "type", "base"],
+    event: ["id", "name", "type", "base", "price"],
+  };
+}
+
+function buildSwarmRequests(parsed: ParsedUrl) {
+  const what = swarmWhat();
+  const requests: Array<{ command: string; rid: string; params: Record<string, unknown> }> = [];
+  const seen = new Set<string>();
+
+  const add = (rid: string, where: Record<string, unknown>) => {
+    if (seen.has(rid)) return;
+    seen.add(rid);
+    requests.push({
+      command: "get",
+      rid,
+      params: { source: "betting", what, where, subscribe: false },
+    });
+  };
+
+  if (parsed.betId && /^\d+$/.test(parsed.betId)) {
+    add(`event_${parsed.betId}`, { event: { id: Number(parsed.betId) } });
+  }
+  if (parsed.gameId && /^\d+$/.test(parsed.gameId)) {
+    add(`game_${parsed.gameId}`, { game: { id: Number(parsed.gameId) } });
+  }
+  for (const cand of parsed.candidateIds) {
+    if (/^\d+$/.test(cand)) add(`event_${cand}`, { event: { id: Number(cand) } });
+  }
+
+  return requests;
+}
+
+async function callSwarm(url: string, siteId: number, requests: ReturnType<typeof buildSwarmRequests>) {
+  return await new Promise<any[]>((resolve, reject) => {
+    const ws = new WebSocket(url);
+    const responses: any[] = [];
+    let sessionReady = false;
+    const pending = new Set(requests.map((r) => r.rid));
+    const timeout = setTimeout(() => {
+      try {
+        ws.close();
+      } catch {
+        // noop
+      }
+      reject(new Error("Timeout no WebSocket Swarm"));
+    }, 12000);
+
+    const finish = () => {
+      clearTimeout(timeout);
+      try {
+        ws.close();
+      } catch {
+        // noop
+      }
+      resolve(responses);
+    };
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({
+        command: "request_session",
+        params: { language: "pt-br", site_id: siteId, source: 42, is_wrap_app: false },
+        rid: "request_session",
+      }));
+    };
+
+    ws.onmessage = (event) => {
+      let msg: any;
+      try {
+        msg = JSON.parse(String(event.data));
+      } catch {
+        return;
+      }
+
+      if (msg?.rid === "request_session") {
+        if (Number(msg.code) !== 0) {
+          clearTimeout(timeout);
+          reject(new Error(msg?.msg || "Swarm recusou request_session"));
+          return;
+        }
+        sessionReady = true;
+        if (requests.length === 0) {
+          finish();
+          return;
+        }
+        for (const req of requests) ws.send(JSON.stringify(req));
+        return;
+      }
+
+      if (!sessionReady || !msg?.rid || !pending.has(String(msg.rid))) return;
+      pending.delete(String(msg.rid));
+      if (Number(msg.code) === 0) responses.push(msg);
+      if (pending.size === 0) finish();
+    };
+
+    ws.onerror = () => {
+      clearTimeout(timeout);
+      reject(new Error("Falha conectando no WebSocket Swarm"));
+    };
+
+    ws.onclose = () => {
+      if (!sessionReady) {
+        clearTimeout(timeout);
+        reject(new Error("WebSocket Swarm fechou antes da sessão"));
+      }
+    };
+  });
+}
+
+async function fetchSwarmSelection(
+  parceiro: Parceiro,
+  parsed: ParsedUrl,
+): Promise<SwarmSelection | null> {
+  const cfg = swarmConfig(parceiro);
+  const requests = buildSwarmRequests(parsed);
+  if (requests.length === 0) return null;
+
+  let lastError: unknown = null;
+  for (const url of cfg.urls) {
+    try {
+      const responses = await callSwarm(url, cfg.siteId, requests);
+      const selections = responses.flatMap((r) => flattenSwarmSelections(r));
+      const preferred = [parsed.betId, ...parsed.candidateIds].filter(Boolean).map(String);
+      for (const id of preferred) {
+        const hit = selections.find((s) => s.eventId === id && s.odd != null);
+        if (hit) return hit;
+      }
+      const firstWithOdd = selections.find((s) => s.odd != null);
+      if (firstWithOdd) return firstWithOdd;
+    } catch (err) {
+      lastError = err;
+      console.warn(`Swarm falhou em ${url}:`, err);
+    }
+  }
+
+  if (lastError) console.warn("Todas as URLs Swarm falharam", lastError);
+  return null;
+}
+
 
 
 // ------------------------------------------------------------------
@@ -457,7 +714,42 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Feed lookup
+    // Primeiro tenta o mesmo fluxo do parceiro: WebSocket Swarm → request_session → get betting.
+    // É aqui que vem mercado/odd; o FeedOdds fica como fallback para dados do jogo.
+    let swarmSelection: SwarmSelection | null = null;
+    try {
+      swarmSelection = await fetchSwarmSelection(parceiro, parsed);
+    } catch (err) {
+      console.warn("Swarm lookup falhou:", err);
+    }
+
+    if (swarmSelection) {
+      const match: MatchInfo = {
+        sport: swarmSelection.sport,
+        region: swarmSelection.region,
+        competition: swarmSelection.competition,
+        event: `${swarmSelection.team1} x ${swarmSelection.team2}`.trim(),
+        team1: swarmSelection.team1,
+        team2: swarmSelection.team2,
+        betId: swarmSelection.eventId,
+        gameId: swarmSelection.gameId,
+        gameNumber: swarmSelection.gameNumber,
+        startMs: swarmSelection.startMs,
+      };
+      return json({
+        ok: true,
+        parceiro,
+        match,
+        matchedBy: "id",
+        matchedValue: swarmSelection.eventId,
+        market: swarmSelection.market,
+        odd: swarmSelection.odd,
+        titulo_sugerido: `${match.team1} x ${match.team2}${swarmSelection.market ? ` — ${swarmSelection.market}` : ""}`,
+        htmlOk: false,
+      });
+    }
+
+    // Feed lookup como fallback quando a odd não estiver disponível no Swarm.
     let feed: any;
     try {
       feed = await fetchFeed(parceiro);

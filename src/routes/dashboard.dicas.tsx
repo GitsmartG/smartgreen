@@ -22,7 +22,7 @@ import { useIsDark } from "@/hooks/use-is-dark";
 type Parceiro = "seubet" | "h2bet";
 const PARCEIROS: { value: Parceiro; label: string; hint?: string }[] = [
   { value: "seubet", label: "SeuBet" },
-  { value: "h2bet", label: "H2Bet", hint: "(manual)" },
+  { value: "h2bet", label: "H2Bet" },
 ];
 
 type TipStatus = "ao_vivo" | "green" | "red";
@@ -537,7 +537,7 @@ function NovoTicketModal({
     try {
       const r = await importBetTip(parceiro, url.trim());
       setFeedResult(r);
-      // Se veio odd/mercado do scraping, prepopula os campos
+      // Se veio odd/mercado do WebSocket do parceiro, prepopula os campos
       if (r.ok) {
         if (r.odd != null && !odd) setOdd(String(r.odd));
         if (r.market && !palpite) setPalpite(r.market);
@@ -899,8 +899,7 @@ function NovoTicketModal({
                     </label>
                   </div>
                   <p className={"text-[11px] " + muted}>
-                    O feed do parceiro não devolve as odds da partida, só os dados do jogo.
-                    Preencha a odd e o palpite manualmente.
+                    Odds e palpite vêm do WebSocket do parceiro quando o bet_id ainda está ativo.
                   </p>
                 </div>
               ) : !feedResult.ok ? (
