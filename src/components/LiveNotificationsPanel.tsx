@@ -61,7 +61,7 @@ export function LiveNotificationsPanel({ isDark }: { isDark: boolean }) {
           Sem eventos agora. Acompanhando…
         </p>
       ) : (
-        <ul className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+        <ul className="space-y-1.5 max-h-[440px] overflow-y-auto pr-1">
           {notifs.map((n) => (
             <li
               key={n.id}
