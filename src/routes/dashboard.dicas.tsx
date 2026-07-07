@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { loadTickets, saveTickets, type Ticket, type TipStatus, type Parceiro as ParceiroT } from "@/lib/tickets-store";
+import { loadTickets, saveTickets, type Ticket, type TicketLegResult, type TipStatus, type Parceiro as ParceiroT } from "@/lib/tickets-store";
 import { importBetTip, type BetTipsResult } from "@/lib/bet-tips";
 import { getSoccerLivescores, type LiveMatch } from "@/lib/livescores.functions";
 import { findMatchForTicket, gradePalpite, gradeSinglePalpite } from "@/lib/auto-settle";
@@ -74,6 +74,8 @@ type LegLive = {
   status: TipStatus;
 };
 
+type MultiGame = { team1: string; team2: string };
+
 type LiveState = {
   status?: string;
   live: boolean;
@@ -87,6 +89,17 @@ type LiveState = {
   team2Id?: string;
   swapped: boolean;
   legs?: Record<number, LegLive>;
+};
+
+const FLAG_LOGOS: Record<string, string> = {
+  argentina: "🇦🇷",
+  egypt: "🇪🇬",
+  egito: "🇪🇬",
+  switzerland: "🇨🇭",
+  suica: "🇨🇭",
+  suíça: "🇨🇭",
+  colombia: "🇨🇴",
+  colômbia: "🇨🇴",
 };
 
 const LIVE_PALETTE = {
@@ -167,17 +180,18 @@ function DicasPage() {
           };
         }
         // Per-leg matching (multipla)
-        const isMult =
-          t.type === "Múltipla" ||
-          (t.entradas ?? 0) > 1 ||
-          /múltipla|multipla/i.test(t.event);
+        const multiGames = extractMultiGames(t.event);
+        const isMult = isMultiplaTicket(t) || multiGames.length > 1;
         if (isMult) {
           const legs = splitPalpites(t.palpite);
-          if (legs.length > 1) {
+          if (legs.length > 1 || multiGames.length > 1) {
             const legMap: Record<number, LegLive> = {};
-            legs.forEach((legText, i) => {
-              const found = findMatchForLeg(legText, matches);
-              if (!found) return;
+            const totalLegs = Math.max(legs.length, multiGames.length);
+            for (let i = 0; i < totalLegs; i += 1) {
+              const game = multiGames[i];
+              const legText = legs[i] ?? `${game?.team1 ?? ""} ${game?.team2 ?? ""}`;
+              const found = findMatchForLeg(legText, matches, game);
+              if (!found) continue;
               const lm = found.match;
               const graded = gradeSinglePalpite(legText, lm, t);
               const status: TipStatus =
@@ -198,7 +212,7 @@ function DicasPage() {
                 swapped: false,
                 status,
               };
-            });
+            }
             entry = { ...(entry ?? { live: false, finished: false, score1: null, score2: null, swapped: false }), legs: legMap };
           }
         }
@@ -211,6 +225,43 @@ function DicasPage() {
         const next = prev.map((t) => {
           if (!(t.esporte || "").toLowerCase().includes("fute")) return t;
           const m = findMatchForTicket(t, matches);
+          const multiGames = extractMultiGames(t.event);
+          const isMult = isMultiplaTicket(t) || multiGames.length > 1;
+          const legs = splitPalpites(t.palpite);
+          const totalLegs = isMult ? Math.max(legs.length, multiGames.length) : 0;
+          let legResults: Record<number, TicketLegResult> | undefined;
+          let legChanged = false;
+          if (isMult && totalLegs > 0) {
+            legResults = { ...(t.legResults ?? {}) };
+            for (let i = 0; i < totalLegs; i += 1) {
+              const game = multiGames[i];
+              const legText = legs[i] ?? `${game?.team1 ?? ""} ${game?.team2 ?? ""}`;
+              const found = findMatchForLeg(legText, matches, game);
+              if (!found) continue;
+              const lm = found.match;
+              const status = gradeSinglePalpite(legText, lm, t) ?? (lm.live ? "ao_vivo" : "aguardando");
+              const nextLeg: TicketLegResult = {
+                matchId: lm.id,
+                live: lm.live,
+                finished: lm.finished,
+                score1: lm.score1,
+                score2: lm.score2,
+                minute: lm.minute,
+                team1: lm.team1,
+                team2: lm.team2,
+                team1Logo: lm.team1Logo,
+                team2Logo: lm.team2Logo,
+                team1Id: lm.team1Id,
+                team2Id: lm.team2Id,
+                swapped: false,
+                status,
+              };
+              if (JSON.stringify(legResults[i] ?? {}) !== JSON.stringify(nextLeg)) {
+                legResults[i] = nextLeg;
+                legChanged = true;
+              }
+            }
+          }
           if (m) {
             const swapped = isSwappedMatch(t, m.team1, m.team2);
             const score1 = swapped ? m.score2 : m.score1;
@@ -222,15 +273,17 @@ function DicasPage() {
             if (t.score2 !== score2) patch.score2 = score2;
             if (team1Logo && t.team1Logo !== team1Logo) patch.team1Logo = team1Logo;
             if (team2Logo && t.team2Logo !== team2Logo) patch.team2Logo = team2Logo;
+            if (legChanged && legResults) patch.legResults = legResults;
 
-            // status por perna (só faz sentido se tiver placar)
-            const legs = splitPalpites(t.palpite);
-            if (legs.length > 0 && (score1 != null || score2 != null)) {
-              const statuses: TipStatus[] = legs.map((leg) => {
-                const g = gradeSinglePalpite(leg, m, t);
-                if (g) return g;
-                return m.live ? "ao_vivo" : "aguardando";
-              });
+            // status por perna (múltipla usa o match correto de cada jogo)
+            if (legs.length > 0 && (score1 != null || score2 != null || legResults)) {
+              const statuses: TipStatus[] = isMult && legResults
+                ? legs.map((_, i) => legResults?.[i]?.status ?? t.legStatuses?.[i] ?? "aguardando")
+                : legs.map((leg) => {
+                    const g = gradeSinglePalpite(leg, m, t);
+                    if (g) return g;
+                    return m.live ? "ao_vivo" : "aguardando";
+                  });
               const prev = t.legStatuses ?? [];
               const same =
                 prev.length === statuses.length && prev.every((s, i) => s === statuses[i]);
@@ -260,6 +313,24 @@ function DicasPage() {
             }
             if (Object.keys(patch).length > 1) changed = true;
             return Object.keys(patch).length > 1 ? { ...t, ...patch } : t;
+          }
+          if (legChanged && legResults) {
+            changed = true;
+            const statuses: TipStatus[] = Array.from(
+              { length: totalLegs },
+              (_, i) => legResults?.[i]?.status ?? t.legStatuses?.[i] ?? "aguardando",
+            );
+            const hasLiveLeg = Object.values(legResults).some((leg) => leg.live && !leg.finished);
+            const nextStatus: TipStatus = hasLiveLeg ? "ao_vivo" : t.status === "ao_vivo" ? "aguardando" : t.status;
+            return {
+              ...t,
+              type: isMult ? "Múltipla" : t.type,
+              entradas: isMult ? Math.max(t.entradas ?? 1, totalLegs, 2) : t.entradas,
+              status: nextStatus,
+              legResults,
+              legStatuses: statuses,
+              resultCheckedAtMs: Date.now(),
+            };
           }
           // sem match no feed: não mantém "ao vivo" sem confirmação real do provedor.
           if (t.status === "ao_vivo") {
@@ -579,38 +650,20 @@ function TicketCard({
         : null;
 
   const palpites = splitPalpites(ticket.palpite);
-  const isMultipla =
-    ticket.type === "Múltipla" ||
-    (ticket.entradas ?? 0) > 1 ||
-    /múltipla|multipla/i.test(ticket.event);
+  const eventGames = extractMultiGames(ticket.event);
+  const isMultipla = isMultiplaTicket(ticket) || eventGames.length > 1;
   const parts = ticket.event.split(/\s+(?:vs|x|×|-)\s+/i);
   const team1 = (parts[0] ?? ticket.event).trim();
   const team2 = (parts[1] ?? "").trim();
   const isLive = live?.live && !live.finished;
   const score1 = live?.score1 ?? ticket.score1;
   const score2 = live?.score2 ?? ticket.score2;
-  const team1Logo =
-    (live?.team1Logo ?? ticket.team1Logo) ||
-    (live?.team1Id ? `/api/public/team-image/${live.team1Id}?type=team` : undefined);
-  const team2Logo =
-    (live?.team2Logo ?? ticket.team2Logo) ||
-    (live?.team2Id ? `/api/public/team-image/${live.team2Id}?type=team` : undefined);
+  const team1Logo = teamLogoUrl(live?.team1Logo ?? ticket.team1Logo, live?.team1Id, team1);
+  const team2Logo = teamLogoUrl(live?.team2Logo ?? ticket.team2Logo, live?.team2Id, team2);
   const showScore = score1 != null || score2 != null;
 
   // Para múltipla: extrai os jogos do event ("Múltipla: A x B + C x D")
-  const multiGames: { team1: string; team2: string }[] = isMultipla
-    ? ticket.event
-        .replace(/^\s*(m[uú]ltipla\s*[:\-]?\s*)/i, "")
-        .split(/\s*\+\s*/)
-        .map((seg) => {
-          const p = seg.split(/\s+(?:vs|x|×)\s+/i);
-          return {
-            team1: (p[0] ?? seg).trim(),
-            team2: (p[1] ?? "").trim(),
-          };
-        })
-        .filter((g) => g.team1 && g.team2)
-    : [];
+  const multiGames = isMultipla ? eventGames : [];
 
   return (
     <button
@@ -704,27 +757,24 @@ function TicketCard({
           </div>
           <div className="grid grid-cols-1 gap-2">
             {multiGames.map((g, i) => {
-              const legInfo = live?.legs?.[i];
-              const gLogo1 =
-                legInfo?.team1Logo ||
-                (legInfo?.team1Id
-                  ? `/api/public/team-image/${legInfo.team1Id}?type=team`
-                  : undefined);
-              const gLogo2 =
-                legInfo?.team2Logo ||
-                (legInfo?.team2Id
-                  ? `/api/public/team-image/${legInfo.team2Id}?type=team`
-                  : undefined);
+              const legInfo = live?.legs?.[i] ?? ticket.legResults?.[i];
+              const displayTeam1 = g.team1 || legInfo?.team1 || "Time 1";
+              const displayTeam2 = g.team2 || legInfo?.team2 || "Time 2";
+              const gLogo1 = teamLogoUrl(legInfo?.team1Logo, legInfo?.team1Id, displayTeam1);
+              const gLogo2 = teamLogoUrl(legInfo?.team2Logo, legInfo?.team2Id, displayTeam2);
               const gLive = legInfo?.live && !legInfo?.finished;
-              const gScore =
-                legInfo?.score1 != null || legInfo?.score2 != null;
+              const fallbackScore1 = i === 0 ? ticket.score1 : null;
+              const fallbackScore2 = i === 0 ? ticket.score2 : null;
+              const displayScore1 = legInfo?.score1 ?? fallbackScore1;
+              const displayScore2 = legInfo?.score2 ?? fallbackScore2;
+              const gScore = displayScore1 != null || displayScore2 != null;
               return (
                 <div
                   key={i}
                   className={`rounded-lg border ${inner} px-3 py-2 flex items-center justify-between gap-2`}
                 >
                   <TeamBadge
-                    name={legInfo?.team1 || g.team1}
+                    name={displayTeam1}
                     logo={gLogo1}
                     isDark={isDark}
                     align="left"
@@ -732,9 +782,9 @@ function TicketCard({
                   <div className="flex flex-col items-center min-w-[52px]">
                     {gScore ? (
                       <div className="text-sm font-bold leading-none tabular-nums text-emerald-500">
-                        {legInfo?.score1 ?? 0}
+                        {displayScore1 ?? 0}
                         <span className={`mx-1 ${muted}`}>-</span>
-                        {legInfo?.score2 ?? 0}
+                        {displayScore2 ?? 0}
                       </div>
                     ) : (
                       <div className={`text-[10px] font-semibold ${muted}`}>VS</div>
@@ -747,7 +797,7 @@ function TicketCard({
                     )}
                   </div>
                   <TeamBadge
-                    name={legInfo?.team2 || g.team2}
+                    name={displayTeam2}
                     logo={gLogo2}
                     isDark={isDark}
                     align="right"
@@ -767,7 +817,8 @@ function TicketCard({
         </div>
         <ul className="flex flex-col gap-1.5">
           {palpites.map((p, i) => {
-            const legStatus = ticket.legStatuses?.[i];
+            const matchedGameStatus = isMultipla ? ticket.legResults?.[Math.min(i, Math.max(0, multiGames.length - 1))]?.status : undefined;
+            const legStatus = matchedGameStatus ?? ticket.legStatuses?.[i];
             const dotCls =
               legStatus === "green"
                 ? "bg-emerald-500"
@@ -1015,6 +1066,40 @@ function LegCard({
   );
 }
 
+function isMultiplaTicket(ticket: Ticket): boolean {
+  return (
+    ticket.type === "Múltipla" ||
+    (ticket.entradas ?? 0) > 1 ||
+    /m[uú]ltipla|multipla/i.test(ticket.event)
+  );
+}
+
+function extractMultiGames(event: string): MultiGame[] {
+  return event
+    .replace(/^\s*(m[uú]ltipla\s*[:\-]?\s*)/i, "")
+    .split(/\s*\+\s*/)
+    .map((seg) => {
+      const p = seg.split(/\s+(?:vs|x|×)\s+/i);
+      return {
+        team1: (p[0] ?? seg).trim(),
+        team2: (p[1] ?? "").trim(),
+      };
+    })
+    .filter((g) => g.team1 && g.team2);
+}
+
+function teamLogoUrl(logo?: string, teamId?: string, teamName?: string): string | undefined {
+  if (typeof logo === "string" && logo.trim()) return logo.trim();
+  const emoji = teamName ? FLAG_LOGOS[normalizedText(teamName)] : undefined;
+  if (emoji) {
+    return `data:image/svg+xml;utf8,${encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" rx="48" fill="#111827"/><text x="48" y="58" text-anchor="middle" font-family="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif" font-size="54">${emoji}</text></svg>`,
+    )}`;
+  }
+  if (teamId) return `/api/public/team-image/${encodeURIComponent(teamId)}?type=team`;
+  return undefined;
+}
+
 function splitPalpites(raw: string): string[] {
   if (!raw) return ["—"];
   // Separadores fortes e inequívocos entre pernas de uma múltipla.
@@ -1037,8 +1122,11 @@ function tokensOf(s: string): string[] {
     .filter((t) => t.length >= 3 && !["multipla", "simples", "vitoria", "vencedor", "gols", "mais", "menos", "over", "under", "total", "empate", "casa", "fora"].includes(t));
 }
 
-function findMatchForLeg(legText: string, matches: LiveMatch[]): { match: LiveMatch; swapped: boolean } | null {
-  const tks = new Set(tokensOf(legText));
+function findMatchForLeg(legText: string, matches: LiveMatch[], game?: MultiGame): { match: LiveMatch; swapped: boolean } | null {
+  const source = game ? `${game.team1} ${game.team2} ${legText}` : legText;
+  const tks = new Set(tokensOf(source));
+  const g1 = game ? new Set(tokensOf(game.team1)) : null;
+  const g2 = game ? new Set(tokensOf(game.team2)) : null;
   if (!tks.size) return null;
   let best: { match: LiveMatch; score: number; swapped: boolean } | null = null;
   for (const m of matches) {
@@ -1046,9 +1134,11 @@ function findMatchForLeg(legText: string, matches: LiveMatch[]): { match: LiveMa
     const t2 = tokensOf(m.team2);
     const hit1 = t1.some((t) => tks.has(t));
     const hit2 = t2.some((t) => tks.has(t));
+    const gameHit1 = g1 ? t1.some((t) => g1.has(t)) || t2.some((t) => g1.has(t)) : false;
+    const gameHit2 = g2 ? t1.some((t) => g2.has(t)) || t2.some((t) => g2.has(t)) : false;
     // requer sinal de pelo menos um dos times; ideal os dois
-    if (!hit1 && !hit2) continue;
-    const score = (hit1 ? 2 : 0) + (hit2 ? 2 : 0);
+    if (!hit1 && !hit2 && !gameHit1 && !gameHit2) continue;
+    const score = (hit1 ? 2 : 0) + (hit2 ? 2 : 0) + (gameHit1 ? 3 : 0) + (gameHit2 ? 3 : 0);
     if (!best || score > best.score) best = { match: m, score, swapped: false };
   }
   return best ? { match: best.match, swapped: best.swapped } : null;
@@ -1142,6 +1232,11 @@ function TeamBadge({
   isDark: boolean;
   align: "left" | "right";
 }) {
+  const safeLogo = typeof logo === "string" && logo.trim() ? logo.trim() : undefined;
+  const [brokenLogo, setBrokenLogo] = useState(false);
+  useEffect(() => {
+    setBrokenLogo(false);
+  }, [safeLogo]);
   const initials = name
     .split(/\s+/)
     .filter(Boolean)
@@ -1151,25 +1246,27 @@ function TeamBadge({
   const fallback = isDark
     ? "bg-neutral-800 text-neutral-300 border-neutral-700"
     : "bg-neutral-100 text-neutral-600 border-neutral-200";
+  const flag = FLAG_LOGOS[normalizedText(name)];
+  const shouldUseFlagFallback = Boolean(flag && (!safeLogo || safeLogo.startsWith("/api/public/team-image/")));
   return (
     <div
       className={`flex-1 min-w-0 flex items-center gap-2 ${align === "right" ? "flex-row-reverse text-right" : ""}`}
     >
-      {typeof logo === "string" && logo ? (
+      {safeLogo && !brokenLogo && !shouldUseFlagFallback ? (
         <img
-          src={logo}
+          src={safeLogo}
           alt={name}
           className="h-10 w-10 object-contain shrink-0"
           loading="lazy"
           onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
+            setBrokenLogo(true);
           }}
         />
       ) : (
         <div
           className={`h-10 w-10 rounded-full border flex items-center justify-center text-[11px] font-bold shrink-0 ${fallback}`}
         >
-          {initials}
+          {flag ? <span className="text-2xl leading-none">{flag}</span> : initials}
         </div>
       )}
       <div className="min-w-0">
