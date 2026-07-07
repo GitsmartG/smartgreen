@@ -4,7 +4,9 @@ import { loadTickets, saveTickets, type Ticket, type TipStatus, type Parceiro as
 import { importBetTip, type BetTipsResult } from "@/lib/bet-tips";
 import { getSoccerLivescores } from "@/lib/livescores.functions";
 import { findMatchForTicket, gradePalpite } from "@/lib/auto-settle";
-import { Loader2, AlertCircle } from "lucide-react";
+import { getMatchRichData, type RichMatchResponse } from "@/lib/soccer-details.functions";
+import { Loader2, AlertCircle, Activity, ShieldAlert, Zap, PieChart } from "lucide-react";
+
 import {
   Search,
   RefreshCw,
