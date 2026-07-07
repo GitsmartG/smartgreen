@@ -1,4 +1,4 @@
-import { Bell, Goal, Play, Flag, X } from "lucide-react";
+import { Bell, Trophy, Play, Flag, X } from "lucide-react";
 import { useLiveGoalNotifications, type LiveNotification } from "@/hooks/use-live-goal-notifications";
 
 function timeAgo(ts: number): string {
@@ -11,7 +11,7 @@ function timeAgo(ts: number): string {
 }
 
 function iconFor(kind: LiveNotification["kind"]) {
-  if (kind === "goal") return <Goal className="h-3.5 w-3.5 text-emerald-400" />;
+  if (kind === "goal") return <Trophy className="h-3.5 w-3.5 text-emerald-400" />;
   if (kind === "start") return <Play className="h-3.5 w-3.5 text-sky-400" />;
   return <Flag className="h-3.5 w-3.5 text-neutral-400" />;
 }
@@ -61,7 +61,7 @@ export function LiveNotificationsPanel({ isDark }: { isDark: boolean }) {
           Sem eventos agora. Acompanhando…
         </p>
       ) : (
-        <ul className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+        <ul className="space-y-1.5 max-h-[440px] overflow-y-auto pr-1">
           {notifs.map((n) => (
             <li
               key={n.id}
