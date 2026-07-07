@@ -404,6 +404,7 @@ function TicketCard({
       </div>
 
       <button
+        onClick={onOpen}
         className={
           "h-9 rounded-md text-sm font-medium inline-flex items-center justify-center gap-2 transition-colors " +
           (isDark
