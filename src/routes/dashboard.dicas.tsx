@@ -772,6 +772,10 @@ function NovoTicketModal({
         if (r.odd != null && !odd) setOdd(String(r.odd));
         if (r.market && !palpite) setPalpite(r.market);
         if (r.parceiro !== parceiro) setParceiro(r.parceiro);
+      } else if (r.sharedMeta) {
+        if (r.sharedMeta.odd != null && !odd) setOdd(String(r.sharedMeta.odd));
+        if (r.sharedMeta.amount != null && !banca) setBanca(String(r.sharedMeta.amount));
+        if (r.parceiro !== parceiro) setParceiro(r.parceiro);
       }
     } catch (err) {
       setFeedResult({
@@ -1141,10 +1145,72 @@ function NovoTicketModal({
                   </p>
                 </div>
               ) : !feedResult.ok ? (
-                <div className="space-y-1">
+                <div className="space-y-3">
                   <div className="inline-flex items-center gap-1.5 text-red-500">
                     <AlertCircle className="h-3.5 w-3.5" /> {getErrorMessage(feedResult.error)}
                   </div>
+                  {feedResult.sharedMeta && (
+                    <>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-md border border-amber-500/25 bg-amber-500/5 p-2">
+                        <Info label="Tipo" value={feedResult.sharedMeta.fixedType || "Simples"} muted={muted} />
+                        <Info label="Bet ID" value={feedResult.sharedMeta.betId} muted={muted} />
+                        <Info
+                          label="Odd"
+                          value={feedResult.sharedMeta.odd != null ? String(feedResult.sharedMeta.odd) : "—"}
+                          muted={muted}
+                        />
+                        <Info
+                          label="Possível retorno"
+                          value={
+                            feedResult.sharedMeta.possibleWin != null
+                              ? feedResult.sharedMeta.possibleWin.toLocaleString("pt-BR", {
+                                  style: "currency",
+                                  currency: "BRL",
+                                })
+                              : "—"
+                          }
+                          muted={muted}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                        <label className="block">
+                          <span className={"text-[10px] uppercase tracking-wider " + muted}>
+                            Evento
+                          </span>
+                          <input
+                            value={event}
+                            onChange={(e) => setEvent(e.target.value)}
+                            placeholder="Ex: Brasil x Argentina"
+                            className={field + " mt-0.5"}
+                          />
+                        </label>
+                        <label className="block">
+                          <span className={"text-[10px] uppercase tracking-wider " + muted}>
+                            Palpite
+                          </span>
+                          <input
+                            value={palpite}
+                            onChange={(e) => setPalpite(e.target.value)}
+                            placeholder="Ex: Mais de 1.5 gols"
+                            className={field + " mt-0.5"}
+                          />
+                        </label>
+                        <label className="block">
+                          <span className={"text-[10px] uppercase tracking-wider " + muted}>
+                            Odd
+                          </span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={odd}
+                            onChange={(e) => setOdd(e.target.value)}
+                            placeholder="1.35"
+                            className={field + " mt-0.5"}
+                          />
+                        </label>
+                      </div>
+                    </>
+                  )}
                   {Array.isArray(feedResult.triedIds) && feedResult.triedIds.length > 0 && (
                     <div className={"text-[11px] " + muted}>
                       IDs testados: {feedResult.triedIds.slice(0, 6).join(", ")}
