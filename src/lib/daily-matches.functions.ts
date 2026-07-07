@@ -15,7 +15,11 @@ export const getTodayMatches = createServerFn({ method: "GET" }).handler(
     const { readCachedDaily, refreshDailyMatches } = await import("./daily-matches.server");
     try {
       const cached = await readCachedDaily();
-      if (cached) {
+      const CACHE_TTL_MS = 60_000; // 1 min
+      const isFresh =
+        cached &&
+        Date.now() - new Date(cached.fetchedAt).getTime() < CACHE_TTL_MS;
+      if (cached && isFresh) {
         return {
           ok: true,
           cached: true,
@@ -24,15 +28,30 @@ export const getTodayMatches = createServerFn({ method: "GET" }).handler(
           payload: cached.payload,
         };
       }
-      // Sem cache → busca agora e guarda
-      const fresh = await refreshDailyMatches();
-      return {
-        ok: true,
-        cached: false,
-        date: fresh.date,
-        fetchedAt: new Date().toISOString(),
-        payload: fresh.payload,
-      };
+      // Cache stale ou inexistente → busca agora
+      try {
+        const fresh = await refreshDailyMatches();
+        return {
+          ok: true,
+          cached: false,
+          date: fresh.date,
+          fetchedAt: new Date().toISOString(),
+          payload: fresh.payload,
+        };
+      } catch (refreshErr) {
+        // Se o refresh falhar mas tem cache antigo, devolve o antigo
+        if (cached) {
+          return {
+            ok: true,
+            cached: true,
+            date: cached.date,
+            fetchedAt: cached.fetchedAt,
+            payload: cached.payload,
+          };
+        }
+        throw refreshErr;
+      }
+
     } catch (e) {
       return {
         ok: false,
