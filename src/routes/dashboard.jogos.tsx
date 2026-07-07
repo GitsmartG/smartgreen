@@ -418,6 +418,7 @@ function LeagueSection({
 }
 
 function TeamLogo({
+  id,
   logo,
   name,
   isDark,
@@ -431,9 +432,14 @@ function TeamLogo({
 }) {
   const [broken, setBroken] = useState(false);
   const dimCls = dim ? "opacity-60" : "";
-  // Só tenta imagem se veio URL absoluta no payload. O proxy /api/public/team-image
-  // 404a pra 99% dos IDs (Statpal não tem CDN de logos), então nem chamamos.
-  const src = logo && /^https?:\/\//i.test(logo) ? logo : null;
+  // Prioridade: URL absoluta do payload → proxy Statpal por id (que já cai
+  // num SVG de escudo se a API não tiver imagem, então sempre renderiza).
+  const src =
+    logo && /^https?:\/\//i.test(logo)
+      ? logo
+      : id
+        ? `/api/public/team-image/${encodeURIComponent(id)}?type=team`
+        : null;
   if (src && !broken) {
     return (
       <img
