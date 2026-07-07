@@ -654,13 +654,23 @@ function splitPalpites(raw: string): string[] {
 }
 
 function normalizedText(s: string): string {
-  return s
+  const base = s
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+  return base
+    .replace(/\begito\b/g, "egypt")
+    .replace(/\bestados unidos\b|\beua\b/g, "usa")
+    .replace(/\bbelgica\b/g, "belgium")
+    .replace(/\balemanha\b/g, "germany")
+    .replace(/\bespanha\b/g, "spain")
+    .replace(/\bfranca\b/g, "france")
+    .replace(/\binglaterra\b/g, "england")
+    .replace(/\bitalia\b/g, "italy")
+    .replace(/\bholanda\b|\bpaises baixos\b/g, "netherlands");
 }
 
 function isSwappedMatch(ticket: Ticket, feedHome: string, feedAway: string): boolean {
