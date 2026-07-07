@@ -1,13 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import {
   Users,
-  BarChart3,
-  Leaf,
+  Ticket as TicketIcon,
   TrendingUp,
-  DollarSign,
+  TrendingDown,
+  Radio,
+  Leaf,
   Activity,
 } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
+import { loadTickets, subscribeTickets, type Ticket } from "@/lib/tickets-store";
 
 export const Route = createFileRoute("/dashboard/")({
   component: OverviewPage,
@@ -20,12 +23,27 @@ function OverviewPage() {
     : "bg-white border-neutral-200";
   const muted = isDark ? "text-neutral-400" : "text-neutral-500";
 
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  useEffect(() => {
+    setTickets(loadTickets());
+    return subscribeTickets(() => setTickets(loadTickets()));
+  }, []);
+
+  const total = tickets.length;
+  const aoVivo = tickets.filter((t) => t.status === "ao_vivo").length;
+  const greens = tickets.filter((t) => t.status === "green").length;
+  const reds = tickets.filter((t) => t.status === "red").length;
+  const finalizados = greens + reds;
+  const winRate = finalizados > 0 ? Math.round((greens / finalizados) * 100) : 0;
+
   const stats = [
-    { label: "Receita", value: "R$ 48.520", delta: "+12,4%", icon: DollarSign },
-    { label: "Usuários", value: "1.284", delta: "+8,1%", icon: Users },
-    { label: "Conversão", value: "3,7%", delta: "+0,6%", icon: TrendingUp },
-    { label: "Atividade", value: "92%", delta: "+2,3%", icon: Activity },
+    { label: "Usuários", value: "1", icon: Users, hint: "1 admin cadastrado" },
+    { label: "Tickets", value: String(total), icon: TicketIcon, hint: total === 0 ? "Nenhum ticket ainda" : `${total} no total` },
+    { label: "Ao vivo", value: String(aoVivo), icon: Radio, hint: aoVivo === 1 ? "1 aberto" : `${aoVivo} abertos` },
+    { label: "Win rate", value: `${winRate}%`, icon: TrendingUp, hint: `${greens} green · ${reds} red` },
   ];
+
+  const recentes = tickets.slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -46,11 +64,12 @@ function OverviewPage() {
             <Leaf className="h-3.5 w-3.5" /> Smart Green · Painel
           </div>
           <h2 className="mt-4 text-2xl sm:text-3xl font-semibold tracking-tight">
-            Tudo pronto pra decolar 🚀
+            Bem-vindo de volta 👋
           </h2>
           <p className="mt-2 text-sm sm:text-base text-white/80 max-w-xl">
-            Suas métricas estão sincronizadas. Acompanhe receita, usuários e
-            conversão em tempo real.
+            {total === 0
+              ? "Você ainda não cadastrou nenhum ticket. Vá em Dicas de Apostas para criar o primeiro."
+              : `Você tem ${total} ticket${total !== 1 ? "s" : ""} cadastrado${total !== 1 ? "s" : ""}, ${aoVivo} ao vivo agora.`}
           </p>
         </div>
       </div>
@@ -83,64 +102,60 @@ function OverviewPage() {
               </div>
             </div>
             <div className="mt-3 text-2xl font-semibold">{s.value}</div>
-            <div className="mt-1 text-xs text-emerald-500 font-medium">
-              {s.delta} no mês
-            </div>
+            <div className={`mt-1 text-xs ${muted}`}>{s.hint}</div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className={`lg:col-span-2 rounded-xl border p-6 ${panel}`}>
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-base font-semibold">Receita nos últimos 7 dias</h3>
-              <p className={`text-xs ${muted} mt-0.5`}>Atualizado agora</p>
-            </div>
-            <BarChart3 className="h-5 w-5 text-emerald-500" />
-          </div>
-          <div className="flex items-end gap-2 h-40">
-            {[45, 62, 38, 78, 55, 90, 72].map((h, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                <div
-                  className="w-full rounded-t-md transition-all"
-                  style={{
-                    height: `${h}%`,
-                    backgroundImage:
-                      "linear-gradient(180deg, #54ee2b 0%, #1f8a3a 100%)",
-                  }}
-                />
-                <span className={`text-[10px] ${muted}`}>
-                  {["S", "T", "Q", "Q", "S", "S", "D"][i]}
-                </span>
-              </div>
-            ))}
-          </div>
+      <div className={`rounded-xl border p-6 ${panel}`}>
+        <div className="flex items-center gap-2 mb-4">
+          <Activity className="h-5 w-5 text-emerald-500" />
+          <h3 className="text-base font-semibold">Tickets recentes</h3>
         </div>
-
-        <div className={`rounded-xl border p-6 ${panel}`}>
-          <div className="flex items-center gap-2 mb-4">
-            <Activity className="h-5 w-5 text-emerald-500" />
-            <h3 className="text-base font-semibold">Atividade recente</h3>
+        {recentes.length === 0 ? (
+          <div className={`py-8 text-center text-sm ${muted}`}>
+            Nenhum ticket cadastrado ainda.
           </div>
-          <ul className="space-y-4">
-            {[
-              { t: "Novo usuário cadastrado", s: "há 2 min" },
-              { t: "Pagamento confirmado", s: "há 18 min" },
-              { t: "Relatório gerado", s: "há 1 h" },
-              { t: "Meta mensal atingida 🎯", s: "há 3 h" },
-            ].map((a, i) => (
-              <li key={i} className="flex items-start gap-3">
-                <div className="mt-1.5 h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{a.t}</p>
-                  <p className={`text-xs ${muted}`}>{a.s}</p>
+        ) : (
+          <ul className="space-y-3">
+            {recentes.map((t) => (
+              <li
+                key={t.id}
+                className={
+                  "flex items-center justify-between gap-3 py-2 border-b last:border-b-0 " +
+                  (isDark ? "border-neutral-800" : "border-neutral-200")
+                }
+              >
+                <div className="min-w-0">
+                  <div className="text-sm font-medium truncate">{t.event}</div>
+                  <div className={`text-xs truncate ${muted}`}>{t.palpite} · odd {t.odd.toFixed(2)}</div>
                 </div>
+                <StatusMini status={t.status} />
               </li>
             ))}
           </ul>
-        </div>
+        )}
       </div>
     </div>
+  );
+}
+
+function StatusMini({ status }: { status: Ticket["status"] }) {
+  if (status === "ao_vivo")
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-500 rounded-full px-2 py-0.5 bg-amber-500/10 border border-amber-500/30">
+        <Radio className="h-3 w-3" /> Ao vivo
+      </span>
+    );
+  if (status === "green")
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-500 rounded-full px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/30">
+        <TrendingUp className="h-3 w-3" /> Green
+      </span>
+    );
+  return (
+    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-500 rounded-full px-2 py-0.5 bg-red-500/10 border border-red-500/30">
+      <TrendingDown className="h-3 w-3" /> Red
+    </span>
   );
 }
