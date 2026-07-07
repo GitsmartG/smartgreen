@@ -886,7 +886,7 @@ function TicketCard({
         </div>
         <ul className="flex flex-col gap-1.5">
           {palpites.map((p, i) => {
-            const matchedGameStatus = isMultipla ? ticket.legResults?.[Math.min(i, Math.max(0, multiGames.length - 1))]?.status : undefined;
+            const matchedGameStatus = isMultipla ? ticket.legResults?.[i]?.status : undefined;
             const legStatus = matchedGameStatus ?? ticket.legStatuses?.[i];
             const dotCls =
               legStatus === "green"
