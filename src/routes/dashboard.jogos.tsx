@@ -289,6 +289,7 @@ function JogosHojePage() {
               league={lg}
               isDark={isDark}
               onPredict={setPredictionMatch}
+              onLineups={setLineupsMatch}
               panel={panel}
               muted={muted}
               subtle={subtle}
@@ -302,6 +303,14 @@ function JogosHojePage() {
           match={predictionMatch}
           isDark={isDark}
           onClose={() => setPredictionMatch(null)}
+        />
+      )}
+
+      {lineupsMatch && (
+        <LineupsModal
+          match={lineupsMatch}
+          isDark={isDark}
+          onClose={() => setLineupsMatch(null)}
         />
       )}
     </div>
