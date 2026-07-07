@@ -563,34 +563,40 @@ function MatchRow({
       </div>
 
       <div className="flex items-center justify-center gap-1">
-        <button
-          type="button"
-          onClick={() => onPredict(match)}
-          title="Ver previsão do modelo"
-          aria-label="Ver previsão"
-          className={
-            "h-8 w-8 flex items-center justify-center rounded-md border transition-colors " +
-            (isDark
-              ? "border-neutral-800 bg-neutral-900 text-emerald-500 hover:bg-neutral-800"
-              : "border-neutral-200 bg-white text-emerald-600 hover:bg-neutral-50")
-          }
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onLineups(match)}
-          title="Ver escalação"
-          aria-label="Ver escalação"
-          className={
-            "h-8 w-8 flex items-center justify-center rounded-md border transition-colors " +
-            (isDark
-              ? "border-neutral-800 bg-neutral-900 text-sky-400 hover:bg-neutral-800"
-              : "border-neutral-200 bg-white text-sky-600 hover:bg-neutral-50")
-          }
-        >
-          <Users className="h-3.5 w-3.5" />
-        </button>
+        {status !== "finished" ? (
+          <>
+            <button
+              type="button"
+              onClick={() => onPredict(match)}
+              title="Ver previsão do modelo"
+              aria-label="Ver previsão"
+              className={
+                "h-8 w-8 flex items-center justify-center rounded-md border transition-colors " +
+                (isDark
+                  ? "border-neutral-800 bg-neutral-900 text-emerald-500 hover:bg-neutral-800"
+                  : "border-neutral-200 bg-white text-emerald-600 hover:bg-neutral-50")
+              }
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onLineups(match)}
+              title="Ver escalação"
+              aria-label="Ver escalação"
+              className={
+                "h-8 w-8 flex items-center justify-center rounded-md border transition-colors " +
+                (isDark
+                  ? "border-neutral-800 bg-neutral-900 text-sky-400 hover:bg-neutral-800"
+                  : "border-neutral-200 bg-white text-sky-600 hover:bg-neutral-50")
+              }
+            >
+              <Users className="h-3.5 w-3.5" />
+            </button>
+          </>
+        ) : (
+          <span className={`text-[10px] ${muted}`}>—</span>
+        )}
       </div>
     </div>
   );
