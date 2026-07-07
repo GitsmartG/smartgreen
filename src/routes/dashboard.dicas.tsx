@@ -277,6 +277,14 @@ function DicasPage() {
       {/* Tabs de status */}
       <div className="flex flex-wrap gap-2">
         <StatusTab
+          active={tab === "aguardando"}
+          onClick={() => setTab(tab === "aguardando" ? "todos" : "aguardando")}
+          color="sky"
+          isDark={isDark}
+        >
+          <Calendar className="h-3.5 w-3.5" /> Em Aguardo ({counts.aguardando})
+        </StatusTab>
+        <StatusTab
           active={tab === "ao_vivo"}
           onClick={() => setTab(tab === "ao_vivo" ? "todos" : "ao_vivo")}
           color="amber"
