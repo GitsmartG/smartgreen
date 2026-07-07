@@ -10,7 +10,7 @@ import {
   Loader2,
   Radio,
   Calendar,
-  
+  CheckCircle2,
   Users,
 } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
@@ -276,11 +276,9 @@ function JogosHojePage() {
   }, [state.data, query, filter]);
 
   const totalCount = state.data?.payload?.totalMatches ?? 0;
-  const liveCount =
-    (state.data?.payload?.leagues ?? []).reduce(
-      (sum, lg) => sum + (lg.matches ?? []).filter((m) => m.live).length,
-      0,
-    );
+  const allMatches = (state.data?.payload?.leagues ?? []).flatMap((lg) => lg.matches ?? []);
+  const liveCount = allMatches.filter((m) => m.live).length;
+  const finishedCount = allMatches.filter((m) => m.finished).length;
 
   const updatedTime = state.data?.fetchedAt
     ? new Date(state.data.fetchedAt).toLocaleTimeString("pt-BR", {
@@ -343,6 +341,14 @@ function JogosHojePage() {
           isDark={isDark}
         >
           <Calendar className="h-3.5 w-3.5" /> Agendados
+        </StatusTab>
+        <StatusTab
+          active={filter === "encerrados"}
+          onClick={() => setFilter(filter === "encerrados" ? "todos" : "encerrados")}
+          color="neutral"
+          isDark={isDark}
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" /> Encerrados ({finishedCount})
         </StatusTab>
       </div>
 
