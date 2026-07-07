@@ -111,25 +111,69 @@ function DicasPage() {
     saveTickets(tickets);
   }, [tickets]);
 
-  // Auto-detect green/red para tickets ao vivo via Statpal
+  const [liveMap, setLiveMap] = useState<Record<string, LiveState>>({});
+
+  // Polling: enriquece com dados ao vivo (escudos/placar) + auto-grade + status aguardando/ao_vivo
   useEffect(() => {
     let cancelled = false;
     const check = async () => {
-      const lives = tickets.filter((t) => t.status === "ao_vivo" && (t.esporte || "").toLowerCase().includes("fute"));
-      if (!lives.length) return;
+      const relevant = tickets.filter(
+        (t) => (t.status === "ao_vivo" || t.status === "aguardando") &&
+          (t.esporte || "").toLowerCase().includes("fute"),
+      );
+      if (!relevant.length) return;
       try {
         const res = await getSoccerLivescores();
-        if (cancelled || !res.ok || !res.matches.length) return;
+        if (cancelled || !res.ok) return;
+        const matches = res.matches;
+
+        const nextLive: Record<string, LiveState> = {};
+        for (const t of tickets) {
+          const m = findMatchForTicket(t, matches);
+          if (!m) continue;
+          const parts = t.event.split(/\s+(?:vs|x|×|-)\s+/i);
+          const tHome = parts[0] ?? "";
+          const swapped = !!(parts[1] && !new RegExp(tHome.split(" ")[0] ?? "", "i").test(m.team1));
+          nextLive[t.id] = {
+            live: m.live,
+            finished: m.finished,
+            score1: swapped ? m.score2 : m.score1,
+            score2: swapped ? m.score1 : m.score2,
+            minute: m.minute,
+            team1Logo: swapped ? m.team2Logo : m.team1Logo,
+            team2Logo: swapped ? m.team1Logo : m.team2Logo,
+            swapped,
+          };
+        }
+        if (!cancelled) setLiveMap(nextLive);
+
         setTickets((prev) => {
           let changed = false;
           const next = prev.map((t) => {
-            if (t.status !== "ao_vivo") return t;
-            const m = findMatchForTicket(t, res.matches);
-            if (!m) return t;
-            const graded = gradePalpite(t.palpite, m, t);
-            if (!graded) return t;
-            changed = true;
-            return { ...t, status: graded };
+            if (t.status === "green" || t.status === "red") return t;
+            const m = findMatchForTicket(t, matches);
+            if (m) {
+              const graded = gradePalpite(t.palpite, m, t);
+              if (graded) {
+                changed = true;
+                return { ...t, status: graded };
+              }
+              if (m.live && t.status !== "ao_vivo") {
+                changed = true;
+                return { ...t, status: "ao_vivo" as TipStatus };
+              }
+              if (!m.live && !m.finished && t.status !== "aguardando") {
+                changed = true;
+                return { ...t, status: "aguardando" as TipStatus };
+              }
+              return t;
+            }
+            // sem match no feed: se tem startMs futuro, marca aguardando
+            if (t.startMs && t.startMs > Date.now() && t.status !== "aguardando") {
+              changed = true;
+              return { ...t, status: "aguardando" as TipStatus };
+            }
+            return t;
           });
           return changed ? next : prev;
         });
@@ -163,11 +207,13 @@ function DicasPage() {
 
   const counts = useMemo(() => {
     return {
+      aguardando: tickets.filter((t) => t.status === "aguardando").length,
       ao_vivo: tickets.filter((t) => t.status === "ao_vivo").length,
       green: tickets.filter((t) => t.status === "green").length,
       red: tickets.filter((t) => t.status === "red").length,
     };
   }, [tickets]);
+
 
   const filtered = useMemo(() => {
     return tickets.filter((t) => {
