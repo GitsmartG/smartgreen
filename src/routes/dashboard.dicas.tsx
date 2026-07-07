@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { loadTickets, saveTickets, type Ticket, type TicketLegResult, type TipStatus, type Parceiro as ParceiroT } from "@/lib/tickets-store";
 import { importBetTip, type BetTipsResult } from "@/lib/bet-tips";
 import { getSoccerLivescores, type LiveMatch } from "@/lib/livescores.functions";
@@ -170,16 +170,24 @@ function DicasPage() {
       : "bg-white border-neutral-300 text-neutral-900 focus:border-emerald-700");
 
   const [tickets, setTickets] = useState<Ticket[]>(() => loadTickets());
+  const ticketsRef = useRef<Ticket[]>(tickets);
+  const ticketList = Array.isArray(tickets) ? tickets : [];
+
   useEffect(() => {
-    saveTickets(tickets);
-  }, [tickets]);
+    ticketsRef.current = ticketList;
+  }, [ticketList]);
+
+  useEffect(() => {
+    saveTickets(ticketList);
+  }, [ticketList]);
 
   const [liveMap, setLiveMap] = useState<Record<string, LiveState>>({});
   const [refreshing, setRefreshing] = useState(false);
   const [lastCheckMs, setLastCheckMs] = useState<number | null>(null);
 
   const runCheck = async () => {
-    const relevant = tickets.filter((t) => (t.esporte || "").toLowerCase().includes("fute"));
+    const currentTickets = Array.isArray(ticketsRef.current) ? ticketsRef.current : [];
+    const relevant = currentTickets.filter((t) => (t.esporte || "").toLowerCase().includes("fute"));
     if (!relevant.length) return;
     setRefreshing(true);
     try {
@@ -194,11 +202,11 @@ function DicasPage() {
       const todayPayload =
         todayResult.status === "fulfilled" && todayResult.value.ok ? todayResult.value.payload : undefined;
       const matches = mergeLiveMatches(payloadToLiveMatches(todayPayload), liveMatches);
-      if (!matches.length) return;
 
       const nextLive: Record<string, LiveState> = {};
-      for (const t of tickets) {
-        const m = findMatchForTicket(t, matches);
+      for (const t of currentTickets) {
+        const rawMatch = findMatchForTicket(t, matches);
+        const m = rawMatch ? closeExpiredMatch(t, rawMatch) : null;
         let entry: LiveState | null = null;
         if (m) {
           const swapped = isSwappedMatch(t, m.team1, m.team2);
@@ -226,14 +234,15 @@ function DicasPage() {
             const legMap: Record<number, LegLive> = {};
             const totalLegs = Math.max(legs.length, multiGames.length);
             for (let i = 0; i < totalLegs; i += 1) {
-              const game = multiGames[i];
+              const game = gameForLeg(i, totalLegs, multiGames);
               const legText = legs[i] ?? `${game?.team1 ?? ""} ${game?.team2 ?? ""}`;
               const found = findMatchForLeg(legText, matches, game);
-              if (!found) continue;
-              const lm = found.match;
-              const graded = gradeSinglePalpite(legText, lm, t);
+              const previousLeg = t.legResults?.[i];
+              const lm = found ? closeExpiredMatch(t, found.match) : legResultToFinishedMatch(previousLeg, game, i);
+              if (!lm) continue;
+              const graded = gradeSinglePalpite(legText, lm, ticketForLeg(t, game));
               const status: TipStatus =
-                graded ?? (lm.live ? "ao_vivo" : "aguardando");
+                graded ?? preservedFinishedStatus(previousLeg?.status, lm);
               legMap[i] = {
                 matchId: lm.id,
                 live: lm.live,
@@ -260,9 +269,11 @@ function DicasPage() {
 
       setTickets((prev) => {
         let changed = false;
-        const next = prev.map((t) => {
+        const safePrev = Array.isArray(prev) ? prev : [];
+        const next = safePrev.map((t) => {
           if (!(t.esporte || "").toLowerCase().includes("fute")) return t;
-          const m = findMatchForTicket(t, matches);
+          const rawMatch = findMatchForTicket(t, matches);
+          const m = rawMatch ? closeExpiredMatch(t, rawMatch) : null;
           const multiGames = extractMultiGames(t.event);
           const isMult = isMultiplaTicket(t) || multiGames.length > 1;
           const legs = splitPalpites(t.palpite);
@@ -272,12 +283,13 @@ function DicasPage() {
           if (isMult && totalLegs > 0) {
             legResults = { ...(t.legResults ?? {}) };
             for (let i = 0; i < totalLegs; i += 1) {
-              const game = multiGames[i];
+              const game = gameForLeg(i, totalLegs, multiGames);
               const legText = legs[i] ?? `${game?.team1 ?? ""} ${game?.team2 ?? ""}`;
               const found = findMatchForLeg(legText, matches, game);
-              if (!found) continue;
-              const lm = found.match;
-              const status = gradeSinglePalpite(legText, lm, t) ?? (lm.live ? "ao_vivo" : "aguardando");
+              const previousLeg = legResults[i] ?? t.legResults?.[i];
+              const lm = found ? closeExpiredMatch(t, found.match) : legResultToFinishedMatch(previousLeg, game, i);
+              if (!lm) continue;
+              const status = gradeSinglePalpite(legText, lm, ticketForLeg(t, game)) ?? preservedFinishedStatus(previousLeg?.status, lm);
               const nextLeg: TicketLegResult = {
                 matchId: lm.id,
                 live: lm.live,
@@ -314,9 +326,12 @@ function DicasPage() {
             if (legChanged && legResults) patch.legResults = legResults;
 
             // status por perna (múltipla usa o match correto de cada jogo)
-            if (legs.length > 0 && (score1 != null || score2 != null || legResults)) {
+            if (totalLegs > 0 && (score1 != null || score2 != null || legResults)) {
               const statuses: TipStatus[] = isMult && legResults
-                ? legs.map((_, i) => legResults?.[i]?.status ?? t.legStatuses?.[i] ?? "aguardando")
+                ? Array.from(
+                    { length: totalLegs },
+                    (_, i) => legResults?.[i]?.status ?? t.legStatuses?.[i] ?? "aguardando",
+                  )
                 : legs.map((leg) => {
                     const g = gradeSinglePalpite(leg, m, t);
                     if (g) return g;
@@ -326,6 +341,16 @@ function DicasPage() {
               const same =
                 prev.length === statuses.length && prev.every((s, i) => s === statuses[i]);
               if (!same) patch.legStatuses = statuses;
+
+              if (isMult) {
+                const nextStatus = resolveTicketStatus(statuses);
+                if (t.status !== nextStatus) patch.status = nextStatus;
+              }
+            }
+
+            if (isMult && Object.keys(patch).length > 1) {
+              changed = true;
+              return { ...t, ...patch };
             }
 
             if (t.status === "green" || t.status === "red") {
@@ -363,8 +388,7 @@ function DicasPage() {
               { length: totalLegs },
               (_, i) => legResults?.[i]?.status ?? t.legStatuses?.[i] ?? "aguardando",
             );
-            const hasLiveLeg = Object.values(legResults).some((leg) => leg.live && !leg.finished);
-            const nextStatus: TipStatus = hasLiveLeg ? "ao_vivo" : t.status === "ao_vivo" ? "aguardando" : t.status;
+            const nextStatus = resolveTicketStatus(statuses);
             return {
               ...t,
               type: isMult ? "Múltipla" : t.type,
@@ -434,7 +458,7 @@ function DicasPage() {
 
 
   const filtered = useMemo(() => {
-    return tickets.filter((t) => {
+    return ticketList.filter((t) => {
       if (tab !== "todos" && t.status !== tab) return false;
       if (tipo !== "todos" && t.type.toLowerCase() !== tipo) return false;
       if (esporte !== "todos" && t.esporte.toLowerCase() !== esporte) return false;
@@ -450,9 +474,9 @@ function DicasPage() {
       }
       return true;
     });
-  }, [tickets, tab, tipo, esporte, query]);
+  }, [ticketList, tab, tipo, esporte, query]);
 
-  const addTicket = (t: Ticket) => setTickets((prev) => [t, ...prev]);
+  const addTicket = (t: Ticket) => setTickets((prev) => [t, ...(Array.isArray(prev) ? prev : [])]);
 
   return (
     <div className="space-y-4">
