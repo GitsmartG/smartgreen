@@ -541,11 +541,12 @@ function NovoTicketModal({
       if (r.ok) {
         if (r.odd != null && !odd) setOdd(String(r.odd));
         if (r.market && !palpite) setPalpite(r.market);
+        if (r.parceiro !== parceiro) setParceiro(r.parceiro);
       }
     } catch (err) {
       setFeedResult({
         ok: false,
-        error: err instanceof Error ? err.message : "Erro ao buscar no feed.",
+        error: getErrorMessage(err),
         triedIds: [],
         parceiro,
       });
@@ -582,7 +583,7 @@ function NovoTicketModal({
               year: "numeric",
             }),
         entradas: 1,
-        parceiro,
+        parceiro: feedResult.parceiro,
         url: url || undefined,
       });
     } else {
@@ -768,7 +769,10 @@ function NovoTicketModal({
               <input
                 value={url}
                 onChange={(e) => {
-                  setUrl(e.target.value);
+                  const nextUrl = e.target.value;
+                  setUrl(nextUrl);
+                  const detected = detectParceiro(nextUrl);
+                  if (detected) setParceiro(detected);
                   setFeedResult(null);
                 }}
                 onKeyDown={(e) => {
@@ -786,13 +790,13 @@ function NovoTicketModal({
               {mode === "auto" && (
                 <button
                   onClick={buscarNoFeed}
-                  disabled={loading || !url.trim() || !!urlMismatch}
+                  disabled={loading || !url.trim()}
                   className={
                     "h-10 px-3 rounded-md text-sm font-medium inline-flex items-center gap-2 shrink-0 " +
                     (isDark
                       ? "bg-neutral-800 hover:bg-neutral-700 text-neutral-100"
                       : "bg-neutral-100 hover:bg-neutral-200 text-neutral-800") +
-                    (loading || !url.trim() || urlMismatch
+                    (loading || !url.trim()
                       ? " opacity-50 cursor-not-allowed"
                       : "")
                   }
@@ -905,9 +909,9 @@ function NovoTicketModal({
               ) : !feedResult.ok ? (
                 <div className="space-y-1">
                   <div className="inline-flex items-center gap-1.5 text-red-500">
-                    <AlertCircle className="h-3.5 w-3.5" /> {feedResult.error}
+                    <AlertCircle className="h-3.5 w-3.5" /> {getErrorMessage(feedResult.error)}
                   </div>
-                  {feedResult.triedIds.length > 0 && (
+                  {Array.isArray(feedResult.triedIds) && feedResult.triedIds.length > 0 && (
                     <div className={"text-[11px] " + muted}>
                       IDs testados: {feedResult.triedIds.slice(0, 6).join(", ")}
                       {feedResult.triedIds.length > 6 ? "…" : ""}
