@@ -82,6 +82,11 @@ function normalizeTicket(value: unknown): Ticket | null {
     team1Logo: typeof t.team1Logo === "string" ? t.team1Logo : undefined,
     team2Logo: typeof t.team2Logo === "string" ? t.team2Logo : undefined,
     resultCheckedAtMs: Number.isFinite(Number(t.resultCheckedAtMs)) ? Number(t.resultCheckedAtMs) : undefined,
+    legStatuses: Array.isArray(t.legStatuses)
+      ? (t.legStatuses as unknown[]).map((s) =>
+          s === "green" || s === "red" || s === "ao_vivo" ? (s as TipStatus) : ("aguardando" as TipStatus),
+        )
+      : undefined,
   };
 }
 
