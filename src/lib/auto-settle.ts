@@ -126,5 +126,5 @@ export function gradePalpite(
   const graded = picks.map((p) => gradeSinglePalpite(p, match, ticket));
   if (graded.some((g) => g === "red")) return "red";
   if (graded.every((g) => g === "green")) return "green";
-  return graded.some((g) => g === "red") ? "red" : "green";
+  return null;
 }
