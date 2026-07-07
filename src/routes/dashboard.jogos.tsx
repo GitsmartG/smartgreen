@@ -397,7 +397,7 @@ function LeagueSection({
           {league.name}
         </h3>
         <span className={`text-[11px] ${subtle}`}>
-          {league.matches.length} {league.matches.length === 1 ? "jogo" : "jogos"}
+          {(league.matches?.length ?? 0)} {(league.matches?.length ?? 0) === 1 ? "jogo" : "jogos"}
         </span>
       </header>
 
