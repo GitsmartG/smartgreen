@@ -40,7 +40,7 @@ function isUngradeableMarket(p: string): boolean {
   return /escanteio|corner|cartao|cartão|amarelo|vermelho|impedimento|lateral|chute|finalizacao|finalização/.test(p);
 }
 
-function gradeSinglePalpite(palpite: string, match: LiveMatch, ticket: Ticket): TipStatus | null {
+export function gradeSinglePalpite(palpite: string, match: LiveMatch, ticket: Ticket): TipStatus | null {
   if (!match.finished || match.score1 == null || match.score2 == null) return null;
 
   const parts = ticket.event.split(/\s+(?:vs|x|×|-)\s+/i);

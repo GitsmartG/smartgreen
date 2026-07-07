@@ -3,8 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import { loadTickets, saveTickets, type Ticket, type TipStatus, type Parceiro as ParceiroT } from "@/lib/tickets-store";
 import { importBetTip, type BetTipsResult } from "@/lib/bet-tips";
 import { getSoccerLivescores } from "@/lib/livescores.functions";
-import { findMatchForTicket, gradePalpite } from "@/lib/auto-settle";
+import { findMatchForTicket, gradePalpite, gradeSinglePalpite } from "@/lib/auto-settle";
 import { getMatchRichData, type RichMatchResponse } from "@/lib/soccer-details.functions";
+import { getCachedRich, setCachedRich } from "@/lib/rich-cache";
 import { Loader2, AlertCircle, Activity, ShieldAlert, Zap, PieChart } from "lucide-react";
 
 import {
@@ -160,6 +161,20 @@ function DicasPage() {
             if (t.score2 !== score2) patch.score2 = score2;
             if (team1Logo && t.team1Logo !== team1Logo) patch.team1Logo = team1Logo;
             if (team2Logo && t.team2Logo !== team2Logo) patch.team2Logo = team2Logo;
+
+            // status por perna (só faz sentido se tiver placar)
+            const legs = splitPalpites(t.palpite);
+            if (legs.length > 0 && (score1 != null || score2 != null)) {
+              const statuses: TipStatus[] = legs.map((leg) => {
+                const g = gradeSinglePalpite(leg, m, t);
+                if (g) return g;
+                return m.live ? "ao_vivo" : "aguardando";
+              });
+              const prev = t.legStatuses ?? [];
+              const same =
+                prev.length === statuses.length && prev.every((s, i) => s === statuses[i]);
+              if (!same) patch.legStatuses = statuses;
+            }
 
             if (t.status === "green" || t.status === "red") {
               if (Object.keys(patch).length > 1) changed = true;
@@ -585,18 +600,48 @@ function TicketCard({
         <div className={`text-[11px] mt-2 text-center truncate ${muted}`}>{ticket.league}</div>
       </div>
 
-      {/* Palpites (lista) */}
+      {/* Palpites (lista) com status por perna */}
       <div className={`rounded-xl border ${inner} p-3`}>
         <div className={`text-[10px] uppercase tracking-wider ${subtle} mb-2`}>
           {palpites.length > 1 ? `Palpites (${palpites.length})` : "Palpite"}
         </div>
         <ul className="flex flex-col gap-1.5">
-          {palpites.map((p, i) => (
-            <li key={i} className="flex items-start gap-2 text-sm">
-              <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-              <span className="font-medium break-words leading-snug">{p}</span>
-            </li>
-          ))}
+          {palpites.map((p, i) => {
+            const legStatus = ticket.legStatuses?.[i];
+            const dotCls =
+              legStatus === "green"
+                ? "bg-emerald-500"
+                : legStatus === "red"
+                  ? "bg-red-500"
+                  : legStatus === "ao_vivo"
+                    ? "bg-amber-500 animate-pulse"
+                    : "bg-neutral-500/60";
+            const legLabel =
+              legStatus === "green"
+                ? "Green"
+                : legStatus === "red"
+                  ? "Red"
+                  : legStatus === "ao_vivo"
+                    ? "Ao vivo"
+                    : "Aguardando";
+            const legLabelCls =
+              legStatus === "green"
+                ? "text-emerald-500"
+                : legStatus === "red"
+                  ? "text-red-500"
+                  : legStatus === "ao_vivo"
+                    ? "text-amber-500"
+                    : muted;
+            return (
+              <li key={i} className="flex items-start gap-2 text-sm">
+                <span className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${dotCls}`} />
+                <span className="font-medium break-words leading-snug flex-1 min-w-0">{p}</span>
+                <span className={`text-[10px] font-semibold uppercase tracking-wider shrink-0 mt-0.5 ${legLabelCls}`}>
+                  {legLabel}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       </div>
 
@@ -1714,7 +1759,8 @@ function RichMatchPanel({
   const [state, setState] = useState<{
     loading: boolean;
     data: RichMatchResponse | null;
-  }>({ loading: true, data: null });
+    cached: boolean;
+  }>({ loading: true, data: null, cached: false });
 
   useEffect(() => {
     let cancelled = false;
@@ -1722,22 +1768,36 @@ function RichMatchPanel({
     const t1 = (parts[0] ?? "").trim();
     const t2 = (parts[1] ?? "").trim();
     if (!t1 || !t2) {
-      setState({ loading: false, data: { ok: false, error: "Não consegui extrair times do evento." } });
+      setState({ loading: false, data: { ok: false, error: "Não consegui extrair times do evento." }, cached: false });
       return;
     }
+
+    // 1. Cache first — mostra na hora e evita request se ainda válido
+    const cached = getCachedRich(t1, t2);
+    const cachedFinished = !!(cached?.ok && cached.match?.finished);
+    if (cached) {
+      setState({ loading: false, data: cached, cached: true });
+      // Se jogo já finalizou, cache é a fonte da verdade — não refaz nada.
+      if (cachedFinished) return;
+    }
+
     const load = async () => {
       try {
         const res = await getMatchRichData({ data: { team1: t1, team2: t2 } });
-        if (!cancelled) setState({ loading: false, data: res });
+        if (cancelled) return;
+        setCachedRich(t1, t2, res);
+        setState({ loading: false, data: res, cached: false });
       } catch (e) {
-        if (!cancelled)
+        if (!cancelled && !cached)
           setState({
             loading: false,
             data: { ok: false, error: e instanceof Error ? e.message : "Erro" },
+            cached: false,
           });
       }
     };
-    load();
+    // Se não tinha cache, busca agora. Se tinha (e não terminou), atualiza em 45s.
+    if (!cached) load();
     const id = setInterval(load, 45_000);
     return () => {
       cancelled = true;
