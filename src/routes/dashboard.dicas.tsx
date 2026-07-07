@@ -167,7 +167,11 @@ function DicasPage() {
           };
         }
         // Per-leg matching (multipla)
-        if (t.type === "Múltipla") {
+        const isMult =
+          t.type === "Múltipla" ||
+          (t.entradas ?? 0) > 1 ||
+          /múltipla|multipla/i.test(t.event);
+        if (isMult) {
           const legs = splitPalpites(t.palpite);
           if (legs.length > 1) {
             const legMap: Record<number, LegLive> = {};
