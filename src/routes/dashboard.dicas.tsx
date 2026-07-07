@@ -523,8 +523,12 @@ function TicketCard({
   const isLive = live?.live && !live.finished;
   const score1 = live?.score1 ?? ticket.score1;
   const score2 = live?.score2 ?? ticket.score2;
-  const team1Logo = live?.team1Logo ?? ticket.team1Logo;
-  const team2Logo = live?.team2Logo ?? ticket.team2Logo;
+  const team1Logo =
+    (live?.team1Logo ?? ticket.team1Logo) ||
+    (live?.team1Id ? `/api/public/team-image/${live.team1Id}?type=team` : undefined);
+  const team2Logo =
+    (live?.team2Logo ?? ticket.team2Logo) ||
+    (live?.team2Id ? `/api/public/team-image/${live.team2Id}?type=team` : undefined);
   const showScore = score1 != null || score2 != null;
 
   return (
