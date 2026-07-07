@@ -156,7 +156,7 @@ function DicasPage() {
     if (!relevant.length) return;
     setRefreshing(true);
     try {
-      const res = await getSoccerLivescores();
+      const res = await getSoccerLivescores({});
       if (!res.ok) return;
       const matches = Array.isArray(res.matches) ? res.matches : [];
 
