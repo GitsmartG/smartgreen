@@ -28,11 +28,34 @@ type Snapshot = {
 
 const POLL_MS = 15_000;
 const MAX_NOTIFS = 25;
+const STORAGE_KEY = "live-notifs-v1";
+const SNAP_KEY = "live-notifs-snap-v1";
+
+function loadNotifs(): LiveNotification[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 export function useLiveGoalNotifications() {
   const fetchLiveMatches = useServerFn(getLiveMatches);
-  const [notifs, setNotifs] = useState<LiveNotification[]>([]);
+  const [notifs, setNotifs] = useState<LiveNotification[]>(() => loadNotifs());
   const snapRef = useRef<Map<string, Snapshot> | null>(null);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(notifs ?? []));
+    } catch {
+      // silencioso
+    }
+  }, [notifs]);
+
 
   useEffect(() => {
     let cancelled = false;
