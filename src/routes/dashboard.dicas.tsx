@@ -54,7 +54,37 @@ export const Route = createFileRoute("/dashboard/dicas")({
   component: DicasPage,
 });
 
-type Tab = "todos" | "ao_vivo" | "green" | "red";
+type Tab = "todos" | "aguardando" | "ao_vivo" | "green" | "red";
+
+type LiveState = {
+  live: boolean;
+  finished: boolean;
+  score1: number | null;
+  score2: number | null;
+  minute?: string;
+  team1Logo?: string;
+  team2Logo?: string;
+  swapped: boolean;
+};
+
+const LIVE_PALETTE = {
+  amber: {
+    base: "text-amber-500 border-amber-500/40 bg-amber-500/10",
+    activeRing: "ring-2 ring-amber-500/50",
+  },
+  emerald: {
+    base: "text-emerald-500 border-emerald-500/40 bg-emerald-500/10",
+    activeRing: "ring-2 ring-emerald-500/50",
+  },
+  red: {
+    base: "text-red-500 border-red-500/40 bg-red-500/10",
+    activeRing: "ring-2 ring-red-500/50",
+  },
+  sky: {
+    base: "text-sky-500 border-sky-500/40 bg-sky-500/10",
+    activeRing: "ring-2 ring-sky-500/50",
+  },
+} as const;
 
 function DicasPage() {
   const isDark = useIsDark();
