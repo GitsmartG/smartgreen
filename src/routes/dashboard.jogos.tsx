@@ -608,20 +608,31 @@ function MatchRow({
 }) {
   const spTime = formatSpTime(match.date, match.time);
   const status = match.live ? "live" : match.finished ? "finished" : "scheduled";
+  const rawStatus = s(match.status, "").toUpperCase().trim();
+  const isHalftime = rawStatus === "HT" || rawStatus === "BREAK";
+
+  // Formata minutagem: "45+2'", "78", "1H" -> "45'+2", "78'", "1º T"
+  let liveLabel = "AO VIVO";
+  if (status === "live") {
+    if (isHalftime) liveLabel = "INTERVALO";
+    else if (/^\d{1,3}(\+\d+)?'?$/.test(rawStatus)) {
+      const clean = rawStatus.replace(/'/g, "");
+      const [base, extra] = clean.split("+");
+      liveLabel = extra ? `${base}'+${extra}` : `${base}'`;
+    } else if (rawStatus === "1H") liveLabel = "1º TEMPO";
+    else if (rawStatus === "2H") liveLabel = "2º TEMPO";
+    else if (rawStatus === "ET") liveLabel = "PRORROG.";
+    else if (rawStatus) liveLabel = rawStatus;
+  }
 
   const rowHover = isDark ? "hover:bg-neutral-800/40" : "hover:bg-neutral-50";
   const scoreBg = isDark ? "bg-neutral-950/60 border-neutral-800" : "bg-neutral-50 border-neutral-200";
 
-  const statusLabel =
-    status === "live"
-      ? s(match.status, "AO VIVO") || "AO VIVO"
-      : status === "finished"
-        ? "ENCERRADO"
-        : spTime ?? "AGENDADO";
-
   const statusClass =
     status === "live"
-      ? "text-amber-500"
+      ? isHalftime
+        ? "text-amber-500"
+        : "text-red-500"
       : status === "scheduled"
         ? "text-sky-500"
         : muted;
@@ -638,13 +649,26 @@ function MatchRow({
       className={`grid grid-cols-[80px_1fr_64px_1fr_84px] items-center gap-2 px-3 py-2.5 transition-colors ${rowHover}`}
     >
       <div className="flex flex-col">
-        <span className={`text-[10px] font-bold uppercase tracking-wider ${statusClass}`}>
-          {statusLabel}
-        </span>
+        {status === "live" ? (
+          <span className={`text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1 ${statusClass}`}>
+            {!isHalftime && (
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75 animate-ping" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
+              </span>
+            )}
+            {liveLabel}
+          </span>
+        ) : (
+          <span className={`text-[10px] font-bold uppercase tracking-wider ${statusClass}`}>
+            {status === "finished" ? "ENCERRADO" : spTime ?? "AGENDADO"}
+          </span>
+        )}
         {status === "scheduled" && spTime && (
           <span className={`text-[9px] mt-0.5 ${muted}`}>Brasília</span>
         )}
       </div>
+
 
       <div className="flex items-center justify-end gap-2 min-w-0">
         <span
