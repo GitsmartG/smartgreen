@@ -264,9 +264,13 @@ function JogosHojePage() {
         {!state.loading && filteredLeagues.length > 0 && (
           <div className="space-y-8">
             {filteredLeagues.map((lg) => (
-              <LeagueSection key={lg.id || lg.name} league={lg} isDark={isDark} />
+              <LeagueSection key={lg.id || lg.name} league={lg} isDark={isDark} onPredict={setPredictionMatch} />
             ))}
           </div>
+        )}
+
+        {predictionMatch && (
+          <PredictionModal match={predictionMatch} isDark={isDark} onClose={() => setPredictionMatch(null)} />
         )}
 
         {/* Footer legend */}
