@@ -1054,14 +1054,14 @@ function TeamLineupBlock({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className={`text-sm font-semibold truncate ${strong}`}>
-            {team.team_name ?? "—"}
+            {s(team.team_name, "—")}
           </div>
           <div className={`text-[11px] ${muted}`}>
-            {team.team_formation ? `Formação ${team.team_formation}` : ""}
-            {team.coach?.name ? ` · Téc. ${team.coach.name}` : ""}
+            {s(team.team_formation) ? `Formação ${s(team.team_formation)}` : ""}
+            {s(team.coach?.name) ? ` · Téc. ${s(team.coach?.name)}` : ""}
           </div>
         </div>
-        {typeof team.confidence === "number" && (
+        {typeof team.confidence === "number" && Number.isFinite(team.confidence) && (
           <span
             className={
               "text-[10px] font-bold px-1.5 py-0.5 rounded border border-emerald-500/40 bg-emerald-500/10 text-emerald-500"
