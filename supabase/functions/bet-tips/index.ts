@@ -292,8 +292,8 @@ async function fetchSharedBetData(
   parceiro: Parceiro,
   rawUrl: string,
   betId?: string,
-): Promise<BetTipsResult | null> {
-  if (!betId || !/^\d+$/.test(betId)) return null;
+): Promise<{ result: BetTipsResult | null; emptyEvents: boolean }> {
+  if (!betId || !/^\d+$/.test(betId)) return { result: null, emptyEvents: false };
   const origin = makePartnerOrigin(rawUrl, parceiro);
   const endpoint = `${origin}/pt/get-sharing-data?bet_id=${encodeURIComponent(betId)}`;
   try {
@@ -303,14 +303,16 @@ async function fetchSharedBetData(
         Referer: rawUrl,
       },
     });
-    if (!res.ok) return null;
+    if (!res.ok) return { result: null, emptyEvents: false };
     const payload = await res.json().catch(() => null);
     const data = payload?.data as SharedBetData | undefined;
-    if (!data || typeof data !== "object") return null;
-    return sharedBetToResult(parceiro, data);
+    if (!data || typeof data !== "object") return { result: null, emptyEvents: false };
+    const events = Array.isArray(data.events) ? data.events : [];
+    if (events.length === 0) return { result: null, emptyEvents: true };
+    return { result: sharedBetToResult(parceiro, data), emptyEvents: false };
   } catch (err) {
     console.warn("get-sharing-data falhou:", err);
-    return null;
+    return { result: null, emptyEvents: false };
   }
 }
 
