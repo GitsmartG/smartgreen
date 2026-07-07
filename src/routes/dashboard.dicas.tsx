@@ -107,6 +107,8 @@ type LiveState = {
   legs?: Record<number, LegLive>;
 };
 
+const MATCH_AUTO_CLOSE_MS = 3 * 60 * 60 * 1000;
+
 // Keys em inglês normalizado — normalizedText() traduz PT→EN antes do lookup.
 const FLAG_LOGOS: Record<string, string> = {
   argentina: "🇦🇷", brazil: "🇧🇷", uruguay: "🇺🇾", paraguay: "🇵🇾", chile: "🇨🇱",
@@ -1142,7 +1144,7 @@ function isMultiplaTicket(ticket: Ticket): boolean {
 }
 
 function extractMultiGames(event: string): MultiGame[] {
-  return event
+  return String(event ?? "")
     .replace(/^\s*(m[uú]ltipla\s*[:\-]?\s*)/i, "")
     .split(/\s*\+\s*/)
     .map((seg) => {
@@ -1153,6 +1155,76 @@ function extractMultiGames(event: string): MultiGame[] {
       };
     })
     .filter((g) => g.team1 && g.team2);
+}
+
+function gameForLeg(index: number, totalLegs: number, games: MultiGame[]): MultiGame | undefined {
+  if (!Array.isArray(games) || games.length === 0) return undefined;
+  if (games[index]) return games[index];
+  if (games.length < totalLegs) return games[games.length - 1];
+  return undefined;
+}
+
+function ticketForLeg(ticket: Ticket, game?: MultiGame): Ticket {
+  if (!game) return ticket;
+  return { ...ticket, event: `${game.team1} x ${game.team2}`, type: "Simples", entradas: 1 };
+}
+
+function shouldForceClose(ticket: Ticket): boolean {
+  const baseMs = ticket.startMs ?? ticket.createdAtMs ?? null;
+  return typeof baseMs === "number" && Number.isFinite(baseMs) && Date.now() - baseMs > MATCH_AUTO_CLOSE_MS;
+}
+
+function closeExpiredMatch(ticket: Ticket, match: LiveMatch): LiveMatch {
+  if (!match.live || match.finished || !shouldForceClose(ticket)) return match;
+  return {
+    ...match,
+    status: /^(ft|finished|ended)$/i.test(match.status || "") ? match.status : "FT",
+    minute: undefined,
+    live: false,
+    finished: true,
+  };
+}
+
+function legResultToFinishedMatch(
+  leg: TicketLegResult | undefined,
+  game: MultiGame | undefined,
+  index: number,
+  ticket: Ticket,
+): LiveMatch | null {
+  if (!leg) return null;
+  const hasScore = leg.score1 != null || leg.score2 != null;
+  if (!hasScore && !leg.live && !leg.finished) return null;
+  const forceFinished = shouldForceClose(ticket) || !!leg.finished;
+  if (!forceFinished && !leg.live) return null;
+  return {
+    id: leg.matchId || `cached-leg-${ticket.id}-${index}`,
+    status: forceFinished ? "FT" : "LIVE",
+    team1: leg.team1 || game?.team1 || "Time 1",
+    team2: leg.team2 || game?.team2 || "Time 2",
+    team1Logo: leg.team1Logo,
+    team2Logo: leg.team2Logo,
+    team1Id: leg.team1Id,
+    team2Id: leg.team2Id,
+    score1: leg.score1 ?? null,
+    score2: leg.score2 ?? null,
+    minute: forceFinished ? undefined : leg.minute,
+    live: forceFinished ? false : !!leg.live,
+    finished: forceFinished,
+  };
+}
+
+function preservedFinishedStatus(previous: TipStatus | undefined, match: LiveMatch): TipStatus {
+  if (previous === "green" || previous === "red") return previous;
+  if (match.live && !match.finished) return "ao_vivo";
+  return match.finished ? "aguardando" : "aguardando";
+}
+
+function resolveTicketStatus(statuses: TipStatus[]): TipStatus {
+  const safe = Array.isArray(statuses) ? statuses : [];
+  if (safe.some((status) => status === "red")) return "red";
+  if (safe.length > 0 && safe.every((status) => status === "green")) return "green";
+  if (safe.some((status) => status === "ao_vivo")) return "ao_vivo";
+  return "aguardando";
 }
 
 function teamLogoUrl(logo?: string, teamId?: string, teamName?: string): string | undefined {
@@ -1174,9 +1246,10 @@ function teamLogoUrl(logo?: string, teamId?: string, teamName?: string): string 
 }
 
 function payloadToLiveMatches(payload?: MatchLogoPayload): LiveMatch[] {
-  if (!payload?.leagues?.length) return [];
-  return payload.leagues.flatMap((league) =>
-    (league.matches ?? []).map((match) => normalizedMatchToLiveMatch(match)),
+  const leagues = Array.isArray(payload?.leagues) ? payload.leagues : [];
+  if (!leagues.length) return [];
+  return leagues.flatMap((league) =>
+    (Array.isArray(league.matches) ? league.matches : []).map((match) => normalizedMatchToLiveMatch(match)),
   );
 }
 
