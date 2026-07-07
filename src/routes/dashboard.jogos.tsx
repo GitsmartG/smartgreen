@@ -884,26 +884,26 @@ function PredictionModal({
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
                       <span className={muted}>Liga: </span>
-                      <span className={strong}>{result.meta.league?.name ?? "—"}</span>
+                      <span className={strong}>{s(result.meta.league?.name, "—")}</span>
                     </div>
                     <div>
                       <span className={muted}>País: </span>
-                      <span className={strong}>{result.meta.country?.name ?? "—"}</span>
+                      <span className={strong}>{s(result.meta.country?.name, "—")}</span>
                     </div>
                     <div>
                       <span className={muted}>Data: </span>
-                      <span className={strong}>{result.meta.date ?? "—"}</span>
+                      <span className={strong}>{s(result.meta.date, "—")}</span>
                     </div>
                     <div>
                       <span className={muted}>Hora: </span>
-                      <span className={strong}>{result.meta.time ?? "—"}</span>
+                      <span className={strong}>{s(result.meta.time, "—")}</span>
                     </div>
-                    {result.meta.venue?.name && (
+                    {s(result.meta.venue?.name) && (
                       <div className="col-span-2">
                         <span className={muted}>Estádio: </span>
                         <span className={strong}>
-                          {result.meta.venue.name}
-                          {result.meta.venue.city ? `, ${result.meta.venue.city}` : ""}
+                          {s(result.meta.venue?.name)}
+                          {s(result.meta.venue?.city) ? `, ${s(result.meta.venue?.city)}` : ""}
                         </span>
                       </div>
                     )}
