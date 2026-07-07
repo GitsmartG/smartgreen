@@ -1,6 +1,44 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
+// Fallback local: substitui termos comuns pra PT-BR quando a AI falha.
+const LOCAL_MAP: [RegExp, string][] = [
+  [/\bmatch\s+winner\b/gi, "Vencedor da Partida"],
+  [/\bboth\s+teams\s+to\s+score\b/gi, "Ambas Marcam"],
+  [/\bover\b/gi, "Mais de"],
+  [/\bunder\b/gi, "Menos de"],
+  [/\bhome\b/gi, "Casa"],
+  [/\baway\b/gi, "Fora"],
+  [/\bdraw\b/gi, "Empate"],
+  [/\bto\s+win\b/gi, "para vencer"],
+  [/\bwin\b/gi, "Vitória"],
+  [/\bfull\s*time\b/gi, "Tempo Integral"],
+  [/\bhalf\s*time\b/gi, "Primeiro Tempo"],
+];
+function localTranslate(s?: string): string | undefined {
+  if (!s) return s;
+  let out = s;
+  for (const [re, val] of LOCAL_MAP) out = out.replace(re, val);
+  return out;
+}
+function applyLocalFallback(
+  p: NonNullable<PredictionResult["prediction"]>,
+): NonNullable<PredictionResult["prediction"]> {
+  return {
+    choice: localTranslate(p.choice) ?? p.choice,
+    reasoning: p.reasoning, // reasoning é frase longa — sem AI, mantém original
+    prematch_odds: p.prematch_odds
+      ? {
+          ...p.prematch_odds,
+          market: localTranslate(p.prematch_odds.market) ?? p.prematch_odds.market,
+          modifier: p.prematch_odds.modifier,
+          selection: localTranslate(p.prematch_odds.selection) ?? p.prematch_odds.selection,
+        }
+      : undefined,
+  };
+}
+
+
 export type PredictionResult = {
   ok: boolean;
   error?: string;
@@ -85,12 +123,12 @@ export const getMatchPrediction = createServerFn({ method: "GET" })
               },
               signal: aiCtrl.signal,
               body: JSON.stringify({
-                model: "google/gemini-2.5-flash-lite",
+                model: "google/gemini-2.5-flash",
                 messages: [
                   {
                     role: "system",
                     content:
-                      "Traduza os valores para português do Brasil, mantendo termos técnicos de apostas esportivas naturais (ex.: 'Match Winner' → 'Vencedor da Partida', 'Both Teams To Score' → 'Ambas Marcam', 'Over' → 'Mais de', 'Under' → 'Menos de', 'Home'/'Away'/'Draw' → 'Casa'/'Fora'/'Empate'). Mantenha nomes próprios de times/ligas em inglês. Responda APENAS com JSON válido no mesmo formato de entrada.",
+                      "Você traduz JSON de previsões de apostas esportivas para português do Brasil. Regras:\n- Traduza TODOS os textos, incluindo 'X to win' → 'Vitória do X', 'Draw' → 'Empate'.\n- Mantenha nomes próprios (times, ligas, jogadores) em inglês.\n- Termos: 'Match Winner'/'1x2' → 'Vencedor da Partida', 'Both Teams To Score' → 'Ambas Marcam', 'Over' → 'Mais de', 'Under' → 'Menos de', 'Home' → 'Casa', 'Away' → 'Fora'.\n- Responda APENAS com JSON válido no MESMO formato de entrada, com todas as chaves preservadas mesmo se vazias.",
                   },
                   { role: "user", content: JSON.stringify(payload) },
                 ],
@@ -99,12 +137,15 @@ export const getMatchPrediction = createServerFn({ method: "GET" })
             },
           );
           clearTimeout(aiTimer);
-          if (!aiRes.ok) return p;
+          if (!aiRes.ok) {
+            console.warn("[prediction-translate] AI HTTP", aiRes.status, await aiRes.text().catch(() => ""));
+            return applyLocalFallback(p);
+          }
           const aiJson = (await aiRes.json()) as {
             choices?: { message?: { content?: string } }[];
           };
           const content = aiJson.choices?.[0]?.message?.content;
-          if (!content) return p;
+          if (!content) return applyLocalFallback(p);
           const t = JSON.parse(content) as typeof payload;
           return {
             choice: t.choice || p.choice,
@@ -118,8 +159,9 @@ export const getMatchPrediction = createServerFn({ method: "GET" })
                 }
               : undefined,
           };
-        } catch {
-          return p;
+        } catch (err) {
+          console.warn("[prediction-translate] falhou:", err);
+          return applyLocalFallback(p);
         }
       };
       const prediction = json.prediction
