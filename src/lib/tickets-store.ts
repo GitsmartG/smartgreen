@@ -22,6 +22,7 @@ export type Ticket = {
   team1Logo?: string;
   team2Logo?: string;
   resultCheckedAtMs?: number;
+  legStatuses?: TipStatus[];
 };
 
 const STORAGE_KEY = "sg-tickets";
