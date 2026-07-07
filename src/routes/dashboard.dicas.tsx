@@ -733,6 +733,8 @@ function NovoTicketModal({
   const [loading, setLoading] = useState(false);
   const [feedResult, setFeedResult] = useState<BetTipsResult | null>(null);
   const selected = feedResult && feedResult.ok ? feedResult.match : null;
+  const sharedMeta = feedResult && !feedResult.ok ? feedResult.sharedMeta : undefined;
+  const canCreateRecoveredShared = !!(sharedMeta && event.trim() && palpite.trim() && odd);
 
   const overlay =
     "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm";
@@ -1345,7 +1347,7 @@ function NovoTicketModal({
             className="h-10 px-5 rounded-md text-white text-sm font-semibold inline-flex items-center gap-2 hover:brightness-110 active:brightness-95 shadow-sm"
           >
             {mode === "auto" ? (
-              selected || (!feedResult?.ok && feedResult?.sharedMeta && event.trim() && palpite.trim() && odd) ? (
+              selected || canCreateRecoveredShared ? (
                 <>
                   <Plus className="h-4 w-4" /> Criar ticket
                 </>
