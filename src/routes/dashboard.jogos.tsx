@@ -135,19 +135,19 @@ function JogosHojePage() {
     const q = query.trim().toLowerCase();
     return leagues
       .map((lg) => {
-        const matches = lg.matches.filter((m) => {
+        const matches = (lg.matches ?? []).filter((m) => {
           if (filter === "ao_vivo" && !m.live) return false;
           if (filter === "encerrados" && !m.finished) return false;
           if (filter === "agendados" && (m.live || m.finished)) return false;
           if (q) {
-            const hay = `${m.home.name} ${m.away.name} ${lg.name} ${lg.country}`.toLowerCase();
+            const hay = `${m.home?.name ?? ""} ${m.away?.name ?? ""} ${lg.name} ${lg.country}`.toLowerCase();
             if (!hay.includes(q)) return false;
           }
           return true;
         });
         return { ...lg, matches };
       })
-      .filter((lg) => lg.matches.length > 0)
+      .filter((lg) => (lg.matches?.length ?? 0) > 0)
       .sort((a, b) => {
         const pa = leaguePriority(a);
         const pb = leaguePriority(b);
@@ -158,15 +158,15 @@ function JogosHojePage() {
 
   const totalCount = state.data?.payload?.totalMatches ?? 0;
   const liveCount =
-    state.data?.payload?.leagues.reduce(
-      (sum, lg) => sum + lg.matches.filter((m) => m.live).length,
+    (state.data?.payload?.leagues ?? []).reduce(
+      (sum, lg) => sum + (lg.matches ?? []).filter((m) => m.live).length,
       0,
-    ) ?? 0;
+    );
   const finishedCount =
-    state.data?.payload?.leagues.reduce(
-      (sum, lg) => sum + lg.matches.filter((m) => m.finished).length,
+    (state.data?.payload?.leagues ?? []).reduce(
+      (sum, lg) => sum + (lg.matches ?? []).filter((m) => m.finished).length,
       0,
-    ) ?? 0;
+    );
 
   const updatedTime = state.data?.fetchedAt
     ? new Date(state.data.fetchedAt).toLocaleTimeString("pt-BR", {
@@ -397,7 +397,7 @@ function LeagueSection({
           {league.name}
         </h3>
         <span className={`text-[11px] ${subtle}`}>
-          {league.matches.length} {league.matches.length === 1 ? "jogo" : "jogos"}
+          {(league.matches?.length ?? 0)} {(league.matches?.length ?? 0) === 1 ? "jogo" : "jogos"}
         </span>
       </header>
 

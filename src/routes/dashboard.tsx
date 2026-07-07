@@ -11,6 +11,7 @@ import {
   Moon,
   CalendarDays,
 } from "lucide-react";
+import { LiveNotificationsPanel } from "@/components/LiveNotificationsPanel";
 
 const LOGO_URL =
   "https://wffylwohekfpecslflgc.supabase.co/storage/v1/object/public/files/uploads/t7QtTgpHfAeBSDZvo5b7DViqtR73/1783110032648-mkbpm-logo_smartgreen.png";
@@ -120,6 +121,7 @@ function DashboardLayout() {
             );
           })}
         </nav>
+        <LiveNotificationsPanel isDark={isDark} />
         <div className="p-3 border-t border-inherit">
           <button
             onClick={handleLogout}
