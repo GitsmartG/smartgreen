@@ -657,12 +657,12 @@ function MatchRow({
             status === "finished" ? muted : ""
           }`}
         >
-          {match.home.name}
+          {s(match.home.name, "?")}
         </span>
         <TeamLogo
-          id={match.home.id}
-          logo={match.home.image}
-          name={match.home.name}
+          id={s(match.home.id) || undefined}
+          logo={s(match.home.image) || undefined}
+          name={s(match.home.name, "?")}
           isDark={isDark}
           dim={status === "finished"}
         />
@@ -673,16 +673,16 @@ function MatchRow({
           <span className={`text-xs font-semibold ${muted}`}>VS</span>
         ) : (
           <span className={`text-base font-bold tabular-nums ${scoreColor}`}>
-            {match.home.goals ?? 0}-{match.away.goals ?? 0}
+            {sNum(match.home.goals, 0)}-{sNum(match.away.goals, 0)}
           </span>
         )}
       </div>
 
       <div className="flex items-center gap-2 min-w-0">
         <TeamLogo
-          id={match.away.id}
-          logo={match.away.image}
-          name={match.away.name}
+          id={s(match.away.id) || undefined}
+          logo={s(match.away.image) || undefined}
+          name={s(match.away.name, "?")}
           isDark={isDark}
           dim={status === "finished"}
         />
@@ -691,7 +691,7 @@ function MatchRow({
             status === "finished" ? muted : ""
           }`}
         >
-          {match.away.name}
+          {s(match.away.name, "?")}
         </span>
       </div>
 
