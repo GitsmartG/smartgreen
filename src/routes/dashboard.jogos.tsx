@@ -276,11 +276,9 @@ function JogosHojePage() {
   }, [state.data, query, filter]);
 
   const totalCount = state.data?.payload?.totalMatches ?? 0;
-  const liveCount =
-    (state.data?.payload?.leagues ?? []).reduce(
-      (sum, lg) => sum + (lg.matches ?? []).filter((m) => m.live).length,
-      0,
-    );
+  const allMatches = (state.data?.payload?.leagues ?? []).flatMap((lg) => lg.matches ?? []);
+  const liveCount = allMatches.filter((m) => m.live).length;
+  const finishedCount = allMatches.filter((m) => m.finished).length;
 
   const updatedTime = state.data?.fetchedAt
     ? new Date(state.data.fetchedAt).toLocaleTimeString("pt-BR", {
