@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from "react";
-import { getTodayMatches } from "@/lib/daily-matches.functions";
+import { useServerFn } from "@tanstack/react-start";
+import { getLiveMatches } from "@/lib/daily-matches.functions";
 
 export type LiveNotification = {
   id: string;
-  kind: "goal" | "start" | "finish";
+  kind: "goal" | "start" | "finish" | "card" | "event";
   home: string;
   away: string;
   score: string;
   league: string;
   scorer?: "home" | "away";
+  minute?: string;
+  text?: string;
   at: number;
 };
 
@@ -20,48 +23,42 @@ type Snapshot = {
   homeName: string;
   awayName: string;
   league: string;
+  events: Set<string>;
 };
 
-const POLL_MS = 25_000;
+const POLL_MS = 15_000;
 const MAX_NOTIFS = 25;
 
 export function useLiveGoalNotifications() {
+  const fetchLiveMatches = useServerFn(getLiveMatches);
   const [notifs, setNotifs] = useState<LiveNotification[]>([]);
   const snapRef = useRef<Map<string, Snapshot> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
-
-    const isTodayMatch = (m: { date?: string }, todayIso: string): boolean => {
-      const raw = m.date;
-      if (!raw) return false;
-      // Statpal costuma retornar "DD.MM.YYYY". Aceita "YYYY-MM-DD" também.
-      let iso: string | null = null;
-      const dm = /^(\d{2})\.(\d{2})\.(\d{4})/.exec(raw);
-      if (dm) iso = `${dm[3]}-${dm[2]}-${dm[1]}`;
-      else if (/^\d{4}-\d{2}-\d{2}/.test(raw)) iso = raw.slice(0, 10);
-      return iso === todayIso;
+    const eventLabel = (event: { type: string; team: string; player?: string; minute: string; extraMin?: string; result?: string }) => {
+      const minute = event.extraMin ? `${event.minute}+${event.extraMin}'` : event.minute ? `${event.minute}'` : "";
+      const player = event.player ? ` · ${event.player}` : "";
+      const result = event.result ? ` ${event.result}` : "";
+      const team = event.team === "home" ? "mandante" : event.team === "away" ? "visitante" : event.team;
+      if (event.type === "goal") return `${minute} Gol do ${team}${player}${result}`.trim();
+      if (event.type.includes("red")) return `${minute} Cartão vermelho (${team})${player}`.trim();
+      if (event.type.includes("yellow")) return `${minute} Cartão amarelo (${team})${player}`.trim();
+      return `${minute} ${event.type || "Evento"} (${team})${player}${result}`.trim();
     };
 
     const tick = async () => {
       try {
-        const res = await getTodayMatches();
+        const res = await fetchLiveMatches();
         if (cancelled) return;
         const leagues = res?.payload?.leagues ?? [];
-        const todayIso = new Date().toISOString().slice(0, 10);
-        const apiDate = res?.date; // formato "YYYY-MM-DD" do backend
         const next = new Map<string, Snapshot>();
         const events: LiveNotification[] = [];
         const prev = snapRef.current;
 
         for (const lg of leagues) {
           for (const m of lg.matches ?? []) {
-            // Só rastreia partidas realmente de hoje
-            const dateOk =
-              isTodayMatch(m, todayIso) || (apiDate && isTodayMatch(m, apiDate));
-            if (!dateOk) continue;
-
             const snap: Snapshot = {
               home: m.home?.goals ?? null,
               away: m.away?.goals ?? null,
@@ -70,6 +67,7 @@ export function useLiveGoalNotifications() {
               homeName: m.home?.name ?? "",
               awayName: m.away?.name ?? "",
               league: lg.name ?? "",
+              events: new Set((m.events ?? []).map((event) => event.id)),
             };
             next.set(m.id, snap);
 
@@ -119,6 +117,17 @@ export function useLiveGoalNotifications() {
                     ...base,
                   });
                 }
+                for (const event of m.events ?? []) {
+                  if (p.events.has(event.id)) continue;
+                  events.push({
+                    id: `${m.id}-event-${event.id}-${Date.now()}`,
+                    kind: event.type === "goal" ? "goal" : event.type.includes("card") ? "card" : "event",
+                    scorer: event.team === "home" || event.team === "away" ? event.team : undefined,
+                    minute: event.extraMin ? `${event.minute}+${event.extraMin}'` : event.minute ? `${event.minute}'` : undefined,
+                    text: eventLabel(event),
+                    ...base,
+                  });
+                }
               }
             }
           }
@@ -140,7 +149,7 @@ export function useLiveGoalNotifications() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, []);
+  }, [fetchLiveMatches]);
 
   const dismiss = (id: string) =>
     setNotifs((cur) => cur.filter((n) => n.id !== id));

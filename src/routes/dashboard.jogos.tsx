@@ -732,6 +732,7 @@ function PredictionModal({
   isDark: boolean;
   onClose: () => void;
 }) {
+  const fetchPrediction = useServerFn(getMatchPrediction);
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<PredictionResult | null>(null);
 
@@ -744,7 +745,7 @@ function PredictionModal({
       setLoading(false);
       return;
     }
-    getMatchPrediction({ data: { matchId: match.id } })
+    fetchPrediction({ data: { matchId: match.id } })
       .then((r) => {
         if (!cancelled) {
           setResult(r);
@@ -760,7 +761,7 @@ function PredictionModal({
     return () => {
       cancelled = true;
     };
-  }, [match.id]);
+  }, [fetchPrediction, match.id]);
 
   const panel = isDark
     ? "bg-neutral-900 border-neutral-800 text-neutral-200"
@@ -925,6 +926,7 @@ function LineupsModal({
   isDark: boolean;
   onClose: () => void;
 }) {
+  const fetchLineups = useServerFn(getMatchLineups);
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<LineupsResult | null>(null);
 
@@ -937,7 +939,7 @@ function LineupsModal({
       setLoading(false);
       return;
     }
-    getMatchLineups({ data: { matchId: match.id } })
+    fetchLineups({ data: { matchId: match.id } })
       .then((r) => {
         if (!cancelled) {
           setResult(r);
@@ -953,7 +955,7 @@ function LineupsModal({
     return () => {
       cancelled = true;
     };
-  }, [match.id]);
+  }, [fetchLineups, match.id]);
 
   const panel = isDark
     ? "bg-neutral-900 border-neutral-800 text-neutral-200"
