@@ -149,21 +149,56 @@ function DicasPage() {
       const nextLive: Record<string, LiveState> = {};
       for (const t of tickets) {
         const m = findMatchForTicket(t, matches);
-        if (!m) continue;
-        const swapped = isSwappedMatch(t, m.team1, m.team2);
-        nextLive[t.id] = {
-          status: m.status,
-          live: m.live,
-          finished: m.finished,
-          score1: swapped ? m.score2 : m.score1,
-          score2: swapped ? m.score1 : m.score2,
-          minute: m.minute,
-          team1Logo: swapped ? m.team2Logo : m.team1Logo,
-          team2Logo: swapped ? m.team1Logo : m.team2Logo,
-          team1Id: swapped ? m.team2Id : m.team1Id,
-          team2Id: swapped ? m.team1Id : m.team2Id,
-          swapped,
-        };
+        let entry: LiveState | null = null;
+        if (m) {
+          const swapped = isSwappedMatch(t, m.team1, m.team2);
+          entry = {
+            status: m.status,
+            live: m.live,
+            finished: m.finished,
+            score1: swapped ? m.score2 : m.score1,
+            score2: swapped ? m.score1 : m.score2,
+            minute: m.minute,
+            team1Logo: swapped ? m.team2Logo : m.team1Logo,
+            team2Logo: swapped ? m.team1Logo : m.team2Logo,
+            team1Id: swapped ? m.team2Id : m.team1Id,
+            team2Id: swapped ? m.team1Id : m.team2Id,
+            swapped,
+          };
+        }
+        // Per-leg matching (multipla)
+        if (t.type === "Múltipla") {
+          const legs = splitPalpites(t.palpite);
+          if (legs.length > 1) {
+            const legMap: Record<number, LegLive> = {};
+            legs.forEach((legText, i) => {
+              const found = findMatchForLeg(legText, matches);
+              if (!found) return;
+              const lm = found.match;
+              const graded = gradeSinglePalpite(legText, lm, t);
+              const status: TipStatus =
+                graded ?? (lm.live ? "ao_vivo" : "aguardando");
+              legMap[i] = {
+                matchId: lm.id,
+                live: lm.live,
+                finished: lm.finished,
+                score1: lm.score1,
+                score2: lm.score2,
+                minute: lm.minute,
+                team1: lm.team1,
+                team2: lm.team2,
+                team1Logo: lm.team1Logo,
+                team2Logo: lm.team2Logo,
+                team1Id: lm.team1Id,
+                team2Id: lm.team2Id,
+                swapped: false,
+                status,
+              };
+            });
+            entry = { ...(entry ?? { live: false, finished: false, score1: null, score2: null, swapped: false }), legs: legMap };
+          }
+        }
+        if (entry) nextLive[t.id] = entry;
       }
       setLiveMap(nextLive);
 
