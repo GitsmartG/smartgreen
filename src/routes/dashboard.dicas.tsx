@@ -469,7 +469,13 @@ function DicasPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filtered.flatMap((t) => {
             const legs = splitPalpites(t.palpite);
-            const isMult = t.type === "Múltipla" && legs.length > 1;
+            // Considera múltipla também quando o palpite tem múltiplas pernas,
+            // mesmo que o type não tenha sido marcado como "Múltipla" no parser.
+            const isMult =
+              legs.length > 1 &&
+              (t.type === "Múltipla" ||
+                (t.entradas ?? 0) > 1 ||
+                /múltipla|multipla/i.test(t.event));
             if (!isMult) {
               return [
                 <TicketCard
@@ -951,8 +957,21 @@ function LegCard({
 
 function splitPalpites(raw: string): string[] {
   if (!raw) return ["—"];
-  const parts = raw
-    .split(/\r?\n|;| \+ | \/ | \| /g)
+  // Tira numeração inicial tipo "1) ", "2. " que aparece em múltiplas coladas.
+  const normalized = raw
+    .replace(/\s*(?:^|(?<=\s))(?:\d+\s*[\)\.\-:]\s+)/g, "\n")
+    // Padrões óbvios de separador de perna
+    .replace(/\s+•\s+/g, "\n")
+    .replace(/\s+—\s+/g, "\n");
+  const parts = normalized
+    // quebras fortes primeiro
+    .split(/\r?\n|;| \+ | \/ | \| | · /g)
+    .flatMap((chunk) => {
+      // se ainda parece ter mais de um palpite ligado por " e " ou ", ",
+      // e cada pedaço tem um verbo/mercado, quebra também.
+      const soft = chunk.split(/\s+e\s+(?=[A-ZÁÉÍÓÚÂÊÔÃÕÇ])| ,\s+|,\s+(?=[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/);
+      return soft.length > 1 && soft.every((s) => s.trim().length >= 8) ? soft : [chunk];
+    })
     .map((p) => p.trim())
     .filter(Boolean);
   return parts.length ? parts : [raw.trim()];
