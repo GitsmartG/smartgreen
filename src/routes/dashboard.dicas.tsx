@@ -25,6 +25,25 @@ const PARCEIROS: { value: Parceiro; label: string; hint?: string }[] = [
   { value: "h2bet", label: "H2Bet" },
 ];
 
+function detectParceiro(value: string): Parceiro | null {
+  const s = value.toLowerCase();
+  if (s.includes("seu.bet") || s.includes("seubet")) return "seubet";
+  if (s.includes("h2.bet") || s.includes("h2bet")) return "h2bet";
+  return null;
+}
+
+function getErrorMessage(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value instanceof Error) return value.message;
+  if (value == null) return "Erro ao buscar no feed.";
+  try {
+    const text = JSON.stringify(value);
+    return text && text !== "{}" ? text : "Erro ao buscar no feed.";
+  } catch {
+    return "Erro ao buscar no feed.";
+  }
+}
+
 type TipStatus = "ao_vivo" | "green" | "red";
 
 type Ticket = {
