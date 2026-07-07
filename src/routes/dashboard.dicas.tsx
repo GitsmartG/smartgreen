@@ -467,46 +467,20 @@ function DicasPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {filtered.flatMap((t) => {
-            const legs = splitPalpites(t.palpite);
-            // Considera múltipla também quando o palpite tem múltiplas pernas,
-            // mesmo que o type não tenha sido marcado como "Múltipla" no parser.
-            const isMult =
-              legs.length > 1 &&
-              (t.type === "Múltipla" ||
-                (t.entradas ?? 0) > 1 ||
-                /múltipla|multipla/i.test(t.event));
-            if (!isMult) {
-              return [
-                <TicketCard
-                  key={t.id}
-                  ticket={t}
-                  live={liveMap[t.id]}
-                  isDark={isDark}
-                  subtle={subtle}
-                  muted={muted}
-                  onOpen={() => setDetailsId(t.id)}
-                />,
-              ];
-            }
-            return legs.map((legText, i) => (
-              <LegCard
-                key={`${t.id}-${i}`}
-                ticket={t}
-                legIndex={i}
-                legText={legText}
-                legTotal={legs.length}
-                legLive={liveMap[t.id]?.legs?.[i]}
-                legStatus={t.legStatuses?.[i] ?? liveMap[t.id]?.legs?.[i]?.status ?? "aguardando"}
-                isDark={isDark}
-                subtle={subtle}
-                muted={muted}
-                onOpen={() => setDetailsId(t.id)}
-              />
-            ));
-          })}
+          {filtered.map((t) => (
+            <TicketCard
+              key={t.id}
+              ticket={t}
+              live={liveMap[t.id]}
+              isDark={isDark}
+              subtle={subtle}
+              muted={muted}
+              onOpen={() => setDetailsId(t.id)}
+            />
+          ))}
         </div>
       )}
+
 
 
       {modalOpen && (
