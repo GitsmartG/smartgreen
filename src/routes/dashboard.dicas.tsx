@@ -321,11 +321,13 @@ function TicketCard({
   isDark,
   subtle,
   muted,
+  onOpen,
 }: {
   ticket: Ticket;
   isDark: boolean;
   subtle: string;
   muted: string;
+  onOpen: () => void;
 }) {
   const card = isDark
     ? "bg-neutral-900 border-neutral-800"
