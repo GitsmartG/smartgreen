@@ -295,7 +295,7 @@ function JogosHojePage() {
   );
 }
 
-function LeagueSection({ league, isDark }: { league: NormalizedLeague; isDark: boolean }) {
+function LeagueSection({ league, isDark, onPredict }: { league: NormalizedLeague; isDark: boolean; onPredict: (m: NormalizedMatch) => void }) {
   const headerBg = isDark ? "bg-[#0a0a0c]/85" : "bg-white/85";
   const textStrong = isDark ? "text-white" : "text-slate-900";
   const textMuted = isDark ? "text-slate-500" : "text-slate-500";
@@ -321,7 +321,7 @@ function LeagueSection({ league, isDark }: { league: NormalizedLeague; isDark: b
 
       <div className={`space-y-px rounded-xl overflow-hidden border ${borderCol}`}>
         {league.matches.map((m) => (
-          <MatchRow key={m.id} match={m} isDark={isDark} />
+          <MatchRow key={m.id} match={m} isDark={isDark} onPredict={onPredict} />
         ))}
       </div>
     </section>
