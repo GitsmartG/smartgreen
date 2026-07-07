@@ -10,7 +10,7 @@ import {
   Loader2,
   Radio,
   Calendar,
-  Clock,
+  
   Users,
 } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
@@ -97,7 +97,7 @@ function mergeMatch(base: NormalizedMatch, live: NormalizedMatch): NormalizedMat
 
 function mergeLivePayload(base: DailyMatchesPayload | undefined, live: DailyMatchesPayload): DailyMatchesPayload {
   if (!base) return live;
-  const leagues = base.leagues.map((lg) => ({ ...lg, matches: [...(lg.matches ?? [])] }));
+  const leagues = (base.leagues ?? []).map((lg) => ({ ...lg, matches: [...(lg.matches ?? [])] }));
   const byId = new Map<string, { leagueIndex: number; matchIndex: number }>();
   const byTeams = new Map<string, { leagueIndex: number; matchIndex: number }>();
 
@@ -254,6 +254,7 @@ function JogosHojePage() {
     return leagues
       .map((lg) => {
         const matches = (lg.matches ?? []).filter((m) => {
+          if (m.finished && filter !== "encerrados") return false;
           if (filter === "ao_vivo" && !m.live) return false;
           if (filter === "encerrados" && !m.finished) return false;
           if (filter === "agendados" && (m.live || m.finished)) return false;
@@ -278,11 +279,6 @@ function JogosHojePage() {
   const liveCount =
     (state.data?.payload?.leagues ?? []).reduce(
       (sum, lg) => sum + (lg.matches ?? []).filter((m) => m.live).length,
-      0,
-    );
-  const finishedCount =
-    (state.data?.payload?.leagues ?? []).reduce(
-      (sum, lg) => sum + (lg.matches ?? []).filter((m) => m.finished).length,
       0,
     );
 
@@ -347,14 +343,6 @@ function JogosHojePage() {
           isDark={isDark}
         >
           <Calendar className="h-3.5 w-3.5" /> Agendados
-        </StatusTab>
-        <StatusTab
-          active={filter === "encerrados"}
-          onClick={() => setFilter(filter === "encerrados" ? "todos" : "encerrados")}
-          color="neutral"
-          isDark={isDark}
-        >
-          <Clock className="h-3.5 w-3.5" /> Encerrados ({finishedCount})
         </StatusTab>
       </div>
 
