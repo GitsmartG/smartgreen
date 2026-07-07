@@ -697,7 +697,7 @@ function TicketCard({
   const parts = ticket.event.split(/\s+(?:vs|x|×|-)\s+/i);
   const team1 = (parts[0] ?? ticket.event).trim();
   const team2 = (parts[1] ?? "").trim();
-  const isLive = live?.live && !live.finished;
+  const isLive = !!live?.live && !live.finished && ticket.status !== "green" && ticket.status !== "red";
   const score1 = live?.score1 ?? ticket.score1;
   const score2 = live?.score2 ?? ticket.score2;
   const team1Logo = teamLogoUrl(live?.team1Logo ?? ticket.team1Logo, live?.team1Id, team1);
