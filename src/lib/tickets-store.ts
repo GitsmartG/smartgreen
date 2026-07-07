@@ -28,7 +28,7 @@ export function loadTickets(): Ticket[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.map(normalizeTicket).filter(Boolean) : [];
+    return Array.isArray(parsed) ? parsed.map(normalizeTicket).filter(isTicket) : [];
   } catch {
     return [];
   }
@@ -36,7 +36,7 @@ export function loadTickets(): Ticket[] {
 
 export function saveTickets(tickets: Ticket[] | undefined | null) {
   if (typeof window === "undefined") return;
-  const safeTickets = Array.isArray(tickets) ? tickets.map(normalizeTicket).filter(Boolean) : [];
+  const safeTickets = Array.isArray(tickets) ? tickets.map(normalizeTicket).filter(isTicket) : [];
   localStorage.setItem(STORAGE_KEY, JSON.stringify(safeTickets));
   window.dispatchEvent(new Event(EVENT));
 }
@@ -70,6 +70,10 @@ function normalizeTicket(value: unknown): Ticket | null {
     createdAtMs: Number.isFinite(Number(t.createdAtMs)) ? Number(t.createdAtMs) : undefined,
     startMs: Number.isFinite(startMs) ? startMs : null,
   };
+}
+
+function isTicket(value: Ticket | null): value is Ticket {
+  return value !== null;
 }
 
 export function subscribeTickets(cb: () => void): () => void {
