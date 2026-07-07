@@ -270,7 +270,7 @@ function JogosHojePage() {
         const pa = leaguePriority(a);
         const pb = leaguePriority(b);
         if (pa !== pb) return pa - pb;
-        return a.name.localeCompare(b.name);
+        return s(a.name, "").localeCompare(s(b.name, ""));
       });
   }, [state.data, query, filter]);
 
