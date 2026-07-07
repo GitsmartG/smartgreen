@@ -45,16 +45,23 @@ function loadNotifs(): LiveNotification[] {
 
 export function useLiveGoalNotifications() {
   const fetchLiveMatches = useServerFn(getLiveMatches);
-  const [notifs, setNotifs] = useState<LiveNotification[]>(() => loadNotifs());
+  const [notifs, setNotifs] = useState<LiveNotification[]>([]);
+  const [hydrated, setHydrated] = useState(false);
   const snapRef = useRef<Map<string, Snapshot> | null>(null);
 
   useEffect(() => {
+    setNotifs(loadNotifs());
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(notifs ?? []));
     } catch {
       // silencioso
     }
-  }, [notifs]);
+  }, [notifs, hydrated]);
 
 
   useEffect(() => {
