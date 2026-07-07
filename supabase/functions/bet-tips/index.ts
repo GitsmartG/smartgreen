@@ -748,27 +748,45 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Feed lookup como fallback quando a odd não estiver disponível no Swarm.
-    let feed: any;
-    try {
-      feed = await fetchFeed(parceiro);
-    } catch (err) {
+    // Feed lookup como fallback: tenta os dois parceiros.
+    let feed: any = null;
+    let feedParceiro: Parceiro = effectiveParceiro;
+    let lastFeedErr: unknown = null;
+    for (const p of tryOrder) {
+      try {
+        feed = await fetchFeed(p);
+        feedParceiro = p;
+        break;
+      } catch (err) {
+        lastFeedErr = err;
+      }
+    }
+    if (!feed) {
       return json({
         ok: false,
-        parceiro,
-        error: err instanceof Error ? err.message : "Falha no feed",
+        parceiro: effectiveParceiro,
+        error: lastFeedErr instanceof Error ? lastFeedErr.message : "Falha no feed",
         triedIds: parsed.candidateIds,
       });
     }
 
-    const found = findGameInFeed(feed, parsed.candidateIds);
+    let found = findGameInFeed(feed, parsed.candidateIds);
+    if (!found) {
+      // tenta o outro parceiro
+      for (const p of tryOrder) {
+        if (p === feedParceiro) continue;
+        try {
+          const altFeed = await fetchFeed(p);
+          const altFound = findGameInFeed(altFeed, parsed.candidateIds);
+          if (altFound) { found = altFound; feedParceiro = p; break; }
+        } catch { /* noop */ }
+      }
+    }
     if (!found) {
       return json({
         ok: false,
-        parceiro,
-        error: `Aposta não encontrada no feed do ${
-          parceiro === "seubet" ? "SeuBet" : "H2Bet"
-        }.`,
+        parceiro: effectiveParceiro,
+        error: `Aposta não encontrada nos feeds (SeuBet/H2Bet).`,
         triedIds: parsed.candidateIds,
       });
     }
