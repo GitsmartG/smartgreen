@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { loadTickets, saveTickets, type Ticket, type TicketLegResult, type TipStatus, type Parceiro as ParceiroT } from "@/lib/tickets-store";
 import { importBetTip, type BetTipsResult } from "@/lib/bet-tips";
 import { getSoccerLivescores, type LiveMatch } from "@/lib/livescores.functions";
@@ -107,6 +107,8 @@ type LiveState = {
   legs?: Record<number, LegLive>;
 };
 
+const MATCH_AUTO_CLOSE_MS = 3 * 60 * 60 * 1000;
+
 // Keys em inglês normalizado — normalizedText() traduz PT→EN antes do lookup.
 const FLAG_LOGOS: Record<string, string> = {
   argentina: "🇦🇷", brazil: "🇧🇷", uruguay: "🇺🇾", paraguay: "🇵🇾", chile: "🇨🇱",
@@ -170,16 +172,24 @@ function DicasPage() {
       : "bg-white border-neutral-300 text-neutral-900 focus:border-emerald-700");
 
   const [tickets, setTickets] = useState<Ticket[]>(() => loadTickets());
+  const ticketsRef = useRef<Ticket[]>(tickets);
+  const ticketList = Array.isArray(tickets) ? tickets : [];
+
   useEffect(() => {
-    saveTickets(tickets);
-  }, [tickets]);
+    ticketsRef.current = ticketList;
+  }, [ticketList]);
+
+  useEffect(() => {
+    saveTickets(ticketList);
+  }, [ticketList]);
 
   const [liveMap, setLiveMap] = useState<Record<string, LiveState>>({});
   const [refreshing, setRefreshing] = useState(false);
   const [lastCheckMs, setLastCheckMs] = useState<number | null>(null);
 
   const runCheck = async () => {
-    const relevant = tickets.filter((t) => (t.esporte || "").toLowerCase().includes("fute"));
+    const currentTickets = Array.isArray(ticketsRef.current) ? ticketsRef.current : [];
+    const relevant = currentTickets.filter((t) => (t.esporte || "").toLowerCase().includes("fute"));
     if (!relevant.length) return;
     setRefreshing(true);
     try {
@@ -194,11 +204,11 @@ function DicasPage() {
       const todayPayload =
         todayResult.status === "fulfilled" && todayResult.value.ok ? todayResult.value.payload : undefined;
       const matches = mergeLiveMatches(payloadToLiveMatches(todayPayload), liveMatches);
-      if (!matches.length) return;
 
       const nextLive: Record<string, LiveState> = {};
-      for (const t of tickets) {
-        const m = findMatchForTicket(t, matches);
+      for (const t of currentTickets) {
+        const rawMatch = findMatchForTicket(t, matches);
+        const m = rawMatch ? closeExpiredMatch(t, rawMatch) : null;
         let entry: LiveState | null = null;
         if (m) {
           const swapped = isSwappedMatch(t, m.team1, m.team2);
@@ -226,14 +236,15 @@ function DicasPage() {
             const legMap: Record<number, LegLive> = {};
             const totalLegs = Math.max(legs.length, multiGames.length);
             for (let i = 0; i < totalLegs; i += 1) {
-              const game = multiGames[i];
+              const game = gameForLeg(i, totalLegs, multiGames);
               const legText = legs[i] ?? `${game?.team1 ?? ""} ${game?.team2 ?? ""}`;
               const found = findMatchForLeg(legText, matches, game);
-              if (!found) continue;
-              const lm = found.match;
-              const graded = gradeSinglePalpite(legText, lm, t);
+              const previousLeg = t.legResults?.[i];
+              const lm = found ? closeExpiredMatch(t, found.match) : legResultToFinishedMatch(previousLeg, game, i, t);
+              if (!lm) continue;
+              const graded = gradeSinglePalpite(legText, lm, ticketForLeg(t, game));
               const status: TipStatus =
-                graded ?? (lm.live ? "ao_vivo" : "aguardando");
+                graded ?? preservedFinishedStatus(previousLeg?.status, lm);
               legMap[i] = {
                 matchId: lm.id,
                 live: lm.live,
@@ -260,9 +271,11 @@ function DicasPage() {
 
       setTickets((prev) => {
         let changed = false;
-        const next = prev.map((t) => {
+        const safePrev = Array.isArray(prev) ? prev : [];
+        const next = safePrev.map((t) => {
           if (!(t.esporte || "").toLowerCase().includes("fute")) return t;
-          const m = findMatchForTicket(t, matches);
+          const rawMatch = findMatchForTicket(t, matches);
+          const m = rawMatch ? closeExpiredMatch(t, rawMatch) : null;
           const multiGames = extractMultiGames(t.event);
           const isMult = isMultiplaTicket(t) || multiGames.length > 1;
           const legs = splitPalpites(t.palpite);
@@ -272,12 +285,13 @@ function DicasPage() {
           if (isMult && totalLegs > 0) {
             legResults = { ...(t.legResults ?? {}) };
             for (let i = 0; i < totalLegs; i += 1) {
-              const game = multiGames[i];
+              const game = gameForLeg(i, totalLegs, multiGames);
               const legText = legs[i] ?? `${game?.team1 ?? ""} ${game?.team2 ?? ""}`;
               const found = findMatchForLeg(legText, matches, game);
-              if (!found) continue;
-              const lm = found.match;
-              const status = gradeSinglePalpite(legText, lm, t) ?? (lm.live ? "ao_vivo" : "aguardando");
+              const previousLeg = legResults[i] ?? t.legResults?.[i];
+              const lm = found ? closeExpiredMatch(t, found.match) : legResultToFinishedMatch(previousLeg, game, i, t);
+              if (!lm) continue;
+              const status = gradeSinglePalpite(legText, lm, ticketForLeg(t, game)) ?? preservedFinishedStatus(previousLeg?.status, lm);
               const nextLeg: TicketLegResult = {
                 matchId: lm.id,
                 live: lm.live,
@@ -314,9 +328,12 @@ function DicasPage() {
             if (legChanged && legResults) patch.legResults = legResults;
 
             // status por perna (múltipla usa o match correto de cada jogo)
-            if (legs.length > 0 && (score1 != null || score2 != null || legResults)) {
+            if (totalLegs > 0 && (score1 != null || score2 != null || legResults)) {
               const statuses: TipStatus[] = isMult && legResults
-                ? legs.map((_, i) => legResults?.[i]?.status ?? t.legStatuses?.[i] ?? "aguardando")
+                ? Array.from(
+                    { length: totalLegs },
+                    (_, i) => legResults?.[i]?.status ?? t.legStatuses?.[i] ?? "aguardando",
+                  )
                 : legs.map((leg) => {
                     const g = gradeSinglePalpite(leg, m, t);
                     if (g) return g;
@@ -326,6 +343,16 @@ function DicasPage() {
               const same =
                 prev.length === statuses.length && prev.every((s, i) => s === statuses[i]);
               if (!same) patch.legStatuses = statuses;
+
+              if (isMult) {
+                const nextStatus = resolveTicketStatus(statuses);
+                if (t.status !== nextStatus) patch.status = nextStatus;
+              }
+            }
+
+            if (isMult && Object.keys(patch).length > 1) {
+              changed = true;
+              return { ...t, ...patch };
             }
 
             if (t.status === "green" || t.status === "red") {
@@ -363,8 +390,7 @@ function DicasPage() {
               { length: totalLegs },
               (_, i) => legResults?.[i]?.status ?? t.legStatuses?.[i] ?? "aguardando",
             );
-            const hasLiveLeg = Object.values(legResults).some((leg) => leg.live && !leg.finished);
-            const nextStatus: TipStatus = hasLiveLeg ? "ao_vivo" : t.status === "ao_vivo" ? "aguardando" : t.status;
+            const nextStatus = resolveTicketStatus(statuses);
             return {
               ...t,
               type: isMult ? "Múltipla" : t.type,
@@ -405,7 +431,7 @@ function DicasPage() {
       clearInterval(id);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tickets.length]);
+  }, [ticketList.length]);
 
 
   const [tab, setTab] = useState<Tab>("todos");
@@ -414,27 +440,27 @@ function DicasPage() {
   const [tipo, setTipo] = useState("todos");
   const [modalOpen, setModalOpen] = useState(false);
   const [detailsId, setDetailsId] = useState<string | null>(null);
-  const detailsTicket = detailsId ? tickets.find((t) => t.id === detailsId) ?? null : null;
+  const detailsTicket = detailsId ? ticketList.find((t) => t.id === detailsId) ?? null : null;
 
   const updateStatus = (id: string, status: TipStatus) =>
-    setTickets((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
+    setTickets((prev) => (Array.isArray(prev) ? prev : []).map((t) => (t.id === id ? { ...t, status } : t)));
   const removeTicket = (id: string) => {
-    setTickets((prev) => prev.filter((t) => t.id !== id));
+    setTickets((prev) => (Array.isArray(prev) ? prev : []).filter((t) => t.id !== id));
     setDetailsId(null);
   };
 
   const counts = useMemo(() => {
     return {
-      aguardando: tickets.filter((t) => t.status === "aguardando").length,
-      ao_vivo: tickets.filter((t) => t.status === "ao_vivo").length,
-      green: tickets.filter((t) => t.status === "green").length,
-      red: tickets.filter((t) => t.status === "red").length,
+      aguardando: ticketList.filter((t) => t.status === "aguardando").length,
+      ao_vivo: ticketList.filter((t) => t.status === "ao_vivo").length,
+      green: ticketList.filter((t) => t.status === "green").length,
+      red: ticketList.filter((t) => t.status === "red").length,
     };
-  }, [tickets]);
+  }, [ticketList]);
 
 
   const filtered = useMemo(() => {
-    return tickets.filter((t) => {
+    return ticketList.filter((t) => {
       if (tab !== "todos" && t.status !== tab) return false;
       if (tipo !== "todos" && t.type.toLowerCase() !== tipo) return false;
       if (esporte !== "todos" && t.esporte.toLowerCase() !== esporte) return false;
@@ -450,9 +476,9 @@ function DicasPage() {
       }
       return true;
     });
-  }, [tickets, tab, tipo, esporte, query]);
+  }, [ticketList, tab, tipo, esporte, query]);
 
-  const addTicket = (t: Ticket) => setTickets((prev) => [t, ...prev]);
+  const addTicket = (t: Ticket) => setTickets((prev) => [t, ...(Array.isArray(prev) ? prev : [])]);
 
   return (
     <div className="space-y-4">
@@ -461,7 +487,7 @@ function DicasPage() {
         <div>
           <h2 className="text-xl font-semibold tracking-tight">Tickets de Tips</h2>
           <p className={`text-xs ${muted} mt-0.5 flex items-center gap-2 flex-wrap`}>
-            <span>{tickets.length} tickets no total</span>
+            <span>{ticketList.length} tickets no total</span>
             <span>·</span>
             <span className="inline-flex items-center gap-1 text-emerald-500">
               <Radio className="h-3 w-3" /> Tempo real ativo
@@ -860,7 +886,7 @@ function TicketCard({
         </div>
         <ul className="flex flex-col gap-1.5">
           {palpites.map((p, i) => {
-            const matchedGameStatus = isMultipla ? ticket.legResults?.[Math.min(i, Math.max(0, multiGames.length - 1))]?.status : undefined;
+            const matchedGameStatus = isMultipla ? ticket.legResults?.[i]?.status : undefined;
             const legStatus = matchedGameStatus ?? ticket.legStatuses?.[i];
             const dotCls =
               legStatus === "green"
@@ -1118,7 +1144,7 @@ function isMultiplaTicket(ticket: Ticket): boolean {
 }
 
 function extractMultiGames(event: string): MultiGame[] {
-  return event
+  return String(event ?? "")
     .replace(/^\s*(m[uú]ltipla\s*[:\-]?\s*)/i, "")
     .split(/\s*\+\s*/)
     .map((seg) => {
@@ -1129,6 +1155,76 @@ function extractMultiGames(event: string): MultiGame[] {
       };
     })
     .filter((g) => g.team1 && g.team2);
+}
+
+function gameForLeg(index: number, totalLegs: number, games: MultiGame[]): MultiGame | undefined {
+  if (!Array.isArray(games) || games.length === 0) return undefined;
+  if (games[index]) return games[index];
+  if (games.length < totalLegs) return games[games.length - 1];
+  return undefined;
+}
+
+function ticketForLeg(ticket: Ticket, game?: MultiGame): Ticket {
+  if (!game) return ticket;
+  return { ...ticket, event: `${game.team1} x ${game.team2}`, type: "Simples", entradas: 1 };
+}
+
+function shouldForceClose(ticket: Ticket): boolean {
+  const baseMs = ticket.startMs ?? ticket.createdAtMs ?? null;
+  return typeof baseMs === "number" && Number.isFinite(baseMs) && Date.now() - baseMs > MATCH_AUTO_CLOSE_MS;
+}
+
+function closeExpiredMatch(ticket: Ticket, match: LiveMatch): LiveMatch {
+  if (!match.live || match.finished || !shouldForceClose(ticket)) return match;
+  return {
+    ...match,
+    status: /^(ft|finished|ended)$/i.test(match.status || "") ? match.status : "FT",
+    minute: undefined,
+    live: false,
+    finished: true,
+  };
+}
+
+function legResultToFinishedMatch(
+  leg: TicketLegResult | undefined,
+  game: MultiGame | undefined,
+  index: number,
+  ticket: Ticket,
+): LiveMatch | null {
+  if (!leg) return null;
+  const hasScore = leg.score1 != null || leg.score2 != null;
+  if (!hasScore && !leg.live && !leg.finished) return null;
+  const forceFinished = shouldForceClose(ticket) || !!leg.finished;
+  if (!forceFinished && !leg.live) return null;
+  return {
+    id: leg.matchId || `cached-leg-${ticket.id}-${index}`,
+    status: forceFinished ? "FT" : "LIVE",
+    team1: leg.team1 || game?.team1 || "Time 1",
+    team2: leg.team2 || game?.team2 || "Time 2",
+    team1Logo: leg.team1Logo,
+    team2Logo: leg.team2Logo,
+    team1Id: leg.team1Id,
+    team2Id: leg.team2Id,
+    score1: leg.score1 ?? null,
+    score2: leg.score2 ?? null,
+    minute: forceFinished ? undefined : leg.minute,
+    live: forceFinished ? false : !!leg.live,
+    finished: forceFinished,
+  };
+}
+
+function preservedFinishedStatus(previous: TipStatus | undefined, match: LiveMatch): TipStatus {
+  if (previous === "green" || previous === "red") return previous;
+  if (match.live && !match.finished) return "ao_vivo";
+  return match.finished ? "aguardando" : "aguardando";
+}
+
+function resolveTicketStatus(statuses: TipStatus[]): TipStatus {
+  const safe = Array.isArray(statuses) ? statuses : [];
+  if (safe.some((status) => status === "red")) return "red";
+  if (safe.length > 0 && safe.every((status) => status === "green")) return "green";
+  if (safe.some((status) => status === "ao_vivo")) return "ao_vivo";
+  return "aguardando";
 }
 
 function teamLogoUrl(logo?: string, teamId?: string, teamName?: string): string | undefined {
@@ -1150,9 +1246,10 @@ function teamLogoUrl(logo?: string, teamId?: string, teamName?: string): string 
 }
 
 function payloadToLiveMatches(payload?: MatchLogoPayload): LiveMatch[] {
-  if (!payload?.leagues?.length) return [];
-  return payload.leagues.flatMap((league) =>
-    (league.matches ?? []).map((match) => normalizedMatchToLiveMatch(match)),
+  const leagues = Array.isArray(payload?.leagues) ? payload.leagues : [];
+  if (!leagues.length) return [];
+  return leagues.flatMap((league) =>
+    (Array.isArray(league.matches) ? league.matches : []).map((match) => normalizedMatchToLiveMatch(match)),
   );
 }
 
@@ -2440,7 +2537,8 @@ function RichMatchPanel({
     : { label: `Ao vivo · ${m.status}${m.minute ? ` ${m.minute}'` : ""}`, cls: "bg-red-500/15 text-red-500 border-red-500/30 animate-pulse" };
 
   const pred = res.prediction;
-  const odds = res.odds;
+  const odds = Array.isArray(res.odds) ? res.odds : [];
+  const events = Array.isArray(m.events) ? m.events : [];
 
   // Try to guess relevant live odd for cash-out (1X2 based on palpite)
   const p = ticket.palpite.toLowerCase();
@@ -2522,13 +2620,13 @@ function RichMatchPanel({
       )}
 
       {/* Eventos */}
-      {m.events.length > 0 && (
+      {events.length > 0 && (
         <div>
           <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1.5 inline-flex items-center gap-1`}>
-            <Activity className="h-3 w-3" /> Eventos ({m.events.length})
+            <Activity className="h-3 w-3" /> Eventos ({events.length})
           </div>
           <ul className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
-            {m.events.map((ev) => {
+            {events.map((ev) => {
               const meta = eventLabel(ev.type);
               const teamName = ev.team === "home" ? m.home.name : ev.team === "away" ? m.away.name : ev.team;
               return (
