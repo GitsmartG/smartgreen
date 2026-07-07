@@ -99,12 +99,15 @@ export const getMatchPrediction = createServerFn({ method: "GET" })
             },
           );
           clearTimeout(aiTimer);
-          if (!aiRes.ok) return p;
+          if (!aiRes.ok) {
+            console.warn("[prediction-translate] AI HTTP", aiRes.status, await aiRes.text().catch(() => ""));
+            return applyLocalFallback(p);
+          }
           const aiJson = (await aiRes.json()) as {
             choices?: { message?: { content?: string } }[];
           };
           const content = aiJson.choices?.[0]?.message?.content;
-          if (!content) return p;
+          if (!content) return applyLocalFallback(p);
           const t = JSON.parse(content) as typeof payload;
           return {
             choice: t.choice || p.choice,
@@ -118,8 +121,9 @@ export const getMatchPrediction = createServerFn({ method: "GET" })
                 }
               : undefined,
           };
-        } catch {
-          return p;
+        } catch (err) {
+          console.warn("[prediction-translate] falhou:", err);
+          return applyLocalFallback(p);
         }
       };
       const prediction = json.prediction
