@@ -436,6 +436,7 @@ function MatchRow({ match, isDark }: { match: NormalizedMatch; isDark: boolean }
       <div className="flex items-center gap-3 pl-4 min-w-0">
         <TeamLogo
           id={match.away.id}
+          logo={match.away.image}
           name={match.away.name}
           isDark={isDark}
           dim={status === "finished"}
