@@ -235,7 +235,14 @@ function DicasPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((t) => (
-            <TicketCard key={t.id} ticket={t} isDark={isDark} subtle={subtle} muted={muted} />
+            <TicketCard
+              key={t.id}
+              ticket={t}
+              isDark={isDark}
+              subtle={subtle}
+              muted={muted}
+              onOpen={() => setDetailsId(t.id)}
+            />
           ))}
         </div>
       )}
@@ -248,6 +255,16 @@ function DicasPage() {
             addTicket(t);
             setModalOpen(false);
           }}
+        />
+      )}
+
+      {detailsTicket && (
+        <DetailsModal
+          isDark={isDark}
+          ticket={detailsTicket}
+          onClose={() => setDetailsId(null)}
+          onStatus={(s) => updateStatus(detailsTicket.id, s)}
+          onDelete={() => removeTicket(detailsTicket.id)}
         />
       )}
     </div>
