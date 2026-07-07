@@ -163,12 +163,6 @@ export async function readCachedDaily(date?: string): Promise<{
     payload,
     fetchedAt: String(data.fetched_at),
   };
-  if (error || !data) return null;
-  return {
-    date: String(data.match_date),
-    payload: data.payload as DailyMatchesPayload,
-    fetchedAt: String(data.fetched_at),
-  };
 }
 
 export async function refreshDailyMatches(date?: string): Promise<{
