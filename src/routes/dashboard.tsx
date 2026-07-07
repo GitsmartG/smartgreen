@@ -121,6 +121,7 @@ function DashboardLayout() {
             );
           })}
         </nav>
+        <LiveNotificationsPanel isDark={isDark} />
         <div className="p-3 border-t border-inherit">
           <button
             onClick={handleLogout}
