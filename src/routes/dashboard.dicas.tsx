@@ -1270,7 +1270,11 @@ function TeamBadge({
           alt={name}
           className="h-10 w-10 object-contain shrink-0"
           loading="lazy"
-          onError={(e) => {
+          onLoad={() => {
+            if (!safeLogo.startsWith("data:")) setCachedLogo(name, safeLogo);
+          }}
+          onError={() => {
+            markLogoBroken(name, safeLogo);
             setBrokenLogo(true);
           }}
         />
