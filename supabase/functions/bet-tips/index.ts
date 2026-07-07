@@ -90,6 +90,17 @@ interface SharedBetData {
   events?: SharedBetEvent[];
 }
 
+interface SharedBetMeta {
+  betId: string;
+  fixedType: string | null;
+  odd: number | null;
+  amount: number | null;
+  possibleWin: number | null;
+  dateMs: number | null;
+  isLive: boolean | null;
+  outcome: number | null;
+}
+
 // ------------------------------------------------------------------
 // Fetch helpers
 // ------------------------------------------------------------------
@@ -288,11 +299,24 @@ function sharedBetToResult(
   };
 }
 
+function sharedBetMeta(data: SharedBetData): SharedBetMeta {
+  return {
+    betId: String(data.bet_id ?? data.id ?? ""),
+    fixedType: data.fixed_type ? String(data.fixed_type) : null,
+    odd: numberOrNull(data.k),
+    amount: numberOrNull(data.amount),
+    possibleWin: numberOrNull(data.possible_win),
+    dateMs: parseStartTs(data.date_time),
+    isLive: typeof (data as any).is_live === "boolean" ? Boolean((data as any).is_live) : null,
+    outcome: numberOrNull(data.outcome),
+  };
+}
+
 async function fetchSharedBetData(
   parceiro: Parceiro,
   rawUrl: string,
   betId?: string,
-): Promise<{ result: BetTipsResult | null; emptyEvents: boolean }> {
+): Promise<{ result: BetTipsResult | null; emptyEvents: boolean; meta?: SharedBetMeta }> {
   if (!betId || !/^\d+$/.test(betId)) return { result: null, emptyEvents: false };
   const origin = makePartnerOrigin(rawUrl, parceiro);
   const endpoint = `${origin}/pt/get-sharing-data?bet_id=${encodeURIComponent(betId)}`;
@@ -308,7 +332,9 @@ async function fetchSharedBetData(
     const data = payload?.data as SharedBetData | undefined;
     if (!data || typeof data !== "object") return { result: null, emptyEvents: false };
     const events = Array.isArray(data.events) ? data.events : [];
-    if (events.length === 0) return { result: null, emptyEvents: true };
+    if (events.length === 0) {
+      return { result: null, emptyEvents: true, meta: sharedBetMeta(data) };
+    }
     return { result: sharedBetToResult(parceiro, data), emptyEvents: false };
   } catch (err) {
     console.warn("get-sharing-data falhou:", err);
@@ -848,10 +874,14 @@ Deno.serve(async (req) => {
     // não é um selection_id do Swarm/FeedOdds; a própria casa expõe os dados em
     // /pt/get-sharing-data. Tenta isso antes do lookup por evento.
     let sharedEmptyOn: Parceiro | null = null;
+    let sharedEmptyMeta: SharedBetMeta | undefined;
     for (const p of tryOrder) {
       const shared = await fetchSharedBetData(p, url, parsed.betId);
       if (shared.result) return json(shared.result);
-      if (shared.emptyEvents && !sharedEmptyOn) sharedEmptyOn = p;
+      if (shared.emptyEvents && !sharedEmptyOn) {
+        sharedEmptyOn = p;
+        sharedEmptyMeta = shared.meta;
+      }
     }
 
     let swarmSelection: SwarmSelection | null = null;
@@ -926,15 +956,19 @@ Deno.serve(async (req) => {
       }
     }
     if (!found) {
+      const isSimpleEmpty = sharedEmptyMeta?.fixedType?.toLowerCase().includes("simples");
       const msg = sharedEmptyOn
-        ? "Esse link de compartilhamento não tem mais os dados do jogo (aposta já aceita/liquidada — a casa retornou eventos vazios). Cola a URL completa da partida (com /match/<esporte>/<região>/<comp>/<gameId>) ou preenche manual."
+        ? isSimpleEmpty
+          ? "A H2Bet identificou essa aposta simples, mas não enviou a partida dentro do link compartilhado. Puxei a odd e o valor; complete evento e palpite manualmente."
+          : "Esse link de compartilhamento não tem mais os dados do jogo (aposta já aceita/liquidada — a casa retornou eventos vazios). Cola a URL completa da partida (com /match/<esporte>/<região>/<comp>/<gameId>) ou preenche manual."
         : "Bet_id não está mais ativo no parceiro (jogo já começou/terminou ou aposta foi liquidada). Cole a URL completa com o caminho /match/<esporte>/<região>/<comp>/<gameId> ou preencha manual.";
       return json({
         ok: false,
         parceiro: effectiveParceiro,
         error: msg,
         triedIds: parsed.candidateIds,
-        debug: sharedEmptyOn ? { sharedEmptyOn } : undefined,
+        sharedMeta: sharedEmptyMeta,
+        debug: sharedEmptyOn ? { sharedEmptyOn, sharedEmptyMeta } : undefined,
       });
     }
 
