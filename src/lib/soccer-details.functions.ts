@@ -182,14 +182,14 @@ function normalizePrediction(data: unknown): MatchPrediction | null {
   const draw = percent(p.draw ?? p.tie);
   const awayWin = percent(p.away_win ?? p.awayWin ?? p.away);
   if (homeWin == null && draw == null && awayWin == null) {
-    return { advice: typeof p.advice === "string" ? p.advice : undefined, raw: data };
+    return { advice: typeof p.advice === "string" ? p.advice : undefined };
   }
   return {
     homeWin,
     draw,
     awayWin,
     advice: typeof p.advice === "string" ? p.advice : undefined,
-    raw: data,
+    
   };
 }
 
