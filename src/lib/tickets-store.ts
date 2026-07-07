@@ -1,4 +1,4 @@
-export type TipStatus = "ao_vivo" | "green" | "red";
+export type TipStatus = "aguardando" | "ao_vivo" | "green" | "red";
 export type Parceiro = "seubet" | "h2bet";
 
 export type Ticket = {
