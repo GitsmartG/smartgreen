@@ -10,11 +10,19 @@ import {
   Radio,
   Calendar,
   Clock,
+  Users,
 } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
 import { getTodayMatches, type DailyMatchesResult } from "@/lib/daily-matches.functions";
 import type { NormalizedLeague, NormalizedMatch } from "@/lib/daily-matches.server";
 import { getMatchPrediction, type PredictionResult } from "@/lib/statpal-prediction.functions";
+import {
+  getMatchLineups,
+  type LineupsResult,
+  type TeamLineup,
+  type LineupPlayer,
+  type SidelinedPlayer,
+} from "@/lib/statpal-lineups.functions";
 
 export const Route = createFileRoute("/dashboard/jogos")({
   component: JogosHojePage,
