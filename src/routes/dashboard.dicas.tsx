@@ -575,7 +575,10 @@ function TicketCard({
         : null;
 
   const palpites = splitPalpites(ticket.palpite);
-  const isMultipla = ticket.type === "Múltipla";
+  const isMultipla =
+    ticket.type === "Múltipla" ||
+    (ticket.entradas ?? 0) > 1 ||
+    /múltipla|multipla/i.test(ticket.event);
   const parts = ticket.event.split(/\s+(?:vs|x|×|-)\s+/i);
   const team1 = (parts[0] ?? ticket.event).trim();
   const team2 = (parts[1] ?? "").trim();
@@ -589,6 +592,21 @@ function TicketCard({
     (live?.team2Logo ?? ticket.team2Logo) ||
     (live?.team2Id ? `/api/public/team-image/${live.team2Id}?type=team` : undefined);
   const showScore = score1 != null || score2 != null;
+
+  // Para múltipla: extrai os jogos do event ("Múltipla: A x B + C x D")
+  const multiGames: { team1: string; team2: string }[] = isMultipla
+    ? ticket.event
+        .replace(/^\s*(m[uú]ltipla\s*[:\-]?\s*)/i, "")
+        .split(/\s*\+\s*/)
+        .map((seg) => {
+          const p = seg.split(/\s+(?:vs|x|×)\s+/i);
+          return {
+            team1: (p[0] ?? seg).trim(),
+            team2: (p[1] ?? "").trim(),
+          };
+        })
+        .filter((g) => g.team1 && g.team2)
+    : [];
 
   return (
     <button
