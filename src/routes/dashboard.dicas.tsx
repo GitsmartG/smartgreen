@@ -733,6 +733,8 @@ function NovoTicketModal({
   const [loading, setLoading] = useState(false);
   const [feedResult, setFeedResult] = useState<BetTipsResult | null>(null);
   const selected = feedResult && feedResult.ok ? feedResult.match : null;
+  const sharedMeta = feedResult && !feedResult.ok ? feedResult.sharedMeta : undefined;
+  const canCreateRecoveredShared = !!(sharedMeta && event.trim() && palpite.trim() && odd);
 
   const overlay =
     "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm";
@@ -772,6 +774,10 @@ function NovoTicketModal({
         if (r.odd != null && !odd) setOdd(String(r.odd));
         if (r.market && !palpite) setPalpite(r.market);
         if (r.parceiro !== parceiro) setParceiro(r.parceiro);
+      } else if (r.sharedMeta) {
+        if (r.sharedMeta.odd != null && !odd) setOdd(String(r.sharedMeta.odd));
+        if (r.sharedMeta.amount != null && !banca) setBanca(String(r.sharedMeta.amount));
+        if (r.parceiro !== parceiro) setParceiro(r.parceiro);
       }
     } catch (err) {
       setFeedResult({
@@ -785,16 +791,44 @@ function NovoTicketModal({
     }
   };
 
+  const initialStatusForStart = (startMs?: number | null): TipStatus =>
+    startMs && startMs <= Date.now() ? "ao_vivo" : "aguardando";
+
   const submit = () => {
     if (mode === "auto") {
+      if (feedResult && !feedResult.ok && feedResult.sharedMeta) {
+        if (!event.trim() || !palpite.trim() || !odd) return;
+        onCreate({
+          id: String(feedResult.sharedMeta.betId || crypto.randomUUID()).slice(-8).toUpperCase(),
+          status: "aguardando",
+          type: "Simples",
+          league: league || event,
+          event,
+          palpite,
+          odd: Number(odd) || feedResult.sharedMeta.odd || 1,
+          banca: Number(banca) || 10,
+          esporte,
+          date: new Date().toLocaleDateString("pt-BR", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          }),
+          entradas: 1,
+          parceiro: feedResult.parceiro,
+          url: url || undefined,
+          createdAtMs: Date.now(),
+          startMs: null,
+        });
+        return;
+      }
       if (!feedResult || !feedResult.ok || !selected) {
         void buscarNoFeed();
         return;
       }
       onCreate({
         id: String(selected.betId).slice(-8).toUpperCase(),
-        status: "ao_vivo",
-        type: "Simples",
+        status: initialStatusForStart(selected.startMs),
+        type: selected.event.toLowerCase().startsWith("múltipla") ? "Múltipla" : "Simples",
         league: selected.competition,
         event: selected.event,
         palpite: palpite.trim() || "Palpite do parceiro",
@@ -812,7 +846,9 @@ function NovoTicketModal({
               month: "short",
               year: "numeric",
             }),
-        entradas: 1,
+        entradas: selected.event.toLowerCase().startsWith("múltipla")
+          ? splitPalpites(palpite.trim() || "Palpite do parceiro").length
+          : 1,
         parceiro: feedResult.parceiro,
         url: url || undefined,
         createdAtMs: Date.now(),
@@ -1141,10 +1177,72 @@ function NovoTicketModal({
                   </p>
                 </div>
               ) : !feedResult.ok ? (
-                <div className="space-y-1">
+                <div className="space-y-3">
                   <div className="inline-flex items-center gap-1.5 text-red-500">
                     <AlertCircle className="h-3.5 w-3.5" /> {getErrorMessage(feedResult.error)}
                   </div>
+                  {feedResult.sharedMeta && (
+                    <>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-md border border-amber-500/25 bg-amber-500/5 p-2">
+                        <Info label="Tipo" value={feedResult.sharedMeta.fixedType || "Simples"} muted={muted} />
+                        <Info label="Bet ID" value={feedResult.sharedMeta.betId} muted={muted} />
+                        <Info
+                          label="Odd"
+                          value={feedResult.sharedMeta.odd != null ? String(feedResult.sharedMeta.odd) : "—"}
+                          muted={muted}
+                        />
+                        <Info
+                          label="Possível retorno"
+                          value={
+                            feedResult.sharedMeta.possibleWin != null
+                              ? feedResult.sharedMeta.possibleWin.toLocaleString("pt-BR", {
+                                  style: "currency",
+                                  currency: "BRL",
+                                })
+                              : "—"
+                          }
+                          muted={muted}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                        <label className="block">
+                          <span className={"text-[10px] uppercase tracking-wider " + muted}>
+                            Evento
+                          </span>
+                          <input
+                            value={event}
+                            onChange={(e) => setEvent(e.target.value)}
+                            placeholder="Ex: Brasil x Argentina"
+                            className={field + " mt-0.5"}
+                          />
+                        </label>
+                        <label className="block">
+                          <span className={"text-[10px] uppercase tracking-wider " + muted}>
+                            Palpite
+                          </span>
+                          <input
+                            value={palpite}
+                            onChange={(e) => setPalpite(e.target.value)}
+                            placeholder="Ex: Mais de 1.5 gols"
+                            className={field + " mt-0.5"}
+                          />
+                        </label>
+                        <label className="block">
+                          <span className={"text-[10px] uppercase tracking-wider " + muted}>
+                            Odd
+                          </span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={odd}
+                            onChange={(e) => setOdd(e.target.value)}
+                            placeholder="1.35"
+                            className={field + " mt-0.5"}
+                          />
+                        </label>
+                      </div>
+                    </>
+                  )}
                   {Array.isArray(feedResult.triedIds) && feedResult.triedIds.length > 0 && (
                     <div className={"text-[11px] " + muted}>
                       IDs testados: {feedResult.triedIds.slice(0, 6).join(", ")}
@@ -1249,7 +1347,7 @@ function NovoTicketModal({
             className="h-10 px-5 rounded-md text-white text-sm font-semibold inline-flex items-center gap-2 hover:brightness-110 active:brightness-95 shadow-sm"
           >
             {mode === "auto" ? (
-              selected ? (
+              selected || canCreateRecoveredShared ? (
                 <>
                   <Plus className="h-4 w-4" /> Criar ticket
                 </>
