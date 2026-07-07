@@ -199,7 +199,7 @@ function JogosHojePage() {
         {!state.loading && state.data && !state.data.ok && (
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 text-red-500 text-sm p-4 flex items-start gap-2">
             <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-            <span>{state.data.error ?? "Erro ao carregar."}</span>
+            <span>{typeof state.data.error === "string" ? state.data.error : "Erro ao carregar."}</span>
           </div>
         )}
 
