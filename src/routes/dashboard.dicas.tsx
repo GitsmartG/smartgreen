@@ -431,12 +431,14 @@ function StatusTab({
 
 function TicketCard({
   ticket,
+  live,
   isDark,
   subtle,
   muted,
   onOpen,
 }: {
   ticket: Ticket;
+  live?: LiveState;
   isDark: boolean;
   subtle: string;
   muted: string;
@@ -452,7 +454,9 @@ function TicketCard({
       ? "from-emerald-500/80 to-emerald-500/0"
       : ticket.status === "red"
         ? "from-red-500/80 to-red-500/0"
-        : "from-amber-500/80 to-amber-500/0";
+        : ticket.status === "aguardando"
+          ? "from-sky-500/80 to-sky-500/0"
+          : "from-amber-500/80 to-amber-500/0";
   const parceiroTag =
     ticket.parceiro === "seubet"
       ? { label: "SeuBet", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" }
@@ -461,6 +465,11 @@ function TicketCard({
         : null;
 
   const palpites = splitPalpites(ticket.palpite);
+  const parts = ticket.event.split(/\s+(?:vs|x|×|-)\s+/i);
+  const team1 = (parts[0] ?? ticket.event).trim();
+  const team2 = (parts[1] ?? "").trim();
+  const isLive = live?.live && !live.finished;
+  const showScore = isLive && (live?.score1 != null || live?.score2 != null);
 
   return (
     <button
@@ -506,10 +515,33 @@ function TicketCard({
         </div>
       </div>
 
-      {/* Título / evento */}
-      <div className="min-w-0">
-        <div className="font-semibold text-base leading-snug break-words">{ticket.event}</div>
-        <div className={`text-xs mt-1 truncate ${muted}`}>{ticket.league}</div>
+      {/* Matchup: escudos + placar */}
+      <div className={`rounded-xl border ${inner} px-3 py-3`}>
+        <div className="flex items-center justify-between gap-3">
+          <TeamBadge name={team1} logo={live?.team1Logo} isDark={isDark} align="left" />
+          <div className="flex flex-col items-center min-w-[60px]">
+            {showScore ? (
+              <div className="text-xl font-bold leading-none tabular-nums">
+                <span className="text-emerald-500">{live!.score1 ?? 0}</span>
+                <span className={`mx-1 ${muted}`}>-</span>
+                <span className="text-emerald-500">{live!.score2 ?? 0}</span>
+              </div>
+            ) : (
+              <div className={`text-xs font-semibold ${muted}`}>VS</div>
+            )}
+            {isLive && (
+              <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-amber-500">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500" />
+                </span>
+                {live?.minute ? `${live.minute}'` : "AO VIVO"}
+              </div>
+            )}
+          </div>
+          <TeamBadge name={team2 || "—"} logo={live?.team2Logo} isDark={isDark} align="right" />
+        </div>
+        <div className={`text-[11px] mt-2 text-center truncate ${muted}`}>{ticket.league}</div>
       </div>
 
       {/* Palpites (lista) */}
