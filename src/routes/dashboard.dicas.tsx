@@ -57,6 +57,23 @@ export const Route = createFileRoute("/dashboard/dicas")({
 
 type Tab = "todos" | "aguardando" | "ao_vivo" | "green" | "red";
 
+type LegLive = {
+  matchId: string;
+  live: boolean;
+  finished: boolean;
+  score1: number | null;
+  score2: number | null;
+  minute?: string;
+  team1: string;
+  team2: string;
+  team1Logo?: string;
+  team2Logo?: string;
+  team1Id?: string;
+  team2Id?: string;
+  swapped: boolean;
+  status: TipStatus;
+};
+
 type LiveState = {
   status?: string;
   live: boolean;
@@ -69,6 +86,7 @@ type LiveState = {
   team1Id?: string;
   team2Id?: string;
   swapped: boolean;
+  legs?: Record<number, LegLive>;
 };
 
 const LIVE_PALETTE = {
