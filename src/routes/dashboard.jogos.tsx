@@ -254,6 +254,7 @@ function JogosHojePage() {
     return leagues
       .map((lg) => {
         const matches = (lg.matches ?? []).filter((m) => {
+          if (m.finished && filter !== "encerrados") return false;
           if (filter === "ao_vivo" && !m.live) return false;
           if (filter === "encerrados" && !m.finished) return false;
           if (filter === "agendados" && (m.live || m.finished)) return false;
