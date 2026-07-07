@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, RefreshCw, AlertCircle, Radio, Trophy, Search } from "lucide-react";
+import { RefreshCw, AlertCircle, Search } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
 import { getTodayMatches, type DailyMatchesResult } from "@/lib/daily-matches.functions";
 import type { NormalizedLeague, NormalizedMatch } from "@/lib/daily-matches.server";
@@ -9,6 +9,8 @@ export const Route = createFileRoute("/dashboard/jogos")({
   component: JogosHojePage,
 });
 
+type FilterKey = "todos" | "ao_vivo" | "encerrados" | "agendados";
+
 function JogosHojePage() {
   const isDark = useIsDark();
   const [state, setState] = useState<{
@@ -16,7 +18,7 @@ function JogosHojePage() {
     data: DailyMatchesResult | null;
   }>({ loading: true, data: null });
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<"todos" | "ao_vivo" | "encerrados" | "agendados">("todos");
+  const [filter, setFilter] = useState<FilterKey>("todos");
 
   const load = async () => {
     setState((s) => ({ ...s, loading: true }));
@@ -33,11 +35,6 @@ function JogosHojePage() {
   useEffect(() => {
     void load();
   }, []);
-
-  const panel = isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200";
-  const inner = isDark ? "bg-neutral-950/60 border-neutral-800" : "bg-neutral-50 border-neutral-200";
-  const muted = isDark ? "text-neutral-400" : "text-neutral-500";
-  const subtle = isDark ? "text-neutral-500" : "text-neutral-500";
 
   const filteredLeagues = useMemo<NormalizedLeague[]>(() => {
     const leagues = state.data?.payload?.leagues ?? [];
@@ -71,160 +68,229 @@ function JogosHojePage() {
       0,
     ) ?? 0;
 
-  return (
-    <div className="space-y-4">
-      {/* Topo */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight">Jogos de Hoje</h2>
-          <p className={`text-xs ${muted} mt-0.5 flex items-center gap-2 flex-wrap`}>
-            <span>{totalCount} partidas</span>
-            <span>·</span>
-            <span className="inline-flex items-center gap-1 text-amber-500">
-              <Radio className="h-3 w-3" /> {liveCount} ao vivo
-            </span>
-            <span>·</span>
-            <span>{finishedCount} encerradas</span>
-            {state.data?.fetchedAt && (
-              <>
-                <span>·</span>
-                <span>
-                  Atualizado {new Date(state.data.fetchedAt).toLocaleString("pt-BR")}
-                  {state.data.cached ? " (cache do dia)" : " (buscado agora)"}
-                </span>
-              </>
-            )}
-          </p>
-        </div>
-        <button
-          onClick={() => void load()}
-          disabled={state.loading}
-          className={
-            "h-10 px-4 rounded-md border text-sm font-medium inline-flex items-center gap-2 transition-colors disabled:opacity-60 " +
-            (isDark
-              ? "border-neutral-800 bg-neutral-900 text-neutral-200 hover:bg-neutral-800"
-              : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50")
-          }
-        >
-          <RefreshCw className={`h-4 w-4 ${state.loading ? "animate-spin" : ""}`} />
-          Recarregar
-        </button>
-      </div>
+  const updatedTime = state.data?.fetchedAt
+    ? new Date(state.data.fetchedAt).toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        timeZone: "America/Sao_Paulo",
+      })
+    : "--:--:--";
 
-      {/* Filtros */}
-      <div className={`rounded-xl border p-4 ${panel}`}>
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
-          <div className="relative">
-            <Search
-              className={
-                "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 " +
-                (isDark ? "text-neutral-500" : "text-neutral-400")
-              }
-            />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar por time, liga ou país..."
-              className={
-                "h-10 w-full rounded-md border pl-9 pr-3 text-sm outline-none transition-colors " +
-                (isDark
-                  ? "bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600 focus:border-emerald-600"
-                  : "bg-white border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:border-emerald-700")
-              }
-            />
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            {(
-              [
-                { key: "todos", label: "Todos" },
-                { key: "ao_vivo", label: "Ao Vivo" },
-                { key: "encerrados", label: "Encerrados" },
-                { key: "agendados", label: "Agendados" },
-              ] as const
-            ).map((f) => (
+  // paleta terminal
+  const surface = isDark ? "bg-[#0a0a0c]" : "bg-white";
+  const textMain = isDark ? "text-slate-300" : "text-slate-700";
+  const textStrong = isDark ? "text-white" : "text-slate-900";
+  const textMuted = isDark ? "text-slate-500" : "text-slate-500";
+  const textFaint = isDark ? "text-slate-600" : "text-slate-400";
+  const chipBg = isDark ? "bg-white/5 border-white/10" : "bg-slate-100 border-slate-200";
+  const inputBg = isDark
+    ? "bg-white/5 border-white/10 text-slate-200 placeholder:text-slate-600 focus:border-emerald-500/50 focus:ring-emerald-500/40"
+    : "bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-emerald-500/30";
+  const filterInactive = isDark
+    ? "text-slate-400 hover:text-white"
+    : "text-slate-500 hover:text-slate-900";
+
+  return (
+    <div className={`${surface} ${textMain} font-['Inter'] -m-4 md:-m-6 p-4 md:p-6 min-h-full`}>
+      <div className="max-w-5xl mx-auto space-y-6">
+        {/* Terminal Header */}
+        <header className="flex flex-col gap-6">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                <span className="text-[10px] font-bold tracking-widest uppercase text-emerald-500">
+                  Terminal Live Feed
+                </span>
+              </div>
+              <h1 className={`text-3xl font-bold tracking-tight ${textStrong}`}>Jogos de Hoje</h1>
+              <p className={`${textMuted} text-sm mt-1`}>
+                Atualizado em{" "}
+                <span className="font-['JetBrains_Mono']">{updatedTime}</span>
+                {state.data?.cached ? (
+                  <span className={`ml-2 text-[10px] uppercase tracking-widest ${textFaint}`}>
+                    · cache
+                  </span>
+                ) : state.data ? (
+                  <span className="ml-2 text-[10px] uppercase tracking-widest text-emerald-500">
+                    · live
+                  </span>
+                ) : null}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className={`flex border rounded-lg p-1 ${chipBg}`}>
+                <div className={`px-3 py-1.5 rounded-md ${isDark ? "bg-white/10" : "bg-slate-200"}`}>
+                  <span className={`text-[10px] block uppercase font-bold ${textMuted}`}>Total</span>
+                  <span className={`font-['JetBrains_Mono'] text-sm ${textStrong}`}>{totalCount}</span>
+                </div>
+                <div className="px-3 py-1.5">
+                  <span className={`text-[10px] block uppercase font-bold ${textMuted}`}>Live</span>
+                  <span className="font-['JetBrains_Mono'] text-sm text-amber-500">{liveCount}</span>
+                </div>
+                <div className="px-3 py-1.5">
+                  <span className={`text-[10px] block uppercase font-bold ${textMuted}`}>Fim</span>
+                  <span className={`font-['JetBrains_Mono'] text-sm ${textFaint}`}>{finishedCount}</span>
+                </div>
+              </div>
               <button
-                key={f.key}
-                onClick={() => setFilter(f.key)}
-                className={
-                  "h-10 px-3 rounded-md border text-xs font-semibold transition-colors " +
-                  (filter === f.key
-                    ? "bg-emerald-500 text-white border-emerald-500"
-                    : isDark
-                      ? "border-neutral-800 bg-neutral-950 text-neutral-300 hover:bg-neutral-800"
-                      : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50")
-                }
+                onClick={() => void load()}
+                disabled={state.loading}
+                aria-label="Recarregar"
+                className="h-12 w-12 flex items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/20 transition-all disabled:opacity-50"
               >
-                {f.label}
+                <RefreshCw className={`w-5 h-5 ${state.loading ? "animate-spin" : ""}`} />
               </button>
+            </div>
+          </div>
+
+          {/* Filters Bar */}
+          <div className="flex flex-col md:flex-row gap-3">
+            <div className="relative flex-1 group">
+              <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${textMuted} group-focus-within:text-emerald-500 transition-colors`} />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar por liga, time ou país..."
+                className={`w-full border rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-1 transition-all ${inputBg}`}
+              />
+            </div>
+            <div className={`flex gap-1 border p-1 rounded-xl ${chipBg}`}>
+              {(
+                [
+                  { key: "todos", label: "Todos" },
+                  { key: "ao_vivo", label: "Ao Vivo" },
+                  { key: "encerrados", label: "Encerrados" },
+                  { key: "agendados", label: "Agendados" },
+                ] as const
+              ).map((f) => (
+                <button
+                  key={f.key}
+                  onClick={() => setFilter(f.key)}
+                  className={
+                    "px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors " +
+                    (filter === f.key
+                      ? "bg-emerald-500 text-black"
+                      : filterInactive)
+                  }
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </header>
+
+        {/* States */}
+        {state.loading && (
+          <div className={`rounded-xl border p-12 text-center ${chipBg} ${textMuted}`}>
+            <span className="font-['JetBrains_Mono'] text-xs uppercase tracking-widest">
+              Carregando feed do dia...
+            </span>
+          </div>
+        )}
+
+        {!state.loading && state.data && !state.data.ok && (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 text-red-500 text-sm p-4 flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>{state.data.error ?? "Erro ao carregar."}</span>
+          </div>
+        )}
+
+        {!state.loading && state.data?.ok && filteredLeagues.length === 0 && (
+          <div className={`rounded-xl border p-12 text-center ${chipBg} ${textMuted}`}>
+            Nenhuma partida encontrada com esses filtros.
+          </div>
+        )}
+
+        {/* Match Feed */}
+        {!state.loading && filteredLeagues.length > 0 && (
+          <div className="space-y-8">
+            {filteredLeagues.map((lg) => (
+              <LeagueSection key={lg.id || lg.name} league={lg} isDark={isDark} />
             ))}
           </div>
-        </div>
-      </div>
+        )}
 
-      {state.loading && (
-        <div className={`rounded-xl border p-12 text-center ${panel} ${muted}`}>
-          Carregando jogos do dia...
-        </div>
-      )}
-
-      {!state.loading && state.data && !state.data.ok && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 text-red-500 text-sm p-4 flex items-start gap-2">
-          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-          <span>{state.data.error ?? "Erro ao carregar."}</span>
-        </div>
-      )}
-
-      {!state.loading && state.data?.ok && filteredLeagues.length === 0 && (
-        <div className={`rounded-xl border p-12 text-center ${panel} ${muted}`}>
-          Nenhuma partida encontrada com esses filtros.
-        </div>
-      )}
-
-      {!state.loading &&
-        filteredLeagues.map((lg) => (
-          <div key={lg.id || lg.name} className={`rounded-xl border ${panel} overflow-hidden`}>
-            <div
-              className={
-                "flex items-center gap-2 px-4 py-3 border-b " +
-                (isDark ? "border-neutral-800 bg-neutral-950/40" : "border-neutral-200 bg-neutral-50")
-              }
-            >
-              <Trophy className="h-4 w-4 text-emerald-500" />
-              <div className="font-semibold text-sm">{lg.name}</div>
-              <span className={`text-[10px] uppercase tracking-wider ${subtle}`}>{lg.country}</span>
-              <span
-                className={
-                  "ml-auto text-[10px] font-semibold rounded-full px-2 py-0.5 border " +
-                  (isDark
-                    ? "border-neutral-700 text-neutral-300 bg-neutral-800/60"
-                    : "border-neutral-200 text-neutral-600 bg-neutral-100")
-                }
-              >
-                {lg.matches.length} {lg.matches.length === 1 ? "jogo" : "jogos"}
-              </span>
+        {/* Footer legend */}
+        <footer className={`pt-6 flex items-center justify-between text-[10px] uppercase font-bold tracking-widest border-t ${isDark ? "border-white/5 text-slate-600" : "border-slate-200 text-slate-400"} flex-wrap gap-3`}>
+          <div className="flex gap-6 flex-wrap">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Ao Vivo
             </div>
-            <ul className={`divide-y ${isDark ? "divide-neutral-800" : "divide-neutral-200"}`}>
-              {lg.matches.map((m) => (
-                <MatchRow key={m.id} match={m} inner={inner} isDark={isDark} muted={muted} />
-              ))}
-            </ul>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-sky-500" /> Agendado (Brasília)
+            </div>
+            <div className="flex items-center gap-2">
+              <div className={`w-1.5 h-1.5 rounded-full ${isDark ? "bg-white/20" : "bg-slate-300"}`} /> Encerrado
+            </div>
           </div>
-        ))}
+          <div className="flex items-center gap-2">
+            Sync auto 00:01 UTC · <span className="text-emerald-500">Operacional</span>
+          </div>
+        </footer>
+      </div>
+    </div>
+  );
+}
 
-      <div className={`rounded-xl border p-3 text-[11px] ${panel} ${muted} flex items-start gap-2`}>
-        <CalendarDays className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-        <span>
-          Dados atualizados automaticamente uma vez por dia às 00:01 (UTC). Use "Recarregar" para
-          forçar uma nova busca se necessário.
+function LeagueSection({ league, isDark }: { league: NormalizedLeague; isDark: boolean }) {
+  const headerBg = isDark ? "bg-[#0a0a0c]/85" : "bg-white/85";
+  const textStrong = isDark ? "text-white" : "text-slate-900";
+  const textMuted = isDark ? "text-slate-500" : "text-slate-500";
+  const borderCol = isDark ? "border-white/10" : "border-slate-200";
+  const gradientLine = isDark
+    ? "bg-gradient-to-r from-white/10 to-transparent"
+    : "bg-gradient-to-r from-slate-300 to-transparent";
+  const countryLabel = league.country ? league.country.toUpperCase() : "";
+
+  return (
+    <section className="space-y-2">
+      <div className={`flex items-center gap-3 px-2 py-1 sticky top-0 backdrop-blur-md z-10 ${headerBg}`}>
+        <CountryChip code={countryLabel} isDark={isDark} />
+        <h2 className={`text-sm font-bold tracking-wide uppercase ${textMuted}`}>
+          {countryLabel && <span className="mr-1">{countryLabel}</span>}
+          <span className={textStrong}>{league.name}</span>
+        </h2>
+        <div className={`flex-1 h-px ${gradientLine}`} />
+        <span className={`text-[10px] font-['JetBrains_Mono'] ${textMuted}`}>
+          {league.matches.length} {league.matches.length === 1 ? "jogo" : "jogos"}
         </span>
       </div>
+
+      <div className={`space-y-px rounded-xl overflow-hidden border ${borderCol}`}>
+        {league.matches.map((m) => (
+          <MatchRow key={m.id} match={m} isDark={isDark} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function CountryChip({ code, isDark }: { code: string; isDark: boolean }) {
+  const short = code.slice(0, 3) || "?";
+  return (
+    <div
+      className={
+        "w-8 h-5 rounded-sm border flex items-center justify-center text-[8px] font-bold tracking-wider " +
+        (isDark
+          ? "bg-white/5 border-white/10 text-slate-400"
+          : "bg-slate-100 border-slate-200 text-slate-500")
+      }
+    >
+      {short}
     </div>
   );
 }
 
 function formatSpTime(date?: string, time?: string): string | undefined {
   if (!time) return undefined;
-  // Statpal envia HH:MM em UTC. Se vier date, monta ISO; senão usa hoje UTC.
   const t = time.match(/^(\d{1,2}):(\d{2})/);
   if (!t) return time;
   const hh = t[1].padStart(2, "0");
@@ -242,9 +308,10 @@ function formatSpTime(date?: string, time?: string): string | undefined {
   }).format(dt);
 }
 
-function TeamLogo({ id, name, isDark }: { id?: string; name: string; isDark: boolean }) {
+function TeamLogo({ id, name, isDark, dim }: { id?: string; name: string; isDark: boolean; dim?: boolean }) {
   const [broken, setBroken] = useState(false);
   const src = id ? `/api/public/team-image/${id}?type=team` : null;
+  const dimCls = dim ? "opacity-60" : "";
   if (src && !broken) {
     return (
       <img
@@ -252,7 +319,7 @@ function TeamLogo({ id, name, isDark }: { id?: string; name: string; isDark: boo
         alt={name}
         loading="lazy"
         onError={() => setBroken(true)}
-        className="h-6 w-6 rounded-full object-contain bg-white/90 border border-neutral-200 shrink-0"
+        className={`h-7 w-7 rounded-full object-contain bg-white/90 border border-white/10 shrink-0 ${dimCls}`}
       />
     );
   }
@@ -265,8 +332,10 @@ function TeamLogo({ id, name, isDark }: { id?: string; name: string; isDark: boo
   return (
     <div
       className={
-        "h-6 w-6 rounded-full border flex items-center justify-center text-[9px] font-bold shrink-0 " +
-        (isDark ? "bg-neutral-800 text-neutral-300 border-neutral-700" : "bg-neutral-100 text-neutral-600 border-neutral-200")
+        `h-7 w-7 rounded-full border flex items-center justify-center text-[9px] font-bold shrink-0 ${dimCls} ` +
+        (isDark
+          ? "bg-white/5 border-white/10 text-slate-300"
+          : "bg-slate-100 border-slate-200 text-slate-600")
       }
     >
       {initials}
@@ -274,66 +343,110 @@ function TeamLogo({ id, name, isDark }: { id?: string; name: string; isDark: boo
   );
 }
 
-function MatchRow({
-  match,
-  inner,
-  isDark,
-  muted,
-}: {
-  match: NormalizedMatch;
-  inner: string;
-  isDark: boolean;
-  muted: string;
-}) {
-  const statusPill = match.live
-    ? "bg-amber-500/15 text-amber-500 border-amber-500/30"
-    : match.finished
-      ? "bg-neutral-500/15 text-neutral-400 border-neutral-500/30"
-      : "bg-sky-500/15 text-sky-500 border-sky-500/30";
+function MatchRow({ match, isDark }: { match: NormalizedMatch; isDark: boolean }) {
   const spTime = formatSpTime(match.date, match.time);
-  const statusLabel = match.live
-    ? `AO VIVO ${match.status}`
+  const status = match.live
+    ? "live"
     : match.finished
-      ? match.status
-      : spTime ?? "AGENDADO";
-  const showScore = match.finished || match.live;
+      ? "finished"
+      : "scheduled";
+
+  const borderLeft =
+    status === "live"
+      ? "border-l-2 border-amber-500"
+      : status === "scheduled"
+        ? "border-l-2 border-sky-500/50"
+        : isDark
+          ? "border-l-2 border-white/10"
+          : "border-l-2 border-slate-200";
+
+  const rowBg = isDark
+    ? "bg-white/[0.02] hover:bg-white/[0.05]"
+    : "bg-slate-50 hover:bg-slate-100";
+  const rowText = isDark ? "text-white" : "text-slate-900";
+  const rowTextDim = isDark ? "text-slate-300" : "text-slate-700";
+  const rowTextMuted = isDark ? "text-slate-500" : "text-slate-500";
+  const scoreCell = isDark ? "bg-white/5" : "bg-slate-100";
+
+  const statusLabel =
+    status === "live"
+      ? `${match.status || "AO VIVO"}`
+      : status === "finished"
+        ? "ENCERRADO"
+        : spTime ?? "AGENDADO";
+
+  const statusClass =
+    status === "live"
+      ? "text-amber-500 animate-pulse"
+      : status === "scheduled"
+        ? "text-sky-400"
+        : rowTextMuted;
+
+  const scoreColor =
+    status === "live"
+      ? "text-emerald-500"
+      : status === "finished"
+        ? rowText
+        : rowTextMuted;
 
   return (
-    <li className={`px-4 py-3 flex items-center gap-3 ${inner.includes("bg-") ? "" : ""}`}>
-      <div className="w-20 shrink-0 text-center">
-        <span className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${statusPill}`}>
+    <div
+      className={`group grid grid-cols-[88px_1fr_72px_1fr] items-center transition-colors ${rowBg} ${borderLeft}`}
+    >
+      <div className="py-4 px-4 flex flex-col items-start">
+        <span
+          className={`text-[10px] font-bold font-['JetBrains_Mono'] uppercase tracking-tight ${statusClass}`}
+        >
           {statusLabel}
         </span>
-        {!match.live && !match.finished && spTime && (
-          <div className={`text-[9px] mt-0.5 ${muted}`}>Brasília</div>
+        {status === "scheduled" && spTime && (
+          <span className={`text-[8px] mt-0.5 uppercase tracking-widest ${rowTextMuted}`}>
+            Brasília
+          </span>
         )}
       </div>
-      <div className="flex-1 min-w-0 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-        <div className="flex items-center gap-2 justify-end min-w-0">
-          <div className="text-sm font-medium truncate text-right">{match.home.name}</div>
-          <TeamLogo id={match.home.id} name={match.home.name} isDark={isDark} />
-        </div>
-        <div className="text-lg font-bold tabular-nums min-w-[54px] text-center">
-          {showScore ? (
-            <>
-              <span className={match.finished ? "" : "text-emerald-500"}>{match.home.goals ?? 0}</span>
-              <span className={`mx-1 ${muted}`}>-</span>
-              <span className={match.finished ? "" : "text-emerald-500"}>{match.away.goals ?? 0}</span>
-            </>
-          ) : (
-            <span className={`text-xs font-semibold ${muted}`}>vs</span>
-          )}
-        </div>
-        <div className="flex items-center gap-2 min-w-0">
-          <TeamLogo id={match.away.id} name={match.away.name} isDark={isDark} />
-          <div className="text-sm font-medium truncate">{match.away.name}</div>
-        </div>
+
+      <div className="flex items-center justify-end gap-3 pr-4 min-w-0">
+        <span
+          className={`text-sm font-semibold truncate text-right ${
+            status === "finished" ? rowTextDim : rowText
+          }`}
+        >
+          {match.home.name}
+        </span>
+        <TeamLogo
+          id={match.home.id}
+          name={match.home.name}
+          isDark={isDark}
+          dim={status === "finished"}
+        />
       </div>
-      {match.venue && (
-        <div className={`hidden lg:block text-[11px] max-w-[180px] truncate ${muted}`}>
-          {match.venue}
-        </div>
-      )}
-    </li>
+
+      <div className={`h-full flex items-center justify-center ${scoreCell}`}>
+        {status === "scheduled" ? (
+          <span className={`font-['JetBrains_Mono'] text-sm font-bold ${rowTextMuted}`}>VS</span>
+        ) : (
+          <span className={`font-['JetBrains_Mono'] text-lg font-bold tracking-widest ${scoreColor}`}>
+            {(match.home.goals ?? 0)}-{(match.away.goals ?? 0)}
+          </span>
+        )}
+      </div>
+
+      <div className="flex items-center gap-3 pl-4 min-w-0">
+        <TeamLogo
+          id={match.away.id}
+          name={match.away.name}
+          isDark={isDark}
+          dim={status === "finished"}
+        />
+        <span
+          className={`text-sm font-semibold truncate ${
+            status === "finished" ? rowTextDim : rowText
+          }`}
+        >
+          {match.away.name}
+        </span>
+      </div>
+    </div>
   );
 }
