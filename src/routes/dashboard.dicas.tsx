@@ -72,7 +72,10 @@ function DicasPage() {
       ? "bg-neutral-950 border-neutral-800 text-neutral-100 focus:border-emerald-600"
       : "bg-white border-neutral-300 text-neutral-900 focus:border-emerald-700");
 
-  const [tickets, setTickets] = useState<Ticket[]>(INITIAL_TICKETS);
+  const [tickets, setTickets] = useState<Ticket[]>(() => loadTickets());
+  useEffect(() => {
+    saveTickets(tickets);
+  }, [tickets]);
   const [tab, setTab] = useState<Tab>("todos");
   const [query, setQuery] = useState("");
   const [esporte, setEsporte] = useState("todos");
