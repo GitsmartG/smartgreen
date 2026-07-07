@@ -559,6 +559,8 @@ function NovoTicketModal({
         entradas: 1,
         parceiro,
         url: url || undefined,
+        createdAtMs: Date.now(),
+        startMs: null,
       });
     }
   };
