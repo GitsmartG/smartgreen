@@ -62,6 +62,13 @@ export function normalizeStatpalLive(raw: unknown): DailyMatchesPayload {
       const home = (m.home as Record<string, unknown>) ?? {};
       const away = (m.away as Record<string, unknown>) ?? {};
       const status = String(m.status ?? "");
+      const pickStr = (o: Record<string, unknown>, ...keys: string[]): string | undefined => {
+        for (const k of keys) {
+          const v = o[k];
+          if (typeof v === "string" && v.trim()) return v;
+        }
+        return undefined;
+      };
       return {
         id: String(m.main_id ?? m.fallback_id_1 ?? crypto.randomUUID()),
         status,
@@ -71,12 +78,14 @@ export function normalizeStatpalLive(raw: unknown): DailyMatchesPayload {
         home: {
           name: String(home.name ?? "?"),
           goals: toNum(home.goals),
-          id: home.id != null ? String(home.id) : undefined,
+          id: pickStr(home, "id", "team_id"),
+          image: pickStr(home, "image", "logo", "crest", "badge"),
         },
         away: {
           name: String(away.name ?? "?"),
           goals: toNum(away.goals),
-          id: away.id != null ? String(away.id) : undefined,
+          id: pickStr(away, "id", "team_id"),
+          image: pickStr(away, "image", "logo", "crest", "badge"),
         },
         finished: isFinished(status),
         live: isLive(status),
