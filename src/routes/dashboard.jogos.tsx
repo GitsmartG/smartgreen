@@ -1004,10 +1004,10 @@ function SidelinedGroup({
   return (
     <div>
       <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1.5`}>
-        Afastados ({players.length})
+        Afastados ({list.length})
       </div>
       <ul className="space-y-1 text-xs">
-        {players.map((p, i) => (
+        {list.map((p, i) => (
           <li key={p.id ?? `sidelined-${i}`} className="flex items-center gap-2">
             <span
               className={`inline-flex items-center justify-center w-6 h-5 rounded text-[10px] font-bold tabular-nums border ${muted}`}
