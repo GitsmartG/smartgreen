@@ -783,3 +783,234 @@ function PredictionModal({
     </div>
   );
 }
+
+function LineupsModal({
+  match,
+  isDark,
+  onClose,
+}: {
+  match: NormalizedMatch;
+  isDark: boolean;
+  onClose: () => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [result, setResult] = useState<LineupsResult | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setResult(null);
+    getMatchLineups({ data: { matchId: match.id } })
+      .then((r) => {
+        if (!cancelled) {
+          setResult(r);
+          setLoading(false);
+        }
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) {
+          setResult({ ok: false, error: e instanceof Error ? e.message : "Erro" });
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [match.id]);
+
+  const panel = isDark
+    ? "bg-neutral-900 border-neutral-800 text-neutral-200"
+    : "bg-white border-neutral-200 text-neutral-800";
+  const muted = isDark ? "text-neutral-400" : "text-neutral-500";
+  const strong = isDark ? "text-neutral-100" : "text-neutral-900";
+  const inner = isDark ? "bg-neutral-950/60 border-neutral-800" : "bg-neutral-50 border-neutral-200";
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className={`w-full max-w-3xl rounded-xl border shadow-xl ${panel}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between p-5 border-b border-neutral-800/30">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <Users className="h-3.5 w-3.5 text-sky-500" />
+              <span className="text-[10px] font-bold uppercase tracking-wider text-sky-500">
+                Escalação
+                {result?.status ? ` · ${result.status}` : ""}
+              </span>
+            </div>
+            <h3 className={`text-base font-semibold truncate ${strong}`}>
+              {match.home.name} <span className={muted}>vs</span> {match.away.name}
+            </h3>
+            <p className={`text-[11px] mt-0.5 ${muted}`}>ID {match.id}</p>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Fechar"
+            className={
+              "h-8 w-8 flex items-center justify-center rounded-md border transition-colors " +
+              (isDark
+                ? "border-neutral-800 bg-neutral-900 hover:bg-neutral-800"
+                : "border-neutral-200 bg-white hover:bg-neutral-50")
+            }
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="p-5 max-h-[75vh] overflow-y-auto">
+          {loading && (
+            <div className={`flex items-center gap-2 text-sm ${muted}`}>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Buscando escalação...
+            </div>
+          )}
+
+          {!loading && result && !result.ok && (
+            <div className="rounded-md border border-red-500/30 bg-red-500/10 text-red-500 text-sm p-3 flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>{result.error || "Sem escalação disponível."}</span>
+            </div>
+          )}
+
+          {!loading && result?.ok && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <TeamLineupBlock team={result.home} muted={muted} strong={strong} inner={inner} />
+              <TeamLineupBlock team={result.away} muted={muted} strong={strong} inner={inner} />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TeamLineupBlock({
+  team,
+  muted,
+  strong,
+  inner,
+}: {
+  team?: TeamLineup;
+  muted: string;
+  strong: string;
+  inner: string;
+}) {
+  if (!team) {
+    return (
+      <div className={`rounded-md border p-3 ${inner} text-sm ${muted}`}>
+        Sem dados do time.
+      </div>
+    );
+  }
+  return (
+    <div className={`rounded-md border p-3 space-y-3 ${inner}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className={`text-sm font-semibold truncate ${strong}`}>
+            {team.team_name ?? "—"}
+          </div>
+          <div className={`text-[11px] ${muted}`}>
+            {team.team_formation ? `Formação ${team.team_formation}` : ""}
+            {team.coach?.name ? ` · Téc. ${team.coach.name}` : ""}
+          </div>
+        </div>
+        {typeof team.confidence === "number" && (
+          <span
+            className={
+              "text-[10px] font-bold px-1.5 py-0.5 rounded border border-emerald-500/40 bg-emerald-500/10 text-emerald-500"
+            }
+          >
+            {team.confidence}% conf.
+          </span>
+        )}
+      </div>
+
+      <PlayerGroup title="Titulares" players={team.starting_xi} muted={muted} strong={strong} />
+      <PlayerGroup title="Banco" players={team.bench} muted={muted} strong={strong} />
+      <SidelinedGroup players={team.sidelined} muted={muted} strong={strong} />
+    </div>
+  );
+}
+
+function PlayerGroup({
+  title,
+  players,
+  muted,
+  strong,
+}: {
+  title: string;
+  players?: LineupPlayer[];
+  muted: string;
+  strong: string;
+}) {
+  if (!players || players.length === 0) return null;
+  return (
+    <div>
+      <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1.5`}>
+        {title} ({players.length})
+      </div>
+      <ul className="space-y-1 text-xs">
+        {players.map((p, i) => (
+          <li key={p.id ?? `${title}-${i}`} className="flex items-center gap-2">
+            <span
+              className={`inline-flex items-center justify-center w-6 h-5 rounded text-[10px] font-bold tabular-nums border ${muted}`}
+            >
+              {p.number ?? "—"}
+            </span>
+            <span className={`flex-1 truncate ${strong}`}>{p.name ?? "—"}</span>
+            <span className={`text-[10px] uppercase ${muted}`}>{p.position ?? ""}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function SidelinedGroup({
+  players,
+  muted,
+  strong,
+}: {
+  players?: SidelinedPlayer[];
+  muted: string;
+  strong: string;
+}) {
+  if (!players || players.length === 0) return null;
+  return (
+    <div>
+      <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1.5`}>
+        Afastados ({players.length})
+      </div>
+      <ul className="space-y-1 text-xs">
+        {players.map((p, i) => (
+          <li key={p.id ?? `sidelined-${i}`} className="flex items-center gap-2">
+            <span
+              className={`inline-flex items-center justify-center w-6 h-5 rounded text-[10px] font-bold tabular-nums border ${muted}`}
+            >
+              {p.number ?? "—"}
+            </span>
+            <span className={`flex-1 truncate ${strong}`}>{p.name ?? "—"}</span>
+            <span
+              className={
+                "text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded border " +
+                (p.status === "out"
+                  ? "border-red-500/40 bg-red-500/10 text-red-500"
+                  : "border-amber-500/40 bg-amber-500/10 text-amber-500")
+              }
+            >
+              {p.status ?? "—"}
+              {p.reason ? ` · ${p.reason}` : ""}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
