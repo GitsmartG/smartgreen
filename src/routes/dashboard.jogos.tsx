@@ -128,6 +128,18 @@ function JogosHojePage() {
   };
   useEffect(() => {
     void load();
+    const id = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      void load();
+    }, 30_000);
+    const onVis = () => {
+      if (!document.hidden) void load();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVis);
+    };
   }, []);
 
   const filteredLeagues = useMemo<NormalizedLeague[]>(() => {
