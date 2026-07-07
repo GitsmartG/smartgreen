@@ -5,7 +5,6 @@ import { loadTickets, saveTickets, type Ticket, type TicketLegResult, type TipSt
 import { importBetTip, type BetTipsResult } from "@/lib/bet-tips";
 import { getSoccerLivescores, type LiveMatch } from "@/lib/livescores.functions";
 import { getTodayMatches } from "@/lib/daily-matches.functions";
-import type { DailyMatchesPayload, NormalizedMatch } from "@/lib/daily-matches.server";
 import { findMatchForTicket, gradePalpite, gradeSinglePalpite } from "@/lib/auto-settle";
 import { getMatchRichData, type RichMatchResponse } from "@/lib/soccer-details.functions";
 import { getCachedRich, setCachedRich } from "@/lib/rich-cache";
@@ -79,6 +78,19 @@ type LegLive = {
 };
 
 type MultiGame = { team1: string; team2: string };
+
+type MatchLogoSource = {
+  id: string;
+  status: string;
+  live: boolean;
+  finished: boolean;
+  home: { name: string; goals: number | null; id?: string; image?: string };
+  away: { name: string; goals: number | null; id?: string; image?: string };
+};
+
+type MatchLogoPayload = {
+  leagues?: Array<{ matches?: MatchLogoSource[] }>;
+};
 
 type LiveState = {
   status?: string;
@@ -1126,14 +1138,14 @@ function teamLogoUrl(logo?: string, teamId?: string, teamName?: string): string 
   return undefined;
 }
 
-function payloadToLiveMatches(payload?: DailyMatchesPayload): LiveMatch[] {
+function payloadToLiveMatches(payload?: MatchLogoPayload): LiveMatch[] {
   if (!payload?.leagues?.length) return [];
   return payload.leagues.flatMap((league) =>
     (league.matches ?? []).map((match) => normalizedMatchToLiveMatch(match)),
   );
 }
 
-function normalizedMatchToLiveMatch(match: NormalizedMatch): LiveMatch {
+function normalizedMatchToLiveMatch(match: MatchLogoSource): LiveMatch {
   return {
     id: match.id,
     status: match.status,
