@@ -1759,7 +1759,8 @@ function RichMatchPanel({
   const [state, setState] = useState<{
     loading: boolean;
     data: RichMatchResponse | null;
-  }>({ loading: true, data: null });
+    cached: boolean;
+  }>({ loading: true, data: null, cached: false });
 
   useEffect(() => {
     let cancelled = false;
@@ -1767,22 +1768,36 @@ function RichMatchPanel({
     const t1 = (parts[0] ?? "").trim();
     const t2 = (parts[1] ?? "").trim();
     if (!t1 || !t2) {
-      setState({ loading: false, data: { ok: false, error: "Não consegui extrair times do evento." } });
+      setState({ loading: false, data: { ok: false, error: "Não consegui extrair times do evento." }, cached: false });
       return;
     }
+
+    // 1. Cache first — mostra na hora e evita request se ainda válido
+    const cached = getCachedRich(t1, t2);
+    const cachedFinished = !!(cached?.ok && cached.match?.finished);
+    if (cached) {
+      setState({ loading: false, data: cached, cached: true });
+      // Se jogo já finalizou, cache é a fonte da verdade — não refaz nada.
+      if (cachedFinished) return;
+    }
+
     const load = async () => {
       try {
         const res = await getMatchRichData({ data: { team1: t1, team2: t2 } });
-        if (!cancelled) setState({ loading: false, data: res });
+        if (cancelled) return;
+        setCachedRich(t1, t2, res);
+        setState({ loading: false, data: res, cached: false });
       } catch (e) {
-        if (!cancelled)
+        if (!cancelled && !cached)
           setState({
             loading: false,
             data: { ok: false, error: e instanceof Error ? e.message : "Erro" },
+            cached: false,
           });
       }
     };
-    load();
+    // Se não tinha cache, busca agora. Se tinha (e não terminou), atualiza em 45s.
+    if (!cached) load();
     const id = setInterval(load, 45_000);
     return () => {
       cancelled = true;
