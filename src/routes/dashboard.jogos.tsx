@@ -469,11 +469,13 @@ function MatchRow({
   match,
   isDark,
   onPredict,
+  onLineups,
   muted,
 }: {
   match: NormalizedMatch;
   isDark: boolean;
   onPredict: (m: NormalizedMatch) => void;
+  onLineups: (m: NormalizedMatch) => void;
   muted: string;
 }) {
   const spTime = formatSpTime(match.date, match.time);
