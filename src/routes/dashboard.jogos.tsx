@@ -357,6 +357,7 @@ function LeagueSection({
   league,
   isDark,
   onPredict,
+  onLineups,
   panel,
   muted,
   subtle,
@@ -364,6 +365,7 @@ function LeagueSection({
   league: NormalizedLeague;
   isDark: boolean;
   onPredict: (m: NormalizedMatch) => void;
+  onLineups: (m: NormalizedMatch) => void;
   panel: string;
   muted: string;
   subtle: string;
@@ -406,6 +408,7 @@ function LeagueSection({
             match={m}
             isDark={isDark}
             onPredict={onPredict}
+            onLineups={onLineups}
             muted={muted}
           />
         ))}
