@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { loadTickets, saveTickets, type Ticket, type TipStatus, type Parceiro as ParceiroT } from "@/lib/tickets-store";
 import { importBetTip, type BetTipsResult } from "@/lib/bet-tips";
-import { getSoccerLivescores } from "@/lib/livescores.functions";
+import { getSoccerLivescores, type LiveMatch } from "@/lib/livescores.functions";
 import { findMatchForTicket, gradePalpite, gradeSinglePalpite } from "@/lib/auto-settle";
 import { getMatchRichData, type RichMatchResponse } from "@/lib/soccer-details.functions";
 import { getCachedRich, setCachedRich } from "@/lib/rich-cache";
@@ -57,6 +57,23 @@ export const Route = createFileRoute("/dashboard/dicas")({
 
 type Tab = "todos" | "aguardando" | "ao_vivo" | "green" | "red";
 
+type LegLive = {
+  matchId: string;
+  live: boolean;
+  finished: boolean;
+  score1: number | null;
+  score2: number | null;
+  minute?: string;
+  team1: string;
+  team2: string;
+  team1Logo?: string;
+  team2Logo?: string;
+  team1Id?: string;
+  team2Id?: string;
+  swapped: boolean;
+  status: TipStatus;
+};
+
 type LiveState = {
   status?: string;
   live: boolean;
@@ -69,6 +86,7 @@ type LiveState = {
   team1Id?: string;
   team2Id?: string;
   swapped: boolean;
+  legs?: Record<number, LegLive>;
 };
 
 const LIVE_PALETTE = {
@@ -131,21 +149,56 @@ function DicasPage() {
       const nextLive: Record<string, LiveState> = {};
       for (const t of tickets) {
         const m = findMatchForTicket(t, matches);
-        if (!m) continue;
-        const swapped = isSwappedMatch(t, m.team1, m.team2);
-        nextLive[t.id] = {
-          status: m.status,
-          live: m.live,
-          finished: m.finished,
-          score1: swapped ? m.score2 : m.score1,
-          score2: swapped ? m.score1 : m.score2,
-          minute: m.minute,
-          team1Logo: swapped ? m.team2Logo : m.team1Logo,
-          team2Logo: swapped ? m.team1Logo : m.team2Logo,
-          team1Id: swapped ? m.team2Id : m.team1Id,
-          team2Id: swapped ? m.team1Id : m.team2Id,
-          swapped,
-        };
+        let entry: LiveState | null = null;
+        if (m) {
+          const swapped = isSwappedMatch(t, m.team1, m.team2);
+          entry = {
+            status: m.status,
+            live: m.live,
+            finished: m.finished,
+            score1: swapped ? m.score2 : m.score1,
+            score2: swapped ? m.score1 : m.score2,
+            minute: m.minute,
+            team1Logo: swapped ? m.team2Logo : m.team1Logo,
+            team2Logo: swapped ? m.team1Logo : m.team2Logo,
+            team1Id: swapped ? m.team2Id : m.team1Id,
+            team2Id: swapped ? m.team1Id : m.team2Id,
+            swapped,
+          };
+        }
+        // Per-leg matching (multipla)
+        if (t.type === "Múltipla") {
+          const legs = splitPalpites(t.palpite);
+          if (legs.length > 1) {
+            const legMap: Record<number, LegLive> = {};
+            legs.forEach((legText, i) => {
+              const found = findMatchForLeg(legText, matches);
+              if (!found) return;
+              const lm = found.match;
+              const graded = gradeSinglePalpite(legText, lm, t);
+              const status: TipStatus =
+                graded ?? (lm.live ? "ao_vivo" : "aguardando");
+              legMap[i] = {
+                matchId: lm.id,
+                live: lm.live,
+                finished: lm.finished,
+                score1: lm.score1,
+                score2: lm.score2,
+                minute: lm.minute,
+                team1: lm.team1,
+                team2: lm.team2,
+                team1Logo: lm.team1Logo,
+                team2Logo: lm.team2Logo,
+                team1Id: lm.team1Id,
+                team2Id: lm.team2Id,
+                swapped: false,
+                status,
+              };
+            });
+            entry = { ...(entry ?? { live: false, finished: false, score1: null, score2: null, swapped: false }), legs: legMap };
+          }
+        }
+        if (entry) nextLive[t.id] = entry;
       }
       setLiveMap(nextLive);
 
@@ -414,17 +467,38 @@ function DicasPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {filtered.map((t) => (
-            <TicketCard
-              key={t.id}
-              ticket={t}
-              live={liveMap[t.id]}
-              isDark={isDark}
-              subtle={subtle}
-              muted={muted}
-              onOpen={() => setDetailsId(t.id)}
-            />
-          ))}
+          {filtered.flatMap((t) => {
+            const legs = splitPalpites(t.palpite);
+            const isMult = t.type === "Múltipla" && legs.length > 1;
+            if (!isMult) {
+              return [
+                <TicketCard
+                  key={t.id}
+                  ticket={t}
+                  live={liveMap[t.id]}
+                  isDark={isDark}
+                  subtle={subtle}
+                  muted={muted}
+                  onOpen={() => setDetailsId(t.id)}
+                />,
+              ];
+            }
+            return legs.map((legText, i) => (
+              <LegCard
+                key={`${t.id}-${i}`}
+                ticket={t}
+                legIndex={i}
+                legText={legText}
+                legTotal={legs.length}
+                legLive={liveMap[t.id]?.legs?.[i]}
+                legStatus={t.legStatuses?.[i] ?? liveMap[t.id]?.legs?.[i]?.status ?? "aguardando"}
+                isDark={isDark}
+                subtle={subtle}
+                muted={muted}
+                onOpen={() => setDetailsId(t.id)}
+              />
+            ));
+          })}
         </div>
       )}
 
@@ -709,6 +783,172 @@ function TicketCard({
   );
 }
 
+function LegCard({
+  ticket,
+  legIndex,
+  legText,
+  legTotal,
+  legLive,
+  legStatus,
+  isDark,
+  subtle,
+  muted,
+  onOpen,
+}: {
+  ticket: Ticket;
+  legIndex: number;
+  legText: string;
+  legTotal: number;
+  legLive?: LegLive;
+  legStatus: TipStatus;
+  isDark: boolean;
+  subtle: string;
+  muted: string;
+  onOpen: () => void;
+}) {
+  const card = isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200";
+  const inner = isDark ? "bg-neutral-950/60 border-neutral-800" : "bg-neutral-50 border-neutral-200";
+  const divider = isDark ? "border-neutral-800" : "border-neutral-200";
+  const accent =
+    legStatus === "green"
+      ? "from-emerald-500/80 to-emerald-500/0"
+      : legStatus === "red"
+        ? "from-red-500/80 to-red-500/0"
+        : legStatus === "ao_vivo"
+          ? "from-amber-500/80 to-amber-500/0"
+          : "from-sky-500/80 to-sky-500/0";
+  const parceiroTag =
+    ticket.parceiro === "seubet"
+      ? { label: "SeuBet", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" }
+      : ticket.parceiro === "h2bet"
+        ? { label: "H2Bet", cls: "bg-red-500/15 text-red-500 border-red-500/30" }
+        : null;
+
+  const team1 = legLive?.team1 ?? "Time 1";
+  const team2 = legLive?.team2 ?? "Time 2";
+  const team1Logo =
+    legLive?.team1Logo || (legLive?.team1Id ? `/api/public/team-image/${legLive.team1Id}?type=team` : undefined);
+  const team2Logo =
+    legLive?.team2Logo || (legLive?.team2Id ? `/api/public/team-image/${legLive.team2Id}?type=team` : undefined);
+  const isLive = legLive?.live && !legLive?.finished;
+  const showScore = legLive?.score1 != null || legLive?.score2 != null;
+  const eventTitle = legLive ? `${team1} × ${team2}` : "Jogo não identificado";
+
+  return (
+    <button
+      onClick={onOpen}
+      className={
+        `group relative text-left rounded-2xl border ${card} p-5 flex flex-col gap-4 ` +
+        `transition-all hover:-translate-y-0.5 hover:shadow-lg overflow-hidden ` +
+        (isDark ? "hover:border-neutral-700" : "hover:border-neutral-300")
+      }
+    >
+      <div aria-hidden className={`absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r ${accent}`} />
+
+      {/* Header */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+          <StatusPill status={legStatus} />
+          <span
+            className={
+              "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border " +
+              (isDark
+                ? "border-purple-500/30 text-purple-400 bg-purple-500/10"
+                : "border-purple-300 text-purple-700 bg-purple-50")
+            }
+          >
+            Múltipla · {legIndex + 1}/{legTotal}
+          </span>
+          {parceiroTag && (
+            <span
+              className={
+                "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border " +
+                parceiroTag.cls
+              }
+            >
+              {parceiroTag.label}
+            </span>
+          )}
+        </div>
+        <div className={`text-[10px] font-mono tracking-wider shrink-0 ${subtle}`}>
+          #{ticket.id}
+        </div>
+      </div>
+
+      {/* Título do jogo */}
+      <div>
+        <div className="text-sm font-semibold leading-tight break-words">{eventTitle}</div>
+        {ticket.league && (
+          <div className={`text-[11px] mt-0.5 truncate ${muted}`}>{ticket.league}</div>
+        )}
+      </div>
+
+      {/* Matchup */}
+      <div className={`rounded-xl border ${inner} px-3 py-3`}>
+        <div className="flex items-center justify-between gap-3">
+          <TeamBadge name={team1} logo={team1Logo} isDark={isDark} align="left" />
+          <div className="flex flex-col items-center min-w-[60px]">
+            {showScore ? (
+              <div className="text-xl font-bold leading-none tabular-nums">
+                <span className="text-emerald-500">{legLive?.score1 ?? 0}</span>
+                <span className={`mx-1 ${muted}`}>-</span>
+                <span className="text-emerald-500">{legLive?.score2 ?? 0}</span>
+              </div>
+            ) : (
+              <div className={`text-xs font-semibold ${muted}`}>VS</div>
+            )}
+            {isLive && (
+              <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-amber-500">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500" />
+                </span>
+                {legLive?.minute ? `${legLive.minute}'` : "AO VIVO"}
+              </div>
+            )}
+          </div>
+          <TeamBadge name={team2} logo={team2Logo} isDark={isDark} align="right" />
+        </div>
+      </div>
+
+      {/* Palpite desta perna */}
+      <div className={`rounded-xl border ${inner} p-3`}>
+        <div className={`text-[10px] uppercase tracking-wider ${subtle} mb-1.5`}>Palpite</div>
+        <div className="text-sm font-medium break-words leading-snug">{legText}</div>
+      </div>
+
+      {/* Odd e banca (ticket-level) */}
+      <div className="grid grid-cols-2 gap-3">
+        <div
+          className={
+            "rounded-xl border px-3 py-3 " +
+            (isDark ? "bg-emerald-500/5 border-emerald-500/20" : "bg-emerald-50 border-emerald-100")
+          }
+        >
+          <div className={`text-[10px] uppercase tracking-wider ${subtle}`}>Odd Múltipla</div>
+          <div className="text-xl font-bold text-emerald-500 mt-1 leading-none">
+            {ticket.odd.toFixed(2)}
+          </div>
+        </div>
+        <div className={`rounded-xl border ${inner} px-3 py-3`}>
+          <div className={`text-[10px] uppercase tracking-wider ${subtle}`}>Banca</div>
+          <div className="text-xl font-bold mt-1 leading-none">{ticket.banca.toFixed(1)}%</div>
+        </div>
+      </div>
+
+      <div className={`flex items-center justify-between text-[11px] pt-3 border-t ${divider} ${muted}`}>
+        <span className="inline-flex items-center gap-1.5 truncate">
+          <Calendar className="h-3.5 w-3.5 shrink-0" />
+          {ticket.date}
+        </span>
+        <span className="inline-flex items-center gap-1 font-medium text-emerald-500 opacity-70 group-hover:opacity-100 transition-opacity">
+          Ver ticket <Eye className="h-3.5 w-3.5" />
+        </span>
+      </div>
+    </button>
+  );
+}
+
 function splitPalpites(raw: string): string[] {
   if (!raw) return ["—"];
   const parts = raw
@@ -716,6 +956,29 @@ function splitPalpites(raw: string): string[] {
     .map((p) => p.trim())
     .filter(Boolean);
   return parts.length ? parts : [raw.trim()];
+}
+
+function tokensOf(s: string): string[] {
+  return normalizedText(s)
+    .split(" ")
+    .filter((t) => t.length >= 3 && !["multipla", "simples", "vitoria", "vencedor", "gols", "mais", "menos", "over", "under", "total", "empate", "casa", "fora"].includes(t));
+}
+
+function findMatchForLeg(legText: string, matches: LiveMatch[]): { match: LiveMatch; swapped: boolean } | null {
+  const tks = new Set(tokensOf(legText));
+  if (!tks.size) return null;
+  let best: { match: LiveMatch; score: number; swapped: boolean } | null = null;
+  for (const m of matches) {
+    const t1 = tokensOf(m.team1);
+    const t2 = tokensOf(m.team2);
+    const hit1 = t1.some((t) => tks.has(t));
+    const hit2 = t2.some((t) => tks.has(t));
+    // requer sinal de pelo menos um dos times; ideal os dois
+    if (!hit1 && !hit2) continue;
+    const score = (hit1 ? 2 : 0) + (hit2 ? 2 : 0);
+    if (!best || score > best.score) best = { match: m, score, swapped: false };
+  }
+  return best ? { match: best.match, swapped: best.swapped } : null;
 }
 
 function normalizedText(s: string): string {
