@@ -91,13 +91,13 @@ function DashboardLayout() {
 
 
   return (
-    <div className={`min-h-screen font-sans flex ${bg} ${text} transition-colors`}>
-      <aside className={`hidden md:flex w-64 flex-col border-r ${panel} transition-colors`}>
-        <div className="h-16 flex items-center gap-2 px-5 border-b border-inherit">
+    <div className={`h-screen overflow-hidden font-sans flex ${bg} ${text} transition-colors`}>
+      <aside className={`hidden md:flex w-64 h-screen shrink-0 flex-col border-r ${panel} transition-colors`}>
+        <div className="h-16 shrink-0 flex items-center gap-2 px-5 border-b border-inherit">
           <img src={LOGO_URL} alt="Smart Green" className="h-8 w-auto object-contain" />
           <span className="font-semibold tracking-tight">Smart Green</span>
         </div>
-        <nav className="flex-1 p-3 space-y-1">
+        <nav className="flex-1 min-h-0 overflow-y-auto p-3 space-y-1">
           {nav.map((item) => {
             const active = pathname === item.to;
             return (
@@ -121,8 +121,10 @@ function DashboardLayout() {
             );
           })}
         </nav>
-        <LiveNotificationsPanel isDark={isDark} />
-        <div className="p-3 border-t border-inherit">
+        <div className="shrink-0">
+          <LiveNotificationsPanel isDark={isDark} />
+        </div>
+        <div className="p-3 border-t border-inherit shrink-0">
           <button
             onClick={handleLogout}
             className={
@@ -138,8 +140,8 @@ function DashboardLayout() {
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col min-w-0">
-        <header className={`h-16 flex items-center justify-between px-6 border-b ${panel} transition-colors`}>
+      <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        <header className={`h-16 shrink-0 flex items-center justify-between px-6 border-b ${panel} transition-colors`}>
           <div>
             <h1 className="text-lg font-semibold tracking-tight">{headerTitle}</h1>
             <p className={`text-xs ${muted}`}>{headerSub}</p>
@@ -171,7 +173,7 @@ function DashboardLayout() {
           </div>
         </header>
 
-        <div className="flex-1 p-6">
+        <div className="flex-1 min-h-0 overflow-y-auto p-6">
           <Outlet />
         </div>
       </main>
