@@ -510,8 +510,8 @@ function LeagueSection({
             {countryLabel.slice(0, 3)}
           </span>
         )}
-        <h3 className="text-sm font-semibold flex-1 min-w-0 truncate">
-          {league.name}
+          <h3 className="text-sm font-semibold flex-1 min-w-0 truncate">
+          {s(league.name, "Liga")}
         </h3>
         <span className={`text-[11px] ${subtle}`}>
           {(league.matches?.length ?? 0)} {(league.matches?.length ?? 0) === 1 ? "jogo" : "jogos"}
