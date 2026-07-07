@@ -1103,10 +1103,10 @@ function PlayerGroup({
             <span
               className={`inline-flex items-center justify-center w-6 h-5 rounded text-[10px] font-bold tabular-nums border ${muted}`}
             >
-              {p?.number ?? "—"}
+              {s(p?.number, "—")}
             </span>
-            <span className={`flex-1 truncate ${strong}`}>{p?.name ?? "—"}</span>
-            <span className={`text-[10px] uppercase ${muted}`}>{p?.position ?? ""}</span>
+            <span className={`flex-1 truncate ${strong}`}>{s(p?.name, "—")}</span>
+            <span className={`text-[10px] uppercase ${muted}`}>{s(p?.position, "")}</span>
           </li>
         ))}
       </ul>
