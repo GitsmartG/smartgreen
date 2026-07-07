@@ -692,6 +692,70 @@ function TicketCard({
         </div>
       )}
 
+      {/* Múltipla: sub-cards por jogo dentro do mesmo ticket */}
+      {isMultipla && multiGames.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <div className={`text-[10px] uppercase tracking-wider ${subtle}`}>
+            Jogos ({multiGames.length})
+          </div>
+          <div className="grid grid-cols-1 gap-2">
+            {multiGames.map((g, i) => {
+              const legInfo = live?.legs?.[i];
+              const gLogo1 =
+                legInfo?.team1Logo ||
+                (legInfo?.team1Id
+                  ? `/api/public/team-image/${legInfo.team1Id}?type=team`
+                  : undefined);
+              const gLogo2 =
+                legInfo?.team2Logo ||
+                (legInfo?.team2Id
+                  ? `/api/public/team-image/${legInfo.team2Id}?type=team`
+                  : undefined);
+              const gLive = legInfo?.live && !legInfo?.finished;
+              const gScore =
+                legInfo?.score1 != null || legInfo?.score2 != null;
+              return (
+                <div
+                  key={i}
+                  className={`rounded-lg border ${inner} px-3 py-2 flex items-center justify-between gap-2`}
+                >
+                  <TeamBadge
+                    name={legInfo?.team1 || g.team1}
+                    logo={gLogo1}
+                    isDark={isDark}
+                    align="left"
+                  />
+                  <div className="flex flex-col items-center min-w-[52px]">
+                    {gScore ? (
+                      <div className="text-sm font-bold leading-none tabular-nums text-emerald-500">
+                        {legInfo?.score1 ?? 0}
+                        <span className={`mx-1 ${muted}`}>-</span>
+                        {legInfo?.score2 ?? 0}
+                      </div>
+                    ) : (
+                      <div className={`text-[10px] font-semibold ${muted}`}>VS</div>
+                    )}
+                    {gLive && (
+                      <div className="mt-0.5 inline-flex items-center gap-1 text-[9px] font-semibold text-amber-500">
+                        <span className="h-1 w-1 rounded-full bg-amber-500 animate-pulse" />
+                        {legInfo?.minute ? `${legInfo.minute}'` : "AO VIVO"}
+                      </div>
+                    )}
+                  </div>
+                  <TeamBadge
+                    name={legInfo?.team2 || g.team2}
+                    logo={gLogo2}
+                    isDark={isDark}
+                    align="right"
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+
       {/* Palpites (lista) com status por perna */}
       <div className={`rounded-xl border ${inner} p-3`}>
         <div className={`text-[10px] uppercase tracking-wider ${subtle} mb-2`}>
