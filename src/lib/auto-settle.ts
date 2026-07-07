@@ -57,10 +57,10 @@ function gradeSinglePalpite(palpite: string, match: LiveMatch, ticket: Ticket): 
   }
 
   // Over/Under gols
-  const ou = p.match(/\b(over|mais|acima|under|menos|abaixo)\s*(?:de\s*)?\(?\s*(\d+(?:[.,]\d+)?)\s*\)?/);
+  const ou = p.match(/\b(over|mais|acima|under|menos|abaixo)\s*(?:de\s*)?\(?\s*(\d+(?:[.,\s]\d+)?)\s*\)?/);
   if (ou) {
     const isOver = /over|mais|acima/.test(ou[1]);
-    const line = Number(ou[2].replace(",", "."));
+    const line = Number(ou[2].replace(/\s+/, ".").replace(",", "."));
     if (!Number.isNaN(line)) {
       if (isOver) return total > line ? "green" : "red";
       return total < line ? "green" : "red";
