@@ -2537,7 +2537,8 @@ function RichMatchPanel({
     : { label: `Ao vivo · ${m.status}${m.minute ? ` ${m.minute}'` : ""}`, cls: "bg-red-500/15 text-red-500 border-red-500/30 animate-pulse" };
 
   const pred = res.prediction;
-  const odds = res.odds;
+  const odds = Array.isArray(res.odds) ? res.odds : [];
+  const events = Array.isArray(m.events) ? m.events : [];
 
   // Try to guess relevant live odd for cash-out (1X2 based on palpite)
   const p = ticket.palpite.toLowerCase();
@@ -2619,13 +2620,13 @@ function RichMatchPanel({
       )}
 
       {/* Eventos */}
-      {m.events.length > 0 && (
+      {events.length > 0 && (
         <div>
           <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1.5 inline-flex items-center gap-1`}>
-            <Activity className="h-3 w-3" /> Eventos ({m.events.length})
+            <Activity className="h-3 w-3" /> Eventos ({events.length})
           </div>
           <ul className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
-            {m.events.map((ev) => {
+            {events.map((ev) => {
               const meta = eventLabel(ev.type);
               const teamName = ev.team === "home" ? m.home.name : ev.team === "away" ? m.away.name : ev.team;
               return (
