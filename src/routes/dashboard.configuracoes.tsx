@@ -209,7 +209,7 @@ function MonitoramentoPanel({
   }, []);
 
   const count = state.data?.requestCount ?? 0;
-  const dailyLimit = 1000; // limite típico do plano — ajusta se quiser
+  const dailyLimit = 50000; // plano Statpal: 50k requisições/dia
   const pct = Math.min(100, Math.round((count / dailyLimit) * 100));
   const barColor = pct >= 90 ? "bg-red-500" : pct >= 70 ? "bg-amber-500" : "bg-emerald-500";
 
