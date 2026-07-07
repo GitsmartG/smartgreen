@@ -8,6 +8,8 @@ export type LiveMatch = {
   team2: string;
   team1Logo?: string;
   team2Logo?: string;
+  team1Id?: string;
+  team2Id?: string;
   score1: number | null;
   score2: number | null;
   minute?: string;
