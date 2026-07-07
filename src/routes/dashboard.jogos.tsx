@@ -283,9 +283,9 @@ function JogosHojePage() {
       {/* Lista */}
       {!state.loading && filteredLeagues.length > 0 && (
         <div className="space-y-4">
-          {filteredLeagues.map((lg) => (
+          {filteredLeagues.map((lg, leagueIndex) => (
             <LeagueSection
-              key={lg.id || lg.name}
+              key={`${lg.id || lg.name}-${leagueIndex}`}
               league={lg}
               isDark={isDark}
               onPredict={setPredictionMatch}
@@ -402,9 +402,9 @@ function LeagueSection({
       </header>
 
       <div className={`divide-y ${divider}`}>
-        {league.matches.map((m) => (
+        {league.matches.map((m, matchIndex) => (
           <MatchRow
-            key={m.id}
+            key={`${m.id || "match"}-${matchIndex}-${m.home.name}-${m.away.name}`}
             match={m}
             isDark={isDark}
             onPredict={onPredict}

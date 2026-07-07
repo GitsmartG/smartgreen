@@ -31,7 +31,7 @@ export const getMatchPrediction = createServerFn({ method: "GET" })
     const key = process.env.STATPAL_API_KEY;
     if (!key) return { ok: false, error: "STATPAL_API_KEY não configurada" };
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 12_000);
+    const timer = setTimeout(() => controller.abort(), 30_000);
     try {
       const url = `https://statpal.io/api/v2/soccer/predictions?access_key=${encodeURIComponent(
         key,
