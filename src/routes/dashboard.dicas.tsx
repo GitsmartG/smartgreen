@@ -1,8 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { loadTickets, saveTickets, type Ticket, type TicketLegResult, type TipStatus, type Parceiro as ParceiroT } from "@/lib/tickets-store";
 import { importBetTip, type BetTipsResult } from "@/lib/bet-tips";
 import { getSoccerLivescores, type LiveMatch } from "@/lib/livescores.functions";
+import { getTodayMatches } from "@/lib/daily-matches.functions";
+import type { DailyMatchesPayload, NormalizedMatch } from "@/lib/daily-matches.server";
 import { findMatchForTicket, gradePalpite, gradeSinglePalpite } from "@/lib/auto-settle";
 import { getMatchRichData, type RichMatchResponse } from "@/lib/soccer-details.functions";
 import { getCachedRich, setCachedRich } from "@/lib/rich-cache";
@@ -124,6 +127,8 @@ const LIVE_PALETTE = {
 
 function DicasPage() {
   const isDark = useIsDark();
+  const fetchSoccerLivescores = useServerFn(getSoccerLivescores);
+  const fetchTodayMatches = useServerFn(getTodayMatches);
 
   const panel = isDark
     ? "bg-neutral-900 border-neutral-800"
@@ -156,9 +161,18 @@ function DicasPage() {
     if (!relevant.length) return;
     setRefreshing(true);
     try {
-      const res = await getSoccerLivescores({});
-      if (!res.ok) return;
-      const matches = Array.isArray(res.matches) ? res.matches : [];
+      const [liveResult, todayResult] = await Promise.allSettled([
+        fetchSoccerLivescores(),
+        fetchTodayMatches(),
+      ]);
+      const liveMatches =
+        liveResult.status === "fulfilled" && liveResult.value.ok && Array.isArray(liveResult.value.matches)
+          ? liveResult.value.matches
+          : [];
+      const todayPayload =
+        todayResult.status === "fulfilled" && todayResult.value.ok ? todayResult.value.payload : undefined;
+      const matches = mergeLiveMatches(payloadToLiveMatches(todayPayload), liveMatches);
+      if (!matches.length) return;
 
       const nextLive: Record<string, LiveState> = {};
       for (const t of tickets) {
@@ -1112,6 +1126,60 @@ function teamLogoUrl(logo?: string, teamId?: string, teamName?: string): string 
   return undefined;
 }
 
+function payloadToLiveMatches(payload?: DailyMatchesPayload): LiveMatch[] {
+  if (!payload?.leagues?.length) return [];
+  return payload.leagues.flatMap((league) =>
+    (league.matches ?? []).map((match) => normalizedMatchToLiveMatch(match)),
+  );
+}
+
+function normalizedMatchToLiveMatch(match: NormalizedMatch): LiveMatch {
+  return {
+    id: match.id,
+    status: match.status,
+    team1: match.home.name,
+    team2: match.away.name,
+    team1Logo: match.home.image,
+    team2Logo: match.away.image,
+    team1Id: match.home.id,
+    team2Id: match.away.id,
+    score1: match.home.goals,
+    score2: match.away.goals,
+    minute: match.live ? match.status : undefined,
+    live: match.live,
+    finished: match.finished,
+  };
+}
+
+function mergeLiveMatches(baseMatches: LiveMatch[], liveMatches: LiveMatch[]): LiveMatch[] {
+  const byKey = new Map<string, LiveMatch>();
+  const add = (match: LiveMatch, preferLive: boolean) => {
+    const key = `${normalizedText(match.team1)}::${normalizedText(match.team2)}`;
+    const prev = byKey.get(key);
+    if (!prev) {
+      byKey.set(key, match);
+      return;
+    }
+    byKey.set(key, {
+      ...prev,
+      ...(preferLive ? match : {}),
+      team1Logo: match.team1Logo ?? prev.team1Logo,
+      team2Logo: match.team2Logo ?? prev.team2Logo,
+      team1Id: match.team1Id ?? prev.team1Id,
+      team2Id: match.team2Id ?? prev.team2Id,
+      score1: match.score1 ?? prev.score1,
+      score2: match.score2 ?? prev.score2,
+      live: preferLive ? match.live : prev.live,
+      finished: preferLive ? match.finished : prev.finished,
+      status: preferLive ? match.status : prev.status,
+      minute: match.minute ?? prev.minute,
+    });
+  };
+  baseMatches.forEach((match) => add(match, false));
+  liveMatches.forEach((match) => add(match, true));
+  return Array.from(byKey.values());
+}
+
 function splitPalpites(raw: string): string[] {
   if (!raw) return ["—"];
   // Separadores fortes e inequívocos entre pernas de uma múltipla.
@@ -1260,12 +1328,11 @@ function TeamBadge({
     ? "bg-neutral-800 text-neutral-300 border-neutral-700"
     : "bg-neutral-100 text-neutral-600 border-neutral-200";
   const flag = FLAG_LOGOS[normalizedText(name)];
-  const shouldUseFlagFallback = Boolean(flag && (!safeLogo || safeLogo.startsWith("/api/public/team-image/")));
   return (
     <div
       className={`flex-1 min-w-0 flex items-center gap-2 ${align === "right" ? "flex-row-reverse text-right" : ""}`}
     >
-      {safeLogo && !brokenLogo && !shouldUseFlagFallback ? (
+      {safeLogo && !brokenLogo ? (
         <img
           src={safeLogo}
           alt={name}
@@ -2226,6 +2293,7 @@ function RichMatchPanel({
   muted: string;
   inner: string;
 }) {
+  const fetchMatchRichData = useServerFn(getMatchRichData);
   const [state, setState] = useState<{
     loading: boolean;
     data: RichMatchResponse | null;
@@ -2253,7 +2321,7 @@ function RichMatchPanel({
 
     const load = async () => {
       try {
-        const res = await getMatchRichData({ data: { team1: t1, team2: t2 } });
+        const res = await fetchMatchRichData({ data: { team1: t1, team2: t2 } });
         if (cancelled) return;
         setCachedRich(t1, t2, res);
         setState({ loading: false, data: res, cached: false });
