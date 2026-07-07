@@ -16,8 +16,8 @@ export type MatchPrediction = {
   draw?: number;
   awayWin?: number;
   advice?: string;
-  raw?: unknown;
 };
+
 
 export type LiveOdds = {
   market: string;
