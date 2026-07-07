@@ -1198,8 +1198,8 @@ function DetailsModal({
           </button>
         </div>
 
-        <div className="p-5 space-y-4 max-h-[65vh] overflow-y-auto">
-          <div className="flex items-center gap-2">
+        <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+          <div className="flex items-center gap-2 flex-wrap">
             <StatusPill status={ticket.status} />
             <span
               className={
@@ -1213,6 +1213,11 @@ function DetailsModal({
             </span>
             <span className={`text-xs ${muted}`}>{ticket.esporte}</span>
           </div>
+
+          {/* Rich data ao vivo do Statpal (só futebol) */}
+          {(ticket.esporte || "").toLowerCase().includes("fute") && (
+            <RichMatchPanel ticket={ticket} isDark={isDark} muted={muted} inner={inner} />
+          )}
 
           <div className={`rounded-lg border ${inner} px-3 py-2.5`}>
             <div className={`text-[10px] uppercase tracking-wider ${muted}`}>Palpite</div>
@@ -1264,6 +1269,7 @@ function DetailsModal({
               </a>
             </div>
           )}
+
 
           <div>
             <div className={`text-[10px] uppercase tracking-wider ${muted} mb-2`}>Marcar resultado</div>
