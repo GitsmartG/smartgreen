@@ -342,6 +342,14 @@ function JogosHojePage() {
         >
           <Calendar className="h-3.5 w-3.5" /> Agendados
         </StatusTab>
+        <StatusTab
+          active={filter === "encerrados"}
+          onClick={() => setFilter(filter === "encerrados" ? "todos" : "encerrados")}
+          color="neutral"
+          isDark={isDark}
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" /> Encerrados ({finishedCount})
+        </StatusTab>
       </div>
 
       {/* Filtro de busca */}
