@@ -238,7 +238,7 @@ function DicasPage() {
               const legText = legs[i] ?? `${game?.team1 ?? ""} ${game?.team2 ?? ""}`;
               const found = findMatchForLeg(legText, matches, game);
               const previousLeg = t.legResults?.[i];
-              const lm = found ? closeExpiredMatch(t, found.match) : legResultToFinishedMatch(previousLeg, game, i);
+              const lm = found ? closeExpiredMatch(t, found.match) : legResultToFinishedMatch(previousLeg, game, i, t);
               if (!lm) continue;
               const graded = gradeSinglePalpite(legText, lm, ticketForLeg(t, game));
               const status: TipStatus =
@@ -287,7 +287,7 @@ function DicasPage() {
               const legText = legs[i] ?? `${game?.team1 ?? ""} ${game?.team2 ?? ""}`;
               const found = findMatchForLeg(legText, matches, game);
               const previousLeg = legResults[i] ?? t.legResults?.[i];
-              const lm = found ? closeExpiredMatch(t, found.match) : legResultToFinishedMatch(previousLeg, game, i);
+              const lm = found ? closeExpiredMatch(t, found.match) : legResultToFinishedMatch(previousLeg, game, i, t);
               if (!lm) continue;
               const status = gradeSinglePalpite(legText, lm, ticketForLeg(t, game)) ?? preservedFinishedStatus(previousLeg?.status, lm);
               const nextLeg: TicketLegResult = {
@@ -429,7 +429,7 @@ function DicasPage() {
       clearInterval(id);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tickets.length]);
+  }, [ticketList.length]);
 
 
   const [tab, setTab] = useState<Tab>("todos");
@@ -438,23 +438,23 @@ function DicasPage() {
   const [tipo, setTipo] = useState("todos");
   const [modalOpen, setModalOpen] = useState(false);
   const [detailsId, setDetailsId] = useState<string | null>(null);
-  const detailsTicket = detailsId ? tickets.find((t) => t.id === detailsId) ?? null : null;
+  const detailsTicket = detailsId ? ticketList.find((t) => t.id === detailsId) ?? null : null;
 
   const updateStatus = (id: string, status: TipStatus) =>
-    setTickets((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
+    setTickets((prev) => (Array.isArray(prev) ? prev : []).map((t) => (t.id === id ? { ...t, status } : t)));
   const removeTicket = (id: string) => {
-    setTickets((prev) => prev.filter((t) => t.id !== id));
+    setTickets((prev) => (Array.isArray(prev) ? prev : []).filter((t) => t.id !== id));
     setDetailsId(null);
   };
 
   const counts = useMemo(() => {
     return {
-      aguardando: tickets.filter((t) => t.status === "aguardando").length,
-      ao_vivo: tickets.filter((t) => t.status === "ao_vivo").length,
-      green: tickets.filter((t) => t.status === "green").length,
-      red: tickets.filter((t) => t.status === "red").length,
+      aguardando: ticketList.filter((t) => t.status === "aguardando").length,
+      ao_vivo: ticketList.filter((t) => t.status === "ao_vivo").length,
+      green: ticketList.filter((t) => t.status === "green").length,
+      red: ticketList.filter((t) => t.status === "red").length,
     };
-  }, [tickets]);
+  }, [ticketList]);
 
 
   const filtered = useMemo(() => {
@@ -485,7 +485,7 @@ function DicasPage() {
         <div>
           <h2 className="text-xl font-semibold tracking-tight">Tickets de Tips</h2>
           <p className={`text-xs ${muted} mt-0.5 flex items-center gap-2 flex-wrap`}>
-            <span>{tickets.length} tickets no total</span>
+            <span>{ticketList.length} tickets no total</span>
             <span>·</span>
             <span className="inline-flex items-center gap-1 text-emerald-500">
               <Radio className="h-3 w-3" /> Tempo real ativo
