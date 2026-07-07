@@ -253,24 +253,33 @@ function DicasPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold tracking-tight">Tickets de Tips</h2>
-          <p className={`text-xs ${muted} mt-0.5 flex items-center gap-2`}>
+          <p className={`text-xs ${muted} mt-0.5 flex items-center gap-2 flex-wrap`}>
             <span>{tickets.length} tickets no total</span>
             <span>·</span>
             <span className="inline-flex items-center gap-1 text-emerald-500">
               <Radio className="h-3 w-3" /> Tempo real ativo
             </span>
+            {lastCheckMs && (
+              <>
+                <span>·</span>
+                <span>Última busca {new Date(lastCheckMs).toLocaleTimeString("pt-BR")}</span>
+              </>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => void runCheck()}
+            disabled={refreshing}
             className={
-              "h-10 px-4 rounded-md border text-sm font-medium inline-flex items-center gap-2 transition-colors " +
+              "h-10 px-4 rounded-md border text-sm font-medium inline-flex items-center gap-2 transition-colors disabled:opacity-60 " +
               (isDark
                 ? "border-neutral-800 bg-neutral-900 text-neutral-200 hover:bg-neutral-800"
                 : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50")
             }
           >
-            <RefreshCw className="h-4 w-4" /> Atualizar
+            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Buscando..." : "Buscar resultados"}
           </button>
           <button
             onClick={() => setModalOpen(true)}
