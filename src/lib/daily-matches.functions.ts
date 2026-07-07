@@ -10,6 +10,26 @@ export type DailyMatchesResult = {
   payload?: DailyMatchesPayload;
 };
 
+export const getLiveMatches = createServerFn({ method: "GET" }).handler(
+  async (): Promise<DailyMatchesResult> => {
+    const { fetchLiveMatchesPayload } = await import("./daily-matches.server");
+    try {
+      return {
+        ok: true,
+        cached: false,
+        fetchedAt: new Date().toISOString(),
+        payload: await fetchLiveMatchesPayload(),
+      };
+    } catch (e) {
+      return {
+        ok: false,
+        cached: false,
+        error: e instanceof Error ? e.message : "Erro ao buscar jogos ao vivo",
+      };
+    }
+  },
+);
+
 export const getTodayMatches = createServerFn({ method: "GET" }).handler(
   async (): Promise<DailyMatchesResult> => {
     const { readCachedDaily, refreshDailyMatches } = await import("./daily-matches.server");
@@ -20,12 +40,13 @@ export const getTodayMatches = createServerFn({ method: "GET" }).handler(
         cached &&
         Date.now() - new Date(cached.fetchedAt).getTime() < CACHE_TTL_MS;
       if (cached && isFresh) {
+        const live = await refreshDailyMatches().catch(() => null);
         return {
           ok: true,
-          cached: true,
-          date: cached.date,
-          fetchedAt: cached.fetchedAt,
-          payload: cached.payload,
+          cached: !live,
+          date: live?.date ?? cached.date,
+          fetchedAt: live ? new Date().toISOString() : cached.fetchedAt,
+          payload: live?.payload ?? cached.payload,
         };
       }
       // Cache stale ou inexistente → busca agora

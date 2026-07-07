@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 
 export type NormalizedMatch = {
   id: string;
+  alternateIds?: string[];
   status: string;
   time?: string;
   date?: string;
@@ -10,6 +11,19 @@ export type NormalizedMatch = {
   away: { name: string; goals: number | null; id?: string; image?: string };
   finished: boolean;
   live: boolean;
+  events?: NormalizedMatchEvent[];
+  hasLiveStats?: boolean;
+};
+
+export type NormalizedMatchEvent = {
+  id: string;
+  type: string;
+  team: "home" | "away" | string;
+  minute: string;
+  extraMin?: string;
+  player?: string;
+  assist?: string;
+  result?: string;
 };
 
 export type NormalizedLeague = {
@@ -33,7 +47,8 @@ function isFinished(status: string): boolean {
 function isLive(status: string): boolean {
   const s = status.toUpperCase();
   if (isFinished(s)) return false;
-  return /^(HT|1H|2H|ET|BREAK|LIVE|\d+)/.test(s);
+  if (/^\d{1,2}:\d{2}$/.test(s)) return false;
+  return /^(HT|1H|2H|ET|BREAK|LIVE|INPLAY)$/.test(s) || /^\d{1,3}(?:\+\d+)?'?$/.test(s);
 }
 
 function toNum(v: unknown): number | null {
@@ -45,6 +60,52 @@ function ensureArray<T>(v: unknown): T[] {
   if (Array.isArray(v)) return v as T[];
   if (v == null) return [];
   return [v as T];
+}
+
+function normalizeEvent(raw: unknown): NormalizedMatchEvent | null {
+  if (!raw || typeof raw !== "object") return null;
+  const e = raw as Record<string, unknown>;
+  const id = String(e.id ?? `${e.type ?? "event"}-${e.team ?? ""}-${e.minute ?? ""}-${e.player ?? ""}`);
+  return {
+    id,
+    type: String(e.type ?? "").toLowerCase(),
+    team: String(e.team ?? ""),
+    minute: String(e.minute ?? ""),
+    extraMin: String(e.extra_min ?? "") || undefined,
+    player: String(e.player ?? "") || undefined,
+    assist: String(e.assist_player ?? "") || undefined,
+    result: String(e.result ?? "") || undefined,
+  };
+}
+
+function matchKey(home?: string, away?: string): string {
+  const norm = (s: string) =>
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  return `${norm(home ?? "")}::${norm(away ?? "")}`;
+}
+
+function mergeMatch(base: NormalizedMatch, live: NormalizedMatch): NormalizedMatch {
+  return {
+    ...base,
+    ...live,
+    home: {
+      ...base.home,
+      ...live.home,
+      image: live.home.image ?? base.home.image,
+      id: live.home.id ?? base.home.id,
+    },
+    away: {
+      ...base.away,
+      ...live.away,
+      image: live.away.image ?? base.away.image,
+      id: live.away.id ?? base.away.id,
+    },
+  };
 }
 
 export function normalizeStatpalLive(raw: unknown): DailyMatchesPayload {
@@ -62,6 +123,9 @@ export function normalizeStatpalLive(raw: unknown): DailyMatchesPayload {
       const home = (m.home as Record<string, unknown>) ?? {};
       const away = (m.away as Record<string, unknown>) ?? {};
       const status = String(m.status ?? "");
+      const events = ensureArray((m.events as Record<string, unknown> | undefined)?.event)
+        .map(normalizeEvent)
+        .filter((event): event is NormalizedMatchEvent => event != null);
       const pickStr = (o: Record<string, unknown>, ...keys: string[]): string | undefined => {
         for (const k of keys) {
           const v = o[k];
@@ -71,6 +135,9 @@ export function normalizeStatpalLive(raw: unknown): DailyMatchesPayload {
       };
       return {
         id: String(m.main_id ?? m.fallback_id_1 ?? crypto.randomUUID()),
+        alternateIds: [m.main_id, m.fallback_id_1, m.fallback_id_2, m.fallback_id_3]
+          .map((v) => (v == null ? "" : String(v)))
+          .filter(Boolean),
         status,
         time: typeof m.time === "string" ? m.time : undefined,
         date: typeof m.date === "string" ? m.date : undefined,
@@ -89,6 +156,8 @@ export function normalizeStatpalLive(raw: unknown): DailyMatchesPayload {
         },
         finished: isFinished(status),
         live: isLive(status),
+        events,
+        hasLiveStats: String(m.has_live_stats ?? "").toLowerCase() === "true",
       };
     });
     total += matches.length;
@@ -117,6 +186,69 @@ async function statpalFetchLive(): Promise<unknown> {
   );
   if (!res.ok) throw new Error(`Statpal HTTP ${res.status}`);
   return await res.json();
+}
+
+export async function fetchLiveMatchesPayload(): Promise<DailyMatchesPayload> {
+  return normalizeStatpalLive(await statpalFetchLive());
+}
+
+export function mergeLivePayload(
+  base: DailyMatchesPayload | undefined,
+  live: DailyMatchesPayload,
+): DailyMatchesPayload {
+  if (!base) return live;
+  const leagues = base.leagues.map((lg) => ({ ...lg, matches: [...(lg.matches ?? [])] }));
+  const leagueById = new Map(leagues.map((lg) => [lg.id, lg]));
+  const matchById = new Map<string, { leagueIndex: number; matchIndex: number }>();
+  const matchByTeams = new Map<string, { leagueIndex: number; matchIndex: number }>();
+
+  leagues.forEach((lg, leagueIndex) => {
+    lg.matches.forEach((m, matchIndex) => {
+      matchById.set(m.id, { leagueIndex, matchIndex });
+      for (const alt of m.alternateIds ?? []) matchById.set(alt, { leagueIndex, matchIndex });
+      matchByTeams.set(matchKey(m.home.name, m.away.name), { leagueIndex, matchIndex });
+    });
+  });
+
+  for (const liveLeague of live.leagues) {
+    let targetLeague = liveLeague.id ? leagueById.get(liveLeague.id) : undefined;
+    if (!targetLeague) {
+      const byName = leagues.find(
+        (lg) => matchKey(lg.name, lg.country) === matchKey(liveLeague.name, liveLeague.country),
+      );
+      targetLeague = byName;
+    }
+    if (!targetLeague) {
+      targetLeague = { ...liveLeague, matches: [] };
+      leagues.push(targetLeague);
+      if (targetLeague.id) leagueById.set(targetLeague.id, targetLeague);
+    }
+
+    for (const liveMatch of liveLeague.matches ?? []) {
+      const found =
+        matchById.get(liveMatch.id) ||
+        (liveMatch.alternateIds ?? []).map((id) => matchById.get(id)).find(Boolean) ||
+        matchByTeams.get(matchKey(liveMatch.home.name, liveMatch.away.name));
+      if (found) {
+        const existing = leagues[found.leagueIndex].matches[found.matchIndex];
+        leagues[found.leagueIndex].matches[found.matchIndex] = mergeMatch(existing, liveMatch);
+      } else {
+        targetLeague.matches.push(liveMatch);
+        const leagueIndex = leagues.indexOf(targetLeague);
+        const matchIndex = targetLeague.matches.length - 1;
+        matchById.set(liveMatch.id, { leagueIndex, matchIndex });
+        for (const alt of liveMatch.alternateIds ?? []) matchById.set(alt, { leagueIndex, matchIndex });
+        matchByTeams.set(matchKey(liveMatch.home.name, liveMatch.away.name), { leagueIndex, matchIndex });
+      }
+    }
+  }
+
+  return {
+    updated: live.updated ?? base.updated,
+    updatedTs: live.updatedTs ?? base.updatedTs,
+    leagues,
+    totalMatches: leagues.reduce((sum, lg) => sum + (lg.matches?.length ?? 0), 0),
+  };
 }
 
 function getAdminClient() {
@@ -170,8 +302,7 @@ export async function refreshDailyMatches(date?: string): Promise<{
   payload: DailyMatchesPayload;
 }> {
   const d = date ?? todayISO();
-  const raw = await statpalFetchLive();
-  const payload = normalizeStatpalLive(raw);
+  const payload = await fetchLiveMatchesPayload();
   const client = getAdminClient();
   const { error } = await client
     .from("daily_matches")
