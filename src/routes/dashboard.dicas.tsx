@@ -1155,7 +1155,7 @@ function TeamBadge({
     <div
       className={`flex-1 min-w-0 flex items-center gap-2 ${align === "right" ? "flex-row-reverse text-right" : ""}`}
     >
-      {logo ? (
+      {typeof logo === "string" && logo ? (
         <img
           src={logo}
           alt={name}
