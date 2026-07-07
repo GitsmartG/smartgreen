@@ -202,10 +202,11 @@ function DicasPage() {
         let entry: LiveState | null = null;
         if (m) {
           const swapped = isSwappedMatch(t, m.team1, m.team2);
+          const alreadyResolved = t.status === "green" || t.status === "red";
           entry = {
             status: m.status,
-            live: m.live,
-            finished: m.finished,
+            live: alreadyResolved ? false : m.live,
+            finished: alreadyResolved ? true : m.finished,
             score1: swapped ? m.score2 : m.score1,
             score2: swapped ? m.score1 : m.score2,
             minute: m.minute,
