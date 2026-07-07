@@ -827,6 +827,11 @@ function LineupsModal({
     let cancelled = false;
     setLoading(true);
     setResult(null);
+    if (!match.id) {
+      setResult({ ok: false, error: "Este jogo não tem ID no feed — sem escalação disponível." });
+      setLoading(false);
+      return;
+    }
     getMatchLineups({ data: { matchId: match.id } })
       .then((r) => {
         if (!cancelled) {
