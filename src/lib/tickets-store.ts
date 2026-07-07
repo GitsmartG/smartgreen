@@ -17,6 +17,11 @@ export type Ticket = {
   url?: string;
   createdAtMs?: number;
   startMs?: number | null;
+  score1?: number | null;
+  score2?: number | null;
+  team1Logo?: string;
+  team2Logo?: string;
+  resultCheckedAtMs?: number;
 };
 
 const STORAGE_KEY = "sg-tickets";
@@ -52,6 +57,8 @@ function normalizeTicket(value: unknown): Ticket | null {
   const odd = Number(t.odd);
   const banca = Number(t.banca);
   const startMs = Number(t.startMs);
+  const score1 = Number(t.score1);
+  const score2 = Number(t.score2);
 
   return {
     id: String(t.id || crypto.randomUUID()).slice(0, 12).toUpperCase(),
@@ -69,6 +76,11 @@ function normalizeTicket(value: unknown): Ticket | null {
     url: typeof t.url === "string" ? t.url : undefined,
     createdAtMs: Number.isFinite(Number(t.createdAtMs)) ? Number(t.createdAtMs) : undefined,
     startMs: Number.isFinite(startMs) ? startMs : null,
+    score1: Number.isFinite(score1) ? score1 : null,
+    score2: Number.isFinite(score2) ? score2 : null,
+    team1Logo: typeof t.team1Logo === "string" ? t.team1Logo : undefined,
+    team2Logo: typeof t.team2Logo === "string" ? t.team2Logo : undefined,
+    resultCheckedAtMs: Number.isFinite(Number(t.resultCheckedAtMs)) ? Number(t.resultCheckedAtMs) : undefined,
   };
 }
 
