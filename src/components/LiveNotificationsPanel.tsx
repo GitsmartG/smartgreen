@@ -30,7 +30,9 @@ function titleFor(n: LiveNotification): string {
 }
 
 export function LiveNotificationsPanel({ isDark }: { isDark: boolean }) {
-  const { notifs, dismiss, clear } = useLiveGoalNotifications();
+  const { notifs: raw, dismiss, clear } = useLiveGoalNotifications();
+  const notifs = Array.isArray(raw) ? raw : [];
+
 
   const border = isDark ? "border-neutral-800" : "border-neutral-200";
   const item = isDark
