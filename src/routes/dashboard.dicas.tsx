@@ -185,10 +185,10 @@ function DicasPage() {
             if (Object.keys(patch).length > 1) changed = true;
             return Object.keys(patch).length > 1 ? { ...t, ...patch } : t;
           }
-          // sem match no feed: corrige ticket preso em ao vivo quando o horário já passou muito.
-          if (t.startMs && (t.startMs > Date.now() || Date.now() - t.startMs > 3 * 60 * 60 * 1000) && t.status === "ao_vivo") {
+          // sem match no feed: não mantém "ao vivo" sem confirmação real do provedor.
+          if (t.status === "ao_vivo") {
             changed = true;
-            return { ...t, status: "aguardando" as TipStatus };
+            return { ...t, status: "aguardando" as TipStatus, resultCheckedAtMs: Date.now() };
           }
           return t;
         });
