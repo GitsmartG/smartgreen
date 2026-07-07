@@ -1095,7 +1095,13 @@ function extractMultiGames(event: string): MultiGame[] {
 }
 
 function teamLogoUrl(logo?: string, teamId?: string, teamName?: string): string | undefined {
-  if (typeof logo === "string" && logo.trim()) return logo.trim();
+  if (typeof logo === "string" && logo.trim()) {
+    const url = logo.trim();
+    setCachedLogo(teamName, url);
+    return url;
+  }
+  const cached = getCachedLogo(teamName);
+  if (cached) return cached;
   const emoji = teamName ? FLAG_LOGOS[normalizedText(teamName)] : undefined;
   if (emoji) {
     return `data:image/svg+xml;utf8,${encodeURIComponent(
