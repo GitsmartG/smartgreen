@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { RefreshCw, AlertCircle, Search } from "lucide-react";
+import { RefreshCw, AlertCircle, Search, Sparkles, X, Loader2 } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
 import { getTodayMatches, type DailyMatchesResult } from "@/lib/daily-matches.functions";
 import type { NormalizedLeague, NormalizedMatch } from "@/lib/daily-matches.server";
+import { getMatchPrediction, type PredictionResult } from "@/lib/statpal-prediction.functions";
 
 export const Route = createFileRoute("/dashboard/jogos")({
   component: JogosHojePage,
