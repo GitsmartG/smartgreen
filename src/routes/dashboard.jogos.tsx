@@ -222,6 +222,58 @@ function JogosHojePage() {
   );
 }
 
+function formatSpTime(date?: string, time?: string): string | undefined {
+  if (!time) return undefined;
+  // Statpal envia HH:MM em UTC. Se vier date, monta ISO; senão usa hoje UTC.
+  const t = time.match(/^(\d{1,2}):(\d{2})/);
+  if (!t) return time;
+  const hh = t[1].padStart(2, "0");
+  const mm = t[2];
+  const d = date && /^\d{4}[-.]\d{2}[-.]\d{2}$/.test(date)
+    ? date.replace(/\./g, "-")
+    : new Date().toISOString().slice(0, 10);
+  const iso = `${d}T${hh}:${mm}:00Z`;
+  const dt = new Date(iso);
+  if (Number.isNaN(dt.getTime())) return time;
+  return new Intl.DateTimeFormat("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Sao_Paulo",
+  }).format(dt);
+}
+
+function TeamLogo({ id, name, isDark }: { id?: string; name: string; isDark: boolean }) {
+  const [broken, setBroken] = useState(false);
+  const src = id ? `/api/public/team-image/${id}?type=team` : null;
+  if (src && !broken) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        loading="lazy"
+        onError={() => setBroken(true)}
+        className="h-6 w-6 rounded-full object-contain bg-white/90 border border-neutral-200 shrink-0"
+      />
+    );
+  }
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("") || "?";
+  return (
+    <div
+      className={
+        "h-6 w-6 rounded-full border flex items-center justify-center text-[9px] font-bold shrink-0 " +
+        (isDark ? "bg-neutral-800 text-neutral-300 border-neutral-700" : "bg-neutral-100 text-neutral-600 border-neutral-200")
+      }
+    >
+      {initials}
+    </div>
+  );
+}
+
 function MatchRow({
   match,
   inner,
@@ -238,18 +290,29 @@ function MatchRow({
     : match.finished
       ? "bg-neutral-500/15 text-neutral-400 border-neutral-500/30"
       : "bg-sky-500/15 text-sky-500 border-sky-500/30";
-  const statusLabel = match.live ? `AO VIVO ${match.status}` : match.finished ? match.status : match.time ?? "AGENDADO";
+  const spTime = formatSpTime(match.date, match.time);
+  const statusLabel = match.live
+    ? `AO VIVO ${match.status}`
+    : match.finished
+      ? match.status
+      : spTime ?? "AGENDADO";
   const showScore = match.finished || match.live;
 
   return (
     <li className={`px-4 py-3 flex items-center gap-3 ${inner.includes("bg-") ? "" : ""}`}>
-      <div className="w-14 shrink-0 text-center">
+      <div className="w-20 shrink-0 text-center">
         <span className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${statusPill}`}>
           {statusLabel}
         </span>
+        {!match.live && !match.finished && spTime && (
+          <div className={`text-[9px] mt-0.5 ${muted}`}>Brasília</div>
+        )}
       </div>
       <div className="flex-1 min-w-0 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-        <div className="text-sm font-medium text-right truncate">{match.home.name}</div>
+        <div className="flex items-center gap-2 justify-end min-w-0">
+          <div className="text-sm font-medium truncate text-right">{match.home.name}</div>
+          <TeamLogo id={match.home.id} name={match.home.name} isDark={isDark} />
+        </div>
         <div className="text-lg font-bold tabular-nums min-w-[54px] text-center">
           {showScore ? (
             <>
@@ -261,7 +324,10 @@ function MatchRow({
             <span className={`text-xs font-semibold ${muted}`}>vs</span>
           )}
         </div>
-        <div className="text-sm font-medium truncate">{match.away.name}</div>
+        <div className="flex items-center gap-2 min-w-0">
+          <TeamLogo id={match.away.id} name={match.away.name} isDark={isDark} />
+          <div className="text-sm font-medium truncate">{match.away.name}</div>
+        </div>
       </div>
       {match.venue && (
         <div className={`hidden lg:block text-[11px] max-w-[180px] truncate ${muted}`}>
