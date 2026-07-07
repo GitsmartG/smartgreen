@@ -10,6 +10,7 @@ export interface BetTipsMatch {
   team1: string;
   team2: string;
   betId: string;
+  gameId?: string;
   gameNumber?: number | null;
   startMs?: number | null;
 }
@@ -44,9 +45,38 @@ export async function importBetTip(
     return {
       ok: false,
       parceiro,
-      error: error.message || "Falha ao chamar bet-tips",
+      error: normalizeMessage(error.message || "Falha ao chamar bet-tips"),
       triedIds: [],
     };
   }
-  return data as BetTipsResult;
+  if (!data || typeof data !== "object") {
+    return {
+      ok: false,
+      parceiro,
+      error: "Resposta inválida da busca de aposta.",
+      triedIds: [],
+    };
+  }
+
+  const result = data as BetTipsResult;
+  if (!result.ok) {
+    return {
+      ...result,
+      error: normalizeMessage(result.error),
+      triedIds: Array.isArray(result.triedIds) ? result.triedIds.map(String) : [],
+    };
+  }
+  return result;
+}
+
+function normalizeMessage(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value instanceof Error) return value.message;
+  if (value == null) return "Erro ao buscar no feed.";
+  try {
+    const text = JSON.stringify(value);
+    return text && text !== "{}" ? text : "Erro ao buscar no feed.";
+  } catch {
+    return "Erro ao buscar no feed.";
+  }
 }

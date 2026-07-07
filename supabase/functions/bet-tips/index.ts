@@ -61,6 +61,35 @@ interface SwarmSelection {
   eventId: string;
 }
 
+interface SharedBetEvent {
+  selection_id?: number | string;
+  coeficient?: number | string;
+  selection_price?: number | string;
+  event_name?: string;
+  market_name?: string;
+  sport_name?: string;
+  sport_index?: string;
+  region_name?: string;
+  region_alias?: string;
+  competition_name?: string;
+  team1?: string;
+  team2?: string;
+  game_id?: number | string;
+  game_start_date?: number | string;
+  order?: number;
+}
+
+interface SharedBetData {
+  bet_id?: number | string;
+  id?: number | string;
+  k?: number | string;
+  amount?: number | string;
+  possible_win?: number | string;
+  type?: number | string;
+  fixed_type?: string;
+  events?: SharedBetEvent[];
+}
+
 // ------------------------------------------------------------------
 // Fetch helpers
 // ------------------------------------------------------------------
@@ -182,6 +211,107 @@ function parseBilheteUrl(rawUrl: string): ParsedUrl {
   for (const [, v] of u.searchParams) push(v);
   for (const seg of u.pathname.split("/")) push(seg);
   return out;
+}
+
+function makePartnerOrigin(rawUrl: string, parceiro: Parceiro): string {
+  try {
+    const u = new URL(rawUrl);
+    if (u.protocol.startsWith("http")) return `${u.protocol}//${u.host}`;
+  } catch {
+    // fallback below
+  }
+  return parceiro === "h2bet" ? "https://www.h2.bet.br" : "https://www.seu.bet.br";
+}
+
+function joinNonEmpty(parts: Array<string | null | undefined>, sep: string) {
+  return parts.map((p) => String(p ?? "").trim()).filter(Boolean).join(sep);
+}
+
+function sharedEventLabel(ev: SharedBetEvent): string {
+  return joinNonEmpty([ev.market_name, ev.event_name], " — ") || "Palpite compartilhado";
+}
+
+function sharedBetToResult(
+  parceiro: Parceiro,
+  data: SharedBetData,
+): BetTipsResult | null {
+  const events = Array.isArray(data.events) ? data.events : [];
+  if (events.length === 0) return null;
+
+  const ordered = [...events].sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0));
+  const first = ordered[0];
+  const uniqueEvents = Array.from(
+    new Set(
+      ordered
+        .map((ev) => joinNonEmpty([ev.team1, ev.team2], " x "))
+        .filter(Boolean),
+    ),
+  );
+  const eventTitle = uniqueEvents.length > 1
+    ? `Múltipla: ${uniqueEvents.slice(0, 2).join(" + ")}${uniqueEvents.length > 2 ? ` +${uniqueEvents.length - 2}` : ""}`
+    : uniqueEvents[0] || joinNonEmpty([first.team1, first.team2], " x ") || "Aposta compartilhada";
+  const market = ordered.map(sharedEventLabel).join(" / ");
+  const odd = numberOrNull(data.k) ?? ordered.reduce((acc, ev) => {
+    const value = numberOrNull(ev.coeficient ?? ev.selection_price);
+    return value ? acc * value : acc;
+  }, 1);
+
+  const match: MatchInfo = {
+    sport: String(first.sport_name || first.sport_index || "Esporte"),
+    region: String(first.region_name || first.region_alias || ""),
+    competition: String(first.competition_name || ""),
+    event: eventTitle,
+    team1: String(first.team1 || eventTitle),
+    team2: String(first.team2 || ""),
+    betId: String(data.bet_id ?? data.id ?? first.selection_id ?? ""),
+    gameId: first.game_id != null ? String(first.game_id) : undefined,
+    startMs: parseStartTs(first.game_start_date),
+  };
+
+  return {
+    ok: true,
+    parceiro,
+    match,
+    matchedBy: "id",
+    matchedValue: String(data.bet_id ?? data.id ?? first.selection_id ?? ""),
+    market,
+    odd: Number.isFinite(odd) ? Number(odd.toFixed(2)) : null,
+    titulo_sugerido: `${eventTitle} — ${market}`,
+    htmlOk: true,
+    debug: {
+      source: "get-sharing-data",
+      selections: ordered.length,
+      amount: data.amount,
+      possible_win: data.possible_win,
+      fixed_type: data.fixed_type,
+    },
+  };
+}
+
+async function fetchSharedBetData(
+  parceiro: Parceiro,
+  rawUrl: string,
+  betId?: string,
+): Promise<BetTipsResult | null> {
+  if (!betId || !/^\d+$/.test(betId)) return null;
+  const origin = makePartnerOrigin(rawUrl, parceiro);
+  const endpoint = `${origin}/pt/get-sharing-data?bet_id=${encodeURIComponent(betId)}`;
+  try {
+    const res = await plainFetch(endpoint, {
+      headers: {
+        Accept: "application/json,text/plain,*/*",
+        Referer: rawUrl,
+      },
+    });
+    if (!res.ok) return null;
+    const payload = await res.json().catch(() => null);
+    const data = payload?.data as SharedBetData | undefined;
+    if (!data || typeof data !== "object") return null;
+    return sharedBetToResult(parceiro, data);
+  } catch (err) {
+    console.warn("get-sharing-data falhou:", err);
+    return null;
+  }
 }
 
 // ------------------------------------------------------------------
@@ -711,6 +841,15 @@ Deno.serve(async (req) => {
     const tryOrder: Parceiro[] = effectiveParceiro === "seubet"
       ? ["seubet", "h2bet"]
       : ["h2bet", "seubet"];
+
+    // Links compartilhados da H2Bet/SeuBet usam bet_id de "booking". Esse ID
+    // não é um selection_id do Swarm/FeedOdds; a própria casa expõe os dados em
+    // /pt/get-sharing-data. Tenta isso antes do lookup por evento.
+    for (const p of tryOrder) {
+      const shared = await fetchSharedBetData(p, url, parsed.betId);
+      if (shared) return json(shared);
+    }
+
     let swarmSelection: SwarmSelection | null = null;
     let usedParceiro: Parceiro = effectiveParceiro;
     for (const p of tryOrder) {
