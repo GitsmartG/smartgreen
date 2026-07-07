@@ -81,6 +81,15 @@ function DicasPage() {
   const [esporte, setEsporte] = useState("todos");
   const [tipo, setTipo] = useState("todos");
   const [modalOpen, setModalOpen] = useState(false);
+  const [detailsId, setDetailsId] = useState<string | null>(null);
+  const detailsTicket = detailsId ? tickets.find((t) => t.id === detailsId) ?? null : null;
+
+  const updateStatus = (id: string, status: TipStatus) =>
+    setTickets((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
+  const removeTicket = (id: string) => {
+    setTickets((prev) => prev.filter((t) => t.id !== id));
+    setDetailsId(null);
+  };
 
   const counts = useMemo(() => {
     return {
