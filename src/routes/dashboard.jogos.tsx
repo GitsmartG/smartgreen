@@ -418,7 +418,6 @@ function LeagueSection({
 }
 
 function TeamLogo({
-  id,
   logo,
   name,
   isDark,
@@ -431,8 +430,10 @@ function TeamLogo({
   dim?: boolean;
 }) {
   const [broken, setBroken] = useState(false);
-  const src = logo || (id ? `/api/public/team-image/${id}?type=team` : null);
   const dimCls = dim ? "opacity-60" : "";
+  // Só tenta imagem se veio URL absoluta no payload. O proxy /api/public/team-image
+  // 404a pra 99% dos IDs (Statpal não tem CDN de logos), então nem chamamos.
+  const src = logo && /^https?:\/\//i.test(logo) ? logo : null;
   if (src && !broken) {
     return (
       <img
@@ -451,14 +452,23 @@ function TeamLogo({
       .slice(0, 2)
       .map((w) => w[0]?.toUpperCase() ?? "")
       .join("") || "?";
+  // hash simples pra dar uma cor consistente por time
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0;
+  const hue = Math.abs(hash) % 360;
+  const bg = isDark
+    ? `hsl(${hue} 40% 22%)`
+    : `hsl(${hue} 55% 92%)`;
+  const fg = isDark
+    ? `hsl(${hue} 65% 78%)`
+    : `hsl(${hue} 55% 30%)`;
   return (
     <div
       className={
         `h-6 w-6 rounded-full border flex items-center justify-center text-[9px] font-bold shrink-0 ${dimCls} ` +
-        (isDark
-          ? "bg-neutral-800 border-neutral-700 text-neutral-300"
-          : "bg-neutral-100 border-neutral-200 text-neutral-600")
+        (isDark ? "border-neutral-700" : "border-neutral-200")
       }
+      style={{ background: bg, color: fg }}
     >
       {initials}
     </div>
