@@ -1008,23 +1008,23 @@ function SidelinedGroup({
       </div>
       <ul className="space-y-1 text-xs">
         {list.map((p, i) => (
-          <li key={p.id ?? `sidelined-${i}`} className="flex items-center gap-2">
+          <li key={p?.id ?? `sidelined-${i}`} className="flex items-center gap-2">
             <span
               className={`inline-flex items-center justify-center w-6 h-5 rounded text-[10px] font-bold tabular-nums border ${muted}`}
             >
-              {p.number ?? "—"}
+              {p?.number ?? "—"}
             </span>
-            <span className={`flex-1 truncate ${strong}`}>{p.name ?? "—"}</span>
+            <span className={`flex-1 truncate ${strong}`}>{p?.name ?? "—"}</span>
             <span
               className={
                 "text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded border " +
-                (p.status === "out"
+                (p?.status === "out"
                   ? "border-red-500/40 bg-red-500/10 text-red-500"
                   : "border-amber-500/40 bg-amber-500/10 text-amber-500")
               }
             >
-              {p.status ?? "—"}
-              {p.reason ? ` · ${p.reason}` : ""}
+              {p?.status ?? "—"}
+              {p?.reason ? ` · ${p.reason}` : ""}
             </span>
           </li>
         ))}
