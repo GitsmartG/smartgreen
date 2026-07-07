@@ -691,36 +691,35 @@ Deno.serve(async (req) => {
     const parceiro = body.parceiro;
     const url = body.url.trim();
 
-    // Valida parceiro vs URL
+    // Auto-detecta parceiro pela URL (se der) — a seleção do usuário pode
+    // estar errada. Ambas as casas rodam no mesmo Betconstruct, então na
+    // prática dá pra buscar em qualquer siteId.
     const detected = detectParceiroFromUrl(url);
-    if (detected && detected !== parceiro) {
-      return json({
-        ok: false,
-        parceiro,
-        error: `URL é de ${detected === "seubet" ? "SeuBet" : "H2Bet"}, mas você selecionou ${
-          parceiro === "seubet" ? "SeuBet" : "H2Bet"
-        }.`,
-        triedIds: [],
-      });
-    }
+    const effectiveParceiro: Parceiro = detected ?? parceiro;
 
     const parsed = parseBilheteUrl(url);
     if (parsed.candidateIds.length === 0) {
       return json({
         ok: false,
-        parceiro,
+        parceiro: effectiveParceiro,
         error: "Não consegui extrair nenhum ID da URL. Verifique se o link está completo.",
         triedIds: [],
       });
     }
 
-    // Primeiro tenta o mesmo fluxo do parceiro: WebSocket Swarm → request_session → get betting.
-    // É aqui que vem mercado/odd; o FeedOdds fica como fallback para dados do jogo.
+    // Tenta primeiro o parceiro detectado, depois o outro (mesma plataforma).
+    const tryOrder: Parceiro[] = effectiveParceiro === "seubet"
+      ? ["seubet", "h2bet"]
+      : ["h2bet", "seubet"];
     let swarmSelection: SwarmSelection | null = null;
-    try {
-      swarmSelection = await fetchSwarmSelection(parceiro, parsed);
-    } catch (err) {
-      console.warn("Swarm lookup falhou:", err);
+    let usedParceiro: Parceiro = effectiveParceiro;
+    for (const p of tryOrder) {
+      try {
+        const sel = await fetchSwarmSelection(p, parsed);
+        if (sel) { swarmSelection = sel; usedParceiro = p; break; }
+      } catch (err) {
+        console.warn(`Swarm lookup falhou (${p}):`, err);
+      }
     }
 
     if (swarmSelection) {
