@@ -203,6 +203,7 @@ function JogosHojePage() {
     try {
       const live = await fetchLiveMatches();
       if (!live.ok || !live.payload) return;
+      const livePayload = live.payload;
       setState((cur) => ({
         loading: false,
         data: {
@@ -210,7 +211,7 @@ function JogosHojePage() {
           cached: false,
           date: cur.data?.date,
           fetchedAt: live.fetchedAt ?? new Date().toISOString(),
-          payload: mergeLivePayload(cur.data?.payload, live.payload),
+          payload: mergeLivePayload(cur.data?.payload, livePayload),
         },
       }));
     } catch {
