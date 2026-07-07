@@ -1,4 +1,4 @@
-import { Bell, Trophy, Play, Flag, X } from "lucide-react";
+import { Bell, Trophy, Play, Flag, X, BadgeAlert, Activity } from "lucide-react";
 import { useLiveGoalNotifications, type LiveNotification } from "@/hooks/use-live-goal-notifications";
 
 function timeAgo(ts: number): string {
@@ -13,6 +13,8 @@ function timeAgo(ts: number): string {
 function iconFor(kind: LiveNotification["kind"]) {
   if (kind === "goal") return <Trophy className="h-3.5 w-3.5 text-emerald-400" />;
   if (kind === "start") return <Play className="h-3.5 w-3.5 text-sky-400" />;
+  if (kind === "card") return <BadgeAlert className="h-3.5 w-3.5 text-amber-400" />;
+  if (kind === "event") return <Activity className="h-3.5 w-3.5 text-sky-400" />;
   return <Flag className="h-3.5 w-3.5 text-neutral-400" />;
 }
 
@@ -22,6 +24,8 @@ function titleFor(n: LiveNotification): string {
     return `⚽ Gol do ${who}`;
   }
   if (n.kind === "start") return "🔔 Jogo começou";
+  if (n.kind === "card") return "🟨 Cartão no jogo";
+  if (n.kind === "event") return "📡 Atualização ao vivo";
   return "🏁 Jogo encerrado";
 }
 
@@ -81,6 +85,11 @@ export function LiveNotificationsPanel({ isDark }: { isDark: boolean }) {
               <div className="mt-0.5 truncate">
                 {n.home} <span className="text-emerald-500 font-bold">{n.score}</span> {n.away}
               </div>
+              {n.text && (
+                <div className="mt-0.5 truncate text-emerald-500">
+                  {n.text}
+                </div>
+              )}
               <div className={`mt-0.5 flex items-center justify-between ${muted}`}>
                 <span className="truncate">{n.league}</span>
                 <span className="shrink-0 ml-2">há {timeAgo(n.at)}</span>
