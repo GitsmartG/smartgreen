@@ -33,17 +33,35 @@ export function useLiveGoalNotifications() {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
+    const isTodayMatch = (m: { date?: string }, todayIso: string): boolean => {
+      const raw = m.date;
+      if (!raw) return false;
+      // Statpal costuma retornar "DD.MM.YYYY". Aceita "YYYY-MM-DD" também.
+      let iso: string | null = null;
+      const dm = /^(\d{2})\.(\d{2})\.(\d{4})/.exec(raw);
+      if (dm) iso = `${dm[3]}-${dm[2]}-${dm[1]}`;
+      else if (/^\d{4}-\d{2}-\d{2}/.test(raw)) iso = raw.slice(0, 10);
+      return iso === todayIso;
+    };
+
     const tick = async () => {
       try {
         const res = await getTodayMatches();
         if (cancelled) return;
         const leagues = res?.payload?.leagues ?? [];
+        const todayIso = new Date().toISOString().slice(0, 10);
+        const apiDate = res?.date; // formato "YYYY-MM-DD" do backend
         const next = new Map<string, Snapshot>();
         const events: LiveNotification[] = [];
         const prev = snapRef.current;
 
         for (const lg of leagues) {
           for (const m of lg.matches ?? []) {
+            // Só rastreia partidas realmente de hoje
+            const dateOk =
+              isTodayMatch(m, todayIso) || (apiDate && isTodayMatch(m, apiDate));
+            if (!dateOk) continue;
+
             const snap: Snapshot = {
               home: m.home?.goals ?? null,
               away: m.away?.goals ?? null,
@@ -58,6 +76,11 @@ export function useLiveGoalNotifications() {
             if (prev) {
               const p = prev.get(m.id);
               if (p) {
+                // Ignora eventos vindos de jogos que nunca estiveram ao vivo
+                // durante nossa observação (evita "encerrado" de jogo antigo).
+                const wasOrIsLive = p.live || snap.live;
+                if (!wasOrIsLive) continue;
+
                 const scoreStr = `${snap.home ?? 0} x ${snap.away ?? 0}`;
                 const base = {
                   home: snap.homeName,
@@ -89,7 +112,7 @@ export function useLiveGoalNotifications() {
                     ...base,
                   });
                 }
-                if (!p.finished && snap.finished) {
+                if (!p.finished && snap.finished && p.live) {
                   events.push({
                     id: `${m.id}-end-${Date.now()}`,
                     kind: "finish",
