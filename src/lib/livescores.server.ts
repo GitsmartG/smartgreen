@@ -55,6 +55,14 @@ function normalizeMatch(raw: StatpalMatch): LiveMatch | null {
     pickString(raw, "away_image", "visitorteam_image", "away_logo", "team2Logo") ||
     pickString(away, "image", "logo", "crest", "badge") ||
     undefined;
+  const team1Id =
+    pickString(home, "id", "@id", "team_id") ||
+    pickString(raw, "home_id", "localteam_id", "hometeam_id", "team1_id") ||
+    undefined;
+  const team2Id =
+    pickString(away, "id", "@id", "team_id") ||
+    pickString(raw, "away_id", "visitorteam_id", "awayteam_id", "team2_id") ||
+    undefined;
   const minute = pickString(raw, "minute", "inj_minute", "elapsed", "time_status") || undefined;
 
   return {
@@ -64,6 +72,8 @@ function normalizeMatch(raw: StatpalMatch): LiveMatch | null {
     team2,
     team1Logo,
     team2Logo,
+    team1Id,
+    team2Id,
     score1: s1,
     score2: s2,
     minute,
