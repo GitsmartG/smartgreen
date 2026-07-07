@@ -49,6 +49,13 @@ export function gradeSinglePalpite(palpite: string, match: LiveMatch, ticket: Ti
   // Precisa ter placar disponível (mesmo ao vivo).
   if (match.score1 == null || match.score2 == null) return null;
 
+  // Apostas só valem no tempo normal. Prorrogação/pênaltis não contam.
+  // Se o jogo foi pra ET/AET/PEN, não podemos afirmar o placar dos 90min
+  // com base no placar final — melhor não gradar automaticamente.
+  const st = (match.status || "").toLowerCase();
+  const wentToExtra = /\baet\b|\bet\b|\bpen\b|extra\s*time|prorroga|penalt|shootout|after.*extra/.test(st);
+  if (wentToExtra) return null;
+
   const parts = ticket.event.split(/\s+(?:vs|x|×|-)\s+/i);
   const tHome = parts[0] ?? "";
   const tAway = parts[1] ?? "";
