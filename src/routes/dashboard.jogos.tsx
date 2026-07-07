@@ -63,6 +63,7 @@ function JogosHojePage() {
   }>({ loading: true, data: null });
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterKey>("todos");
+  const [predictionMatch, setPredictionMatch] = useState<NormalizedMatch | null>(null);
 
   const load = async () => {
     setState((s) => ({ ...s, loading: true }));
