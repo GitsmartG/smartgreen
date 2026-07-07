@@ -167,7 +167,11 @@ function DicasPage() {
           };
         }
         // Per-leg matching (multipla)
-        if (t.type === "Múltipla") {
+        const isMult =
+          t.type === "Múltipla" ||
+          (t.entradas ?? 0) > 1 ||
+          /múltipla|multipla/i.test(t.event);
+        if (isMult) {
           const legs = splitPalpites(t.palpite);
           if (legs.length > 1) {
             const legMap: Record<number, LegLive> = {};
@@ -634,7 +638,7 @@ function TicketCard({
                 : "border-neutral-200 text-neutral-600 bg-neutral-100")
             }
           >
-            {ticket.type}
+            {isMultipla ? "Múltipla" : ticket.type}
           </span>
           {parceiroTag && (
             <span
@@ -1151,7 +1155,7 @@ function TeamBadge({
     <div
       className={`flex-1 min-w-0 flex items-center gap-2 ${align === "right" ? "flex-row-reverse text-right" : ""}`}
     >
-      {logo ? (
+      {typeof logo === "string" && logo ? (
         <img
           src={logo}
           alt={name}
