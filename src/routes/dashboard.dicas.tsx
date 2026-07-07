@@ -521,6 +521,7 @@ function TicketCard({
         : null;
 
   const palpites = splitPalpites(ticket.palpite);
+  const isMultipla = ticket.type === "Múltipla";
   const parts = ticket.event.split(/\s+(?:vs|x|×|-)\s+/i);
   const team1 = (parts[0] ?? ticket.event).trim();
   const team2 = (parts[1] ?? "").trim();
@@ -579,34 +580,45 @@ function TicketCard({
         </div>
       </div>
 
-      {/* Matchup: escudos + placar */}
-      <div className={`rounded-xl border ${inner} px-3 py-3`}>
-        <div className="flex items-center justify-between gap-3">
-          <TeamBadge name={team1} logo={team1Logo} isDark={isDark} align="left" />
-          <div className="flex flex-col items-center min-w-[60px]">
-            {showScore ? (
-              <div className="text-xl font-bold leading-none tabular-nums">
-                <span className="text-emerald-500">{score1 ?? 0}</span>
-                <span className={`mx-1 ${muted}`}>-</span>
-                <span className="text-emerald-500">{score2 ?? 0}</span>
-              </div>
-            ) : (
-              <div className={`text-xs font-semibold ${muted}`}>VS</div>
-            )}
-            {isLive && (
-              <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-amber-500">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500" />
-                </span>
-                {live?.minute ? `${live.minute}'` : "AO VIVO"}
-              </div>
-            )}
-          </div>
-            <TeamBadge name={team2 || "—"} logo={team2Logo} isDark={isDark} align="right" />
+      {/* Título — nome do jogo (ou "Múltipla") sempre visível */}
+      <div>
+        <div className="text-sm font-semibold leading-tight break-words">
+          {ticket.event}
         </div>
-        <div className={`text-[11px] mt-2 text-center truncate ${muted}`}>{ticket.league}</div>
+        {ticket.league && (
+          <div className={`text-[11px] mt-0.5 truncate ${muted}`}>{ticket.league}</div>
+        )}
       </div>
+
+      {/* Matchup: só para Simples (múltipla tem times diferentes por perna) */}
+      {!isMultipla && (
+        <div className={`rounded-xl border ${inner} px-3 py-3`}>
+          <div className="flex items-center justify-between gap-3">
+            <TeamBadge name={team1} logo={team1Logo} isDark={isDark} align="left" />
+            <div className="flex flex-col items-center min-w-[60px]">
+              {showScore ? (
+                <div className="text-xl font-bold leading-none tabular-nums">
+                  <span className="text-emerald-500">{score1 ?? 0}</span>
+                  <span className={`mx-1 ${muted}`}>-</span>
+                  <span className="text-emerald-500">{score2 ?? 0}</span>
+                </div>
+              ) : (
+                <div className={`text-xs font-semibold ${muted}`}>VS</div>
+              )}
+              {isLive && (
+                <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-amber-500">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500" />
+                  </span>
+                  {live?.minute ? `${live.minute}'` : "AO VIVO"}
+                </div>
+              )}
+            </div>
+            <TeamBadge name={team2 || "—"} logo={team2Logo} isDark={isDark} align="right" />
+          </div>
+        </div>
+      )}
 
       {/* Palpites (lista) com status por perna */}
       <div className={`rounded-xl border ${inner} p-3`}>
@@ -811,7 +823,7 @@ function TeamBadge({
         <img
           src={logo}
           alt={name}
-          className="h-10 w-10 rounded-full object-contain bg-white/90 border border-neutral-200 shrink-0"
+          className="h-10 w-10 object-contain shrink-0"
           loading="lazy"
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).style.display = "none";
