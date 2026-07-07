@@ -112,83 +112,94 @@ function DicasPage() {
   }, [tickets]);
 
   const [liveMap, setLiveMap] = useState<Record<string, LiveState>>({});
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastCheckMs, setLastCheckMs] = useState<number | null>(null);
 
-  // Polling: enriquece com dados ao vivo (escudos/placar) + auto-grade + status aguardando/ao_vivo
-  useEffect(() => {
-    let cancelled = false;
-    const check = async () => {
-      const relevant = tickets.filter(
-        (t) => (t.status === "ao_vivo" || t.status === "aguardando") &&
-          (t.esporte || "").toLowerCase().includes("fute"),
-      );
-      if (!relevant.length) return;
-      try {
-        const res = await getSoccerLivescores();
-        if (cancelled || !res.ok) return;
-        const matches = res.matches;
+  const runCheck = async () => {
+    const relevant = tickets.filter(
+      (t) => (t.status === "ao_vivo" || t.status === "aguardando") &&
+        (t.esporte || "").toLowerCase().includes("fute"),
+    );
+    if (!relevant.length) return;
+    setRefreshing(true);
+    try {
+      const res = await getSoccerLivescores();
+      if (!res.ok) return;
+      const matches = res.matches;
 
-        const nextLive: Record<string, LiveState> = {};
-        for (const t of tickets) {
+      const nextLive: Record<string, LiveState> = {};
+      for (const t of tickets) {
+        const m = findMatchForTicket(t, matches);
+        if (!m) continue;
+        const parts = t.event.split(/\s+(?:vs|x|×|-)\s+/i);
+        const tHome = parts[0] ?? "";
+        const swapped = !!(parts[1] && !new RegExp(tHome.split(" ")[0] ?? "", "i").test(m.team1));
+        nextLive[t.id] = {
+          live: m.live,
+          finished: m.finished,
+          score1: swapped ? m.score2 : m.score1,
+          score2: swapped ? m.score1 : m.score2,
+          minute: m.minute,
+          team1Logo: swapped ? m.team2Logo : m.team1Logo,
+          team2Logo: swapped ? m.team1Logo : m.team2Logo,
+          swapped,
+        };
+      }
+      setLiveMap(nextLive);
+
+      setTickets((prev) => {
+        let changed = false;
+        const next = prev.map((t) => {
+          if (t.status === "green" || t.status === "red") return t;
           const m = findMatchForTicket(t, matches);
-          if (!m) continue;
-          const parts = t.event.split(/\s+(?:vs|x|×|-)\s+/i);
-          const tHome = parts[0] ?? "";
-          const swapped = !!(parts[1] && !new RegExp(tHome.split(" ")[0] ?? "", "i").test(m.team1));
-          nextLive[t.id] = {
-            live: m.live,
-            finished: m.finished,
-            score1: swapped ? m.score2 : m.score1,
-            score2: swapped ? m.score1 : m.score2,
-            minute: m.minute,
-            team1Logo: swapped ? m.team2Logo : m.team1Logo,
-            team2Logo: swapped ? m.team1Logo : m.team2Logo,
-            swapped,
-          };
-        }
-        if (!cancelled) setLiveMap(nextLive);
-
-        setTickets((prev) => {
-          let changed = false;
-          const next = prev.map((t) => {
-            if (t.status === "green" || t.status === "red") return t;
-            const m = findMatchForTicket(t, matches);
-            if (m) {
-              const graded = gradePalpite(t.palpite, m, t);
-              if (graded) {
-                changed = true;
-                return { ...t, status: graded };
-              }
-              if (m.live && t.status !== "ao_vivo") {
-                changed = true;
-                return { ...t, status: "ao_vivo" as TipStatus };
-              }
-              if (!m.live && !m.finished && t.status !== "aguardando") {
-                changed = true;
-                return { ...t, status: "aguardando" as TipStatus };
-              }
-              return t;
+          if (m) {
+            const graded = gradePalpite(t.palpite, m, t);
+            if (graded) {
+              changed = true;
+              return { ...t, status: graded };
             }
-            // sem match no feed: se tem startMs futuro, marca aguardando
-            if (t.startMs && t.startMs > Date.now() && t.status !== "aguardando") {
+            if (m.live && t.status !== "ao_vivo") {
+              changed = true;
+              return { ...t, status: "ao_vivo" as TipStatus };
+            }
+            if (!m.live && !m.finished && t.status !== "aguardando") {
               changed = true;
               return { ...t, status: "aguardando" as TipStatus };
             }
             return t;
-          });
-          return changed ? next : prev;
+          }
+          // sem match no feed: se startMs no futuro, marca aguardando
+          if (t.startMs && t.startMs > Date.now() && t.status !== "aguardando") {
+            changed = true;
+            return { ...t, status: "aguardando" as TipStatus };
+          }
+          return t;
         });
-      } catch {
-        // silencioso
-      }
+        return changed ? next : prev;
+      });
+      setLastCheckMs(Date.now());
+    } catch {
+      // silencioso
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  // Polling automático
+  useEffect(() => {
+    let cancelled = false;
+    const tick = () => {
+      if (!cancelled) void runCheck();
     };
-    check();
-    const id = setInterval(check, 60_000);
+    tick();
+    const id = setInterval(tick, 60_000);
     return () => {
       cancelled = true;
       clearInterval(id);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tickets.length]);
+
 
   const [tab, setTab] = useState<Tab>("todos");
   const [query, setQuery] = useState("");
@@ -242,24 +253,33 @@ function DicasPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold tracking-tight">Tickets de Tips</h2>
-          <p className={`text-xs ${muted} mt-0.5 flex items-center gap-2`}>
+          <p className={`text-xs ${muted} mt-0.5 flex items-center gap-2 flex-wrap`}>
             <span>{tickets.length} tickets no total</span>
             <span>·</span>
             <span className="inline-flex items-center gap-1 text-emerald-500">
               <Radio className="h-3 w-3" /> Tempo real ativo
             </span>
+            {lastCheckMs && (
+              <>
+                <span>·</span>
+                <span>Última busca {new Date(lastCheckMs).toLocaleTimeString("pt-BR")}</span>
+              </>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => void runCheck()}
+            disabled={refreshing}
             className={
-              "h-10 px-4 rounded-md border text-sm font-medium inline-flex items-center gap-2 transition-colors " +
+              "h-10 px-4 rounded-md border text-sm font-medium inline-flex items-center gap-2 transition-colors disabled:opacity-60 " +
               (isDark
                 ? "border-neutral-800 bg-neutral-900 text-neutral-200 hover:bg-neutral-800"
                 : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50")
             }
           >
-            <RefreshCw className="h-4 w-4" /> Atualizar
+            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Buscando..." : "Buscar resultados"}
           </button>
           <button
             onClick={() => setModalOpen(true)}
