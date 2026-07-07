@@ -107,15 +107,25 @@ type LiveState = {
   legs?: Record<number, LegLive>;
 };
 
+// Keys em inglês normalizado — normalizedText() traduz PT→EN antes do lookup.
 const FLAG_LOGOS: Record<string, string> = {
-  argentina: "🇦🇷",
-  egypt: "🇪🇬",
-  egito: "🇪🇬",
-  switzerland: "🇨🇭",
-  suica: "🇨🇭",
-  suíça: "🇨🇭",
-  colombia: "🇨🇴",
-  colômbia: "🇨🇴",
+  argentina: "🇦🇷", brazil: "🇧🇷", uruguay: "🇺🇾", paraguay: "🇵🇾", chile: "🇨🇱",
+  colombia: "🇨🇴", peru: "🇵🇪", ecuador: "🇪🇨", bolivia: "🇧🇴", venezuela: "🇻🇪",
+  usa: "🇺🇸", mexico: "🇲🇽", canada: "🇨🇦", costa: "🇨🇷", "costa rica": "🇨🇷",
+  panama: "🇵🇦", honduras: "🇭🇳", jamaica: "🇯🇲",
+  england: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", scotland: "🏴󠁧󠁢󠁳󠁣󠁴󠁿", wales: "🏴󠁧󠁢󠁷󠁬󠁳󠁿", ireland: "🇮🇪",
+  france: "🇫🇷", germany: "🇩🇪", spain: "🇪🇸", italy: "🇮🇹", portugal: "🇵🇹",
+  netherlands: "🇳🇱", belgium: "🇧🇪", switzerland: "🇨🇭", austria: "🇦🇹",
+  poland: "🇵🇱", denmark: "🇩🇰", sweden: "🇸🇪", norway: "🇳🇴", finland: "🇫🇮",
+  croatia: "🇭🇷", serbia: "🇷🇸", greece: "🇬🇷", turkey: "🇹🇷", russia: "🇷🇺",
+  ukraine: "🇺🇦", czech: "🇨🇿", "czech republic": "🇨🇿", slovakia: "🇸🇰",
+  hungary: "🇭🇺", romania: "🇷🇴", bulgaria: "🇧🇬", albania: "🇦🇱",
+  egypt: "🇪🇬", morocco: "🇲🇦", tunisia: "🇹🇳", algeria: "🇩🇿", senegal: "🇸🇳",
+  nigeria: "🇳🇬", ghana: "🇬🇭", cameroon: "🇨🇲", ivory: "🇨🇮", "ivory coast": "🇨🇮",
+  "south africa": "🇿🇦", kenya: "🇰🇪",
+  japan: "🇯🇵", "south korea": "🇰🇷", korea: "🇰🇷", china: "🇨🇳", australia: "🇦🇺",
+  "saudi arabia": "🇸🇦", qatar: "🇶🇦", iran: "🇮🇷", iraq: "🇮🇶", uae: "🇦🇪",
+  "united arab emirates": "🇦🇪", israel: "🇮🇱",
 };
 
 const LIVE_PALETTE = {
