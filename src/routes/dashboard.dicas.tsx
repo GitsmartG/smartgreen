@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { loadTickets, saveTickets, type Ticket, type TipStatus, type Parceiro as ParceiroT } from "@/lib/tickets-store";
 import { importBetTip, type BetTipsResult } from "@/lib/bet-tips";
 import { Loader2, AlertCircle } from "lucide-react";
 import {
