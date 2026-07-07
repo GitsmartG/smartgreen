@@ -1,6 +1,44 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
+// Fallback local: substitui termos comuns pra PT-BR quando a AI falha.
+const LOCAL_MAP: [RegExp, string][] = [
+  [/\bmatch\s+winner\b/gi, "Vencedor da Partida"],
+  [/\bboth\s+teams\s+to\s+score\b/gi, "Ambas Marcam"],
+  [/\bover\b/gi, "Mais de"],
+  [/\bunder\b/gi, "Menos de"],
+  [/\bhome\b/gi, "Casa"],
+  [/\baway\b/gi, "Fora"],
+  [/\bdraw\b/gi, "Empate"],
+  [/\bto\s+win\b/gi, "para vencer"],
+  [/\bwin\b/gi, "Vitória"],
+  [/\bfull\s*time\b/gi, "Tempo Integral"],
+  [/\bhalf\s*time\b/gi, "Primeiro Tempo"],
+];
+function localTranslate(s?: string): string | undefined {
+  if (!s) return s;
+  let out = s;
+  for (const [re, val] of LOCAL_MAP) out = out.replace(re, val);
+  return out;
+}
+function applyLocalFallback(
+  p: NonNullable<PredictionResult["prediction"]>,
+): NonNullable<PredictionResult["prediction"]> {
+  return {
+    choice: localTranslate(p.choice) ?? p.choice,
+    reasoning: p.reasoning, // reasoning é frase longa — sem AI, mantém original
+    prematch_odds: p.prematch_odds
+      ? {
+          ...p.prematch_odds,
+          market: localTranslate(p.prematch_odds.market) ?? p.prematch_odds.market,
+          modifier: p.prematch_odds.modifier,
+          selection: localTranslate(p.prematch_odds.selection) ?? p.prematch_odds.selection,
+        }
+      : undefined,
+  };
+}
+
+
 export type PredictionResult = {
   ok: boolean;
   error?: string;
