@@ -72,8 +72,9 @@ function leaguePriority(lg: NormalizedLeague): number {
   return COUNTRY_PRIORITY[country] ?? 100;
 }
 
-function normalizeKey(s: string): string {
-  return s
+function normalizeKey(s: unknown): string {
+  const str = typeof s === "string" ? s : s == null ? "" : typeof s === "number" || typeof s === "boolean" ? String(s) : "";
+  return str
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -82,7 +83,7 @@ function normalizeKey(s: string): string {
 }
 
 function matchKey(m: NormalizedMatch): string {
-  return `${normalizeKey(m.home.name)}::${normalizeKey(m.away.name)}`;
+  return `${normalizeKey(m.home?.name)}::${normalizeKey(m.away?.name)}`;
 }
 
 function mergeMatch(base: NormalizedMatch, live: NormalizedMatch): NormalizedMatch {
@@ -139,6 +140,18 @@ function mergeLivePayload(base: DailyMatchesPayload | undefined, live: DailyMatc
     leagues,
     totalMatches: leagues.reduce((sum, lg) => sum + (lg.matches?.length ?? 0), 0),
   };
+}
+
+function s(v: unknown, fb = ""): string {
+  if (v == null) return fb;
+  if (typeof v === "string") return v;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  return fb;
+}
+function sNum(v: unknown, fb = 0): number {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v))) return Number(v);
+  return fb;
 }
 
 function formatSpTime(date?: string, time?: string): string | undefined {
@@ -257,7 +270,7 @@ function JogosHojePage() {
         const pa = leaguePriority(a);
         const pb = leaguePriority(b);
         if (pa !== pb) return pa - pb;
-        return a.name.localeCompare(b.name);
+        return s(a.name, "").localeCompare(s(b.name, ""));
       });
   }, [state.data, query, filter]);
 
@@ -498,8 +511,8 @@ function LeagueSection({
             {countryLabel.slice(0, 3)}
           </span>
         )}
-        <h3 className="text-sm font-semibold flex-1 min-w-0 truncate">
-          {league.name}
+          <h3 className="text-sm font-semibold flex-1 min-w-0 truncate">
+          {s(league.name, "Liga")}
         </h3>
         <span className={`text-[11px] ${subtle}`}>
           {(league.matches?.length ?? 0)} {(league.matches?.length ?? 0) === 1 ? "jogo" : "jogos"}
@@ -607,7 +620,7 @@ function MatchRow({
 
   const statusLabel =
     status === "live"
-      ? match.status || "AO VIVO"
+      ? s(match.status, "AO VIVO") || "AO VIVO"
       : status === "finished"
         ? "ENCERRADO"
         : spTime ?? "AGENDADO";
@@ -645,12 +658,12 @@ function MatchRow({
             status === "finished" ? muted : ""
           }`}
         >
-          {match.home.name}
+          {s(match.home.name, "?")}
         </span>
         <TeamLogo
-          id={match.home.id}
-          logo={match.home.image}
-          name={match.home.name}
+          id={s(match.home.id) || undefined}
+          logo={s(match.home.image) || undefined}
+          name={s(match.home.name, "?")}
           isDark={isDark}
           dim={status === "finished"}
         />
@@ -661,16 +674,16 @@ function MatchRow({
           <span className={`text-xs font-semibold ${muted}`}>VS</span>
         ) : (
           <span className={`text-base font-bold tabular-nums ${scoreColor}`}>
-            {match.home.goals ?? 0}-{match.away.goals ?? 0}
+            {sNum(match.home.goals, 0)}-{sNum(match.away.goals, 0)}
           </span>
         )}
       </div>
 
       <div className="flex items-center gap-2 min-w-0">
         <TeamLogo
-          id={match.away.id}
-          logo={match.away.image}
-          name={match.away.name}
+          id={s(match.away.id) || undefined}
+          logo={s(match.away.image) || undefined}
+          name={s(match.away.name, "?")}
           isDark={isDark}
           dim={status === "finished"}
         />
@@ -679,7 +692,7 @@ function MatchRow({
             status === "finished" ? muted : ""
           }`}
         >
-          {match.away.name}
+          {s(match.away.name, "?")}
         </span>
       </div>
 
