@@ -469,7 +469,13 @@ function DicasPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filtered.flatMap((t) => {
             const legs = splitPalpites(t.palpite);
-            const isMult = t.type === "Múltipla" && legs.length > 1;
+            // Considera múltipla também quando o palpite tem múltiplas pernas,
+            // mesmo que o type não tenha sido marcado como "Múltipla" no parser.
+            const isMult =
+              legs.length > 1 &&
+              (t.type === "Múltipla" ||
+                (t.entradas ?? 0) > 1 ||
+                /múltipla|multipla/i.test(t.event));
             if (!isMult) {
               return [
                 <TicketCard
