@@ -634,6 +634,11 @@ function PredictionModal({
     let cancelled = false;
     setLoading(true);
     setResult(null);
+    if (!match.id) {
+      setResult({ ok: false, error: "Este jogo não tem ID no feed — sem previsão disponível." });
+      setLoading(false);
+      return;
+    }
     getMatchPrediction({ data: { matchId: match.id } })
       .then((r) => {
         if (!cancelled) {
