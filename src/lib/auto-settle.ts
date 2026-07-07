@@ -123,7 +123,8 @@ export function gradePalpite(
     .map((p) => p.trim())
     .filter(Boolean);
   const picks = parts.length ? parts : [palpite];
-  const graded = picks.map((p) => gradeSinglePalpite(p, match, ticket)).filter((v): v is TipStatus => v === "green" || v === "red");
-  if (!graded.length) return null;
+  const graded = picks.map((p) => gradeSinglePalpite(p, match, ticket));
+  if (graded.some((g) => g === "red")) return "red";
+  if (graded.every((g) => g === "green")) return "green";
   return graded.some((g) => g === "red") ? "red" : "green";
 }
