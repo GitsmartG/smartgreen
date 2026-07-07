@@ -15,6 +15,8 @@ export type Ticket = {
   entradas: number;
   parceiro?: Parceiro;
   url?: string;
+  createdAtMs?: number;
+  startMs?: number | null;
 };
 
 const STORAGE_KEY = "sg-tickets";
