@@ -813,7 +813,7 @@ Deno.serve(async (req) => {
 
     const result: BetTipsResult = {
       ok: true,
-      parceiro,
+      parceiro: feedParceiro,
       match: found.match,
       matchedBy: found.matchedBy,
       matchedValue: found.matchedValue,
@@ -821,7 +821,6 @@ Deno.serve(async (req) => {
       odd,
       titulo_sugerido: titulo,
       htmlOk,
-
     };
     return json(result);
   } catch (err) {
