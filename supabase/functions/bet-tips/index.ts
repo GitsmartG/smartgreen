@@ -786,10 +786,13 @@ Deno.serve(async (req) => {
       return json({
         ok: false,
         parceiro: effectiveParceiro,
-        error: `Aposta não encontrada nos feeds (SeuBet/H2Bet).`,
+        error:
+          "Bet_id não está mais ativo no parceiro (jogo já começou/terminou ou aposta foi liquidada). " +
+          "Cole a URL completa com o caminho /match/<esporte>/<região>/<comp>/<gameId> ou preencha manual.",
         triedIds: parsed.candidateIds,
       });
     }
+
 
     // Prefere market/odd que veio direto do feed (via event_id).
     // Se não veio, tenta scraping do HTML.
