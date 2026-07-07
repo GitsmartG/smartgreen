@@ -736,6 +736,29 @@ function splitPalpites(raw: string): string[] {
   return parts.length ? parts : [raw.trim()];
 }
 
+function tokensOf(s: string): string[] {
+  return normalizedText(s)
+    .split(" ")
+    .filter((t) => t.length >= 3 && !["multipla", "simples", "vitoria", "vencedor", "gols", "mais", "menos", "over", "under", "total", "empate", "casa", "fora"].includes(t));
+}
+
+function findMatchForLeg(legText: string, matches: LiveMatch[]): { match: LiveMatch; swapped: boolean } | null {
+  const tks = new Set(tokensOf(legText));
+  if (!tks.size) return null;
+  let best: { match: LiveMatch; score: number; swapped: boolean } | null = null;
+  for (const m of matches) {
+    const t1 = tokensOf(m.team1);
+    const t2 = tokensOf(m.team2);
+    const hit1 = t1.some((t) => tks.has(t));
+    const hit2 = t2.some((t) => tks.has(t));
+    // requer sinal de pelo menos um dos times; ideal os dois
+    if (!hit1 && !hit2) continue;
+    const score = (hit1 ? 2 : 0) + (hit2 ? 2 : 0);
+    if (!best || score > best.score) best = { match: m, score, swapped: false };
+  }
+  return best ? { match: best.match, swapped: best.swapped } : null;
+}
+
 function normalizedText(s: string): string {
   const base = s
     .toLowerCase()
