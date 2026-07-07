@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { loadTickets, saveTickets, type Ticket, type TipStatus, type Parceiro as ParceiroT } from "@/lib/tickets-store";
 import { importBetTip, type BetTipsResult } from "@/lib/bet-tips";
+import { getSoccerLivescores } from "@/lib/livescores.functions";
+import { findMatchForTicket, gradePalpite } from "@/lib/auto-settle";
 import { Loader2, AlertCircle } from "lucide-react";
 import {
   Search,
@@ -76,6 +78,42 @@ function DicasPage() {
   useEffect(() => {
     saveTickets(tickets);
   }, [tickets]);
+
+  // Auto-detect green/red para tickets ao vivo via Statpal
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      const lives = tickets.filter((t) => t.status === "ao_vivo" && (t.esporte || "").toLowerCase().includes("fute"));
+      if (!lives.length) return;
+      try {
+        const res = await getSoccerLivescores();
+        if (cancelled || !res.ok || !res.matches.length) return;
+        setTickets((prev) => {
+          let changed = false;
+          const next = prev.map((t) => {
+            if (t.status !== "ao_vivo") return t;
+            const m = findMatchForTicket(t, res.matches);
+            if (!m) return t;
+            const graded = gradePalpite(t.palpite, m, t);
+            if (!graded) return t;
+            changed = true;
+            return { ...t, status: graded };
+          });
+          return changed ? next : prev;
+        });
+      } catch {
+        // silencioso
+      }
+    };
+    check();
+    const id = setInterval(check, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tickets.length]);
+
   const [tab, setTab] = useState<Tab>("todos");
   const [query, setQuery] = useState("");
   const [esporte, setEsporte] = useState("todos");
