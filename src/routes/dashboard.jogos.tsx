@@ -845,20 +845,20 @@ function PredictionModal({
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
                       <div className={`text-[10px] uppercase ${muted}`}>Mercado</div>
-                      <div className={strong}>{result.prediction.prematch_odds.market ?? "—"}</div>
+                      <div className={strong}>{s(result.prediction.prematch_odds.market, "—")}</div>
                     </div>
                     <div>
                       <div className={`text-[10px] uppercase ${muted}`}>Modificador</div>
-                      <div className={strong}>{result.prediction.prematch_odds.modifier ?? "—"}</div>
+                      <div className={strong}>{s(result.prediction.prematch_odds.modifier, "—")}</div>
                     </div>
                     <div>
                       <div className={`text-[10px] uppercase ${muted}`}>Seleção</div>
-                      <div className={strong}>{result.prediction.prematch_odds.selection ?? "—"}</div>
+                      <div className={strong}>{s(result.prediction.prematch_odds.selection, "—")}</div>
                     </div>
                     <div>
                       <div className={`text-[10px] uppercase ${muted}`}>Odd</div>
                       <div className="text-emerald-500 font-bold tabular-nums">
-                        {result.prediction.prematch_odds.odd ?? "—"}
+                        {s(result.prediction.prematch_odds.odd, "—")}
                       </div>
                     </div>
                   </div>
