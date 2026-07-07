@@ -21,6 +21,7 @@ import {
 import { useIsDark } from "@/hooks/use-is-dark";
 
 type Parceiro = "seubet" | "h2bet";
+type Parceiro = ParceiroT;
 const PARCEIROS: { value: Parceiro; label: string; hint?: string }[] = [
   { value: "seubet", label: "SeuBet" },
   { value: "h2bet", label: "H2Bet" },
@@ -45,78 +46,6 @@ function getErrorMessage(value: unknown): string {
   }
 }
 
-type TipStatus = "ao_vivo" | "green" | "red";
-
-type Ticket = {
-  id: string;
-  status: TipStatus;
-  type: "Simples" | "Múltipla";
-  league: string;
-  event: string;
-  palpite: string;
-  odd: number;
-  banca: number;
-  esporte: string;
-  date: string;
-  entradas: number;
-  parceiro?: Parceiro;
-  url?: string;
-};
-
-const INITIAL_TICKETS: Ticket[] = [
-  {
-    id: "E461FBEF",
-    status: "ao_vivo",
-    type: "Simples",
-    league: "Mundial de Seleções",
-    event: "Mundial de Seleções",
-    palpite: "Mais de 1.5 gols/ +6.5 escanteios",
-    odd: 1.49,
-    banca: 10,
-    esporte: "Futebol",
-    date: "03 de jul. de 2026",
-    entradas: 1,
-  },
-  {
-    id: "AD49FA13",
-    status: "green",
-    type: "Simples",
-    league: "Mundial de Seleções",
-    event: "Mundial de Seleções",
-    palpite: "Mais de 1.5 Gols no jogo",
-    odd: 1.4,
-    banca: 10,
-    esporte: "Futebol",
-    date: "03 de jul. de 2026",
-    entradas: 1,
-  },
-  {
-    id: "370023B1",
-    status: "ao_vivo",
-    type: "Simples",
-    league: "TopLyga",
-    event: "TopLyga",
-    palpite: "Mais de 0.5 Gols no jogo",
-    odd: 1.36,
-    banca: 10,
-    esporte: "Futebol",
-    date: "03 de jul. de 2026",
-    entradas: 1,
-  },
-  {
-    id: "CFE5A811",
-    status: "red",
-    type: "Simples",
-    league: "Segunda Divisão - Over Gols",
-    event: "Cazaquistão",
-    palpite: "Mais de 4.5 gols",
-    odd: 1.35,
-    banca: 10,
-    esporte: "Futebol",
-    date: "03 de jul. de 2026",
-    entradas: 1,
-  },
-];
 
 export const Route = createFileRoute("/dashboard/dicas")({
   component: DicasPage,
