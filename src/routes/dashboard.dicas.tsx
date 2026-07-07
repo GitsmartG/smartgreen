@@ -57,6 +57,7 @@ export const Route = createFileRoute("/dashboard/dicas")({
 type Tab = "todos" | "aguardando" | "ao_vivo" | "green" | "red";
 
 type LiveState = {
+  status?: string;
   live: boolean;
   finished: boolean;
   score1: number | null;
@@ -116,25 +117,21 @@ function DicasPage() {
   const [lastCheckMs, setLastCheckMs] = useState<number | null>(null);
 
   const runCheck = async () => {
-    const relevant = tickets.filter(
-      (t) => (t.status === "ao_vivo" || t.status === "aguardando") &&
-        (t.esporte || "").toLowerCase().includes("fute"),
-    );
+    const relevant = tickets.filter((t) => (t.esporte || "").toLowerCase().includes("fute"));
     if (!relevant.length) return;
     setRefreshing(true);
     try {
       const res = await getSoccerLivescores();
       if (!res.ok) return;
-      const matches = res.matches;
+      const matches = Array.isArray(res.matches) ? res.matches : [];
 
       const nextLive: Record<string, LiveState> = {};
       for (const t of tickets) {
         const m = findMatchForTicket(t, matches);
         if (!m) continue;
-        const parts = t.event.split(/\s+(?:vs|x|×|-)\s+/i);
-        const tHome = parts[0] ?? "";
-        const swapped = !!(parts[1] && !new RegExp(tHome.split(" ")[0] ?? "", "i").test(m.team1));
+        const swapped = isSwappedMatch(t, m.team1, m.team2);
         nextLive[t.id] = {
+          status: m.status,
           live: m.live,
           finished: m.finished,
           score1: swapped ? m.score2 : m.score1,
@@ -150,26 +147,46 @@ function DicasPage() {
       setTickets((prev) => {
         let changed = false;
         const next = prev.map((t) => {
-          if (t.status === "green" || t.status === "red") return t;
+          if (!(t.esporte || "").toLowerCase().includes("fute")) return t;
           const m = findMatchForTicket(t, matches);
           if (m) {
+            const swapped = isSwappedMatch(t, m.team1, m.team2);
+            const score1 = swapped ? m.score2 : m.score1;
+            const score2 = swapped ? m.score1 : m.score2;
+            const team1Logo = swapped ? m.team2Logo : m.team1Logo;
+            const team2Logo = swapped ? m.team1Logo : m.team2Logo;
+            const patch: Partial<Ticket> = { resultCheckedAtMs: Date.now() };
+            if (t.score1 !== score1) patch.score1 = score1;
+            if (t.score2 !== score2) patch.score2 = score2;
+            if (team1Logo && t.team1Logo !== team1Logo) patch.team1Logo = team1Logo;
+            if (team2Logo && t.team2Logo !== team2Logo) patch.team2Logo = team2Logo;
+
+            if (t.status === "green" || t.status === "red") {
+              if (Object.keys(patch).length > 1) changed = true;
+              return Object.keys(patch).length > 1 ? { ...t, ...patch } : t;
+            }
             const graded = gradePalpite(t.palpite, m, t);
             if (graded) {
               changed = true;
-              return { ...t, status: graded };
+              return { ...t, ...patch, status: graded };
             }
             if (m.live && t.status !== "ao_vivo") {
               changed = true;
-              return { ...t, status: "ao_vivo" as TipStatus };
+              return { ...t, ...patch, status: "ao_vivo" as TipStatus };
+            }
+            if (m.finished && t.status === "ao_vivo") {
+              changed = true;
+              return { ...t, ...patch, status: "aguardando" as TipStatus };
             }
             if (!m.live && !m.finished && t.status !== "aguardando") {
               changed = true;
-              return { ...t, status: "aguardando" as TipStatus };
+              return { ...t, ...patch, status: "aguardando" as TipStatus };
             }
-            return t;
+            if (Object.keys(patch).length > 1) changed = true;
+            return Object.keys(patch).length > 1 ? { ...t, ...patch } : t;
           }
-          // sem match no feed: se startMs no futuro, marca aguardando
-          if (t.startMs && t.startMs > Date.now() && t.status !== "aguardando") {
+          // sem match no feed: corrige ticket preso em ao vivo quando o horário já passou muito.
+          if (t.startMs && (t.startMs > Date.now() || Date.now() - t.startMs > 3 * 60 * 60 * 1000) && t.status === "ao_vivo") {
             changed = true;
             return { ...t, status: "aguardando" as TipStatus };
           }
