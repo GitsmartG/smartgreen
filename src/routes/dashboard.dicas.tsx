@@ -299,15 +299,20 @@ function DicasPage() {
               changed = true;
               return { ...t, ...patch, status: graded };
             }
-            if (m.live && t.status !== "ao_vivo") {
+            const hasLiveLegOverall =
+              isMult && legResults
+                ? Object.values(legResults).some((leg) => leg.live && !leg.finished)
+                : false;
+            const someLive = m.live || hasLiveLegOverall;
+            if (someLive && t.status !== "ao_vivo") {
               changed = true;
               return { ...t, ...patch, status: "ao_vivo" as TipStatus };
             }
-            if (m.finished && t.status === "ao_vivo") {
+            if (!someLive && m.finished && t.status === "ao_vivo") {
               changed = true;
               return { ...t, ...patch, status: "aguardando" as TipStatus };
             }
-            if (!m.live && !m.finished && t.status !== "aguardando") {
+            if (!someLive && !m.live && !m.finished && t.status !== "aguardando") {
               changed = true;
               return { ...t, ...patch, status: "aguardando" as TipStatus };
             }
