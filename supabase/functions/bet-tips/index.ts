@@ -926,13 +926,15 @@ Deno.serve(async (req) => {
       }
     }
     if (!found) {
+      const msg = sharedEmptyOn
+        ? "Esse link de compartilhamento não tem mais os dados do jogo (aposta já aceita/liquidada — a casa retornou eventos vazios). Cola a URL completa da partida (com /match/<esporte>/<região>/<comp>/<gameId>) ou preenche manual."
+        : "Bet_id não está mais ativo no parceiro (jogo já começou/terminou ou aposta foi liquidada). Cole a URL completa com o caminho /match/<esporte>/<região>/<comp>/<gameId> ou preencha manual.";
       return json({
         ok: false,
         parceiro: effectiveParceiro,
-        error:
-          "Bet_id não está mais ativo no parceiro (jogo já começou/terminou ou aposta foi liquidada). " +
-          "Cole a URL completa com o caminho /match/<esporte>/<região>/<comp>/<gameId> ou preencha manual.",
+        error: msg,
         triedIds: parsed.candidateIds,
+        debug: sharedEmptyOn ? { sharedEmptyOn } : undefined,
       });
     }
 
