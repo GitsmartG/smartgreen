@@ -789,16 +789,44 @@ function NovoTicketModal({
     }
   };
 
+  const initialStatusForStart = (startMs?: number | null): TipStatus =>
+    startMs && startMs <= Date.now() ? "ao_vivo" : "aguardando";
+
   const submit = () => {
     if (mode === "auto") {
+      if (feedResult && !feedResult.ok && feedResult.sharedMeta) {
+        if (!event.trim() || !palpite.trim() || !odd) return;
+        onCreate({
+          id: String(feedResult.sharedMeta.betId || crypto.randomUUID()).slice(-8).toUpperCase(),
+          status: "aguardando",
+          type: "Simples",
+          league: league || event,
+          event,
+          palpite,
+          odd: Number(odd) || feedResult.sharedMeta.odd || 1,
+          banca: Number(banca) || 10,
+          esporte,
+          date: new Date().toLocaleDateString("pt-BR", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          }),
+          entradas: 1,
+          parceiro: feedResult.parceiro,
+          url: url || undefined,
+          createdAtMs: Date.now(),
+          startMs: null,
+        });
+        return;
+      }
       if (!feedResult || !feedResult.ok || !selected) {
         void buscarNoFeed();
         return;
       }
       onCreate({
         id: String(selected.betId).slice(-8).toUpperCase(),
-        status: "ao_vivo",
-        type: "Simples",
+        status: initialStatusForStart(selected.startMs),
+        type: selected.event.toLowerCase().startsWith("múltipla") ? "Múltipla" : "Simples",
         league: selected.competition,
         event: selected.event,
         palpite: palpite.trim() || "Palpite do parceiro",
@@ -816,7 +844,9 @@ function NovoTicketModal({
               month: "short",
               year: "numeric",
             }),
-        entradas: 1,
+        entradas: selected.event.toLowerCase().startsWith("múltipla")
+          ? splitPalpites(palpite.trim() || "Palpite do parceiro").length
+          : 1,
         parceiro: feedResult.parceiro,
         url: url || undefined,
         createdAtMs: Date.now(),
