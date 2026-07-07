@@ -14,7 +14,7 @@ function normalize(s: string): string {
 function tokens(s: string): string[] {
   return normalize(s)
     .split(" ")
-    .filter((t) => t.length >= 3);
+    .filter((t) => t.length >= 3 && !["multipla", "simples", "time", "mais", "menos", "total", "jogo"].includes(t));
 }
 
 function nameMatch(a: string, b: string): boolean {
@@ -35,6 +35,12 @@ export function findMatchForTicket(t: Ticket, matches: LiveMatch[]): LiveMatch |
     const swap = nameMatch(m.team1, t2) && nameMatch(m.team2, t1);
     if (direct || swap) return m;
   }
+
+  const haystack = `${t.event} ${t.league} ${t.palpite}`;
+  const partial = matches.filter((m) => nameMatch(m.team1, haystack) || nameMatch(m.team2, haystack));
+  if (partial.length === 1) return partial[0];
+  const finished = partial.filter((m) => m.finished);
+  if (finished.length === 1) return finished[0];
   return null;
 }
 
