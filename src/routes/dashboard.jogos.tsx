@@ -72,8 +72,9 @@ function leaguePriority(lg: NormalizedLeague): number {
   return COUNTRY_PRIORITY[country] ?? 100;
 }
 
-function normalizeKey(s: string): string {
-  return s
+function normalizeKey(s: unknown): string {
+  const str = typeof s === "string" ? s : s == null ? "" : typeof s === "number" || typeof s === "boolean" ? String(s) : "";
+  return str
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -82,7 +83,7 @@ function normalizeKey(s: string): string {
 }
 
 function matchKey(m: NormalizedMatch): string {
-  return `${normalizeKey(m.home.name)}::${normalizeKey(m.away.name)}`;
+  return `${normalizeKey(m.home?.name)}::${normalizeKey(m.away?.name)}`;
 }
 
 function mergeMatch(base: NormalizedMatch, live: NormalizedMatch): NormalizedMatch {
