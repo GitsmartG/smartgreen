@@ -1253,19 +1253,27 @@ function payloadToLiveMatches(payload?: MatchLogoPayload): LiveMatch[] {
   );
 }
 
+function safeStr(v: unknown): string | undefined {
+  if (v == null) return undefined;
+  if (typeof v === "string") return v;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  return undefined;
+}
+
 function normalizedMatchToLiveMatch(match: MatchLogoSource): LiveMatch {
+  const status = safeStr(match.status) ?? "";
   return {
     id: match.id,
-    status: match.status,
-    team1: match.home.name,
-    team2: match.away.name,
-    team1Logo: match.home.image,
-    team2Logo: match.away.image,
-    team1Id: match.home.id,
-    team2Id: match.away.id,
-    score1: match.home.goals,
-    score2: match.away.goals,
-    minute: match.live ? match.status : undefined,
+    status,
+    team1: safeStr(match.home?.name) ?? "",
+    team2: safeStr(match.away?.name) ?? "",
+    team1Logo: safeStr(match.home?.image),
+    team2Logo: safeStr(match.away?.image),
+    team1Id: match.home?.id,
+    team2Id: match.away?.id,
+    score1: match.home?.goals,
+    score2: match.away?.goals,
+    minute: match.live ? status : undefined,
     live: match.live,
     finished: match.finished,
   };
