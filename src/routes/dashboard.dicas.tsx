@@ -6,6 +6,7 @@ import { getSoccerLivescores, type LiveMatch } from "@/lib/livescores.functions"
 import { findMatchForTicket, gradePalpite, gradeSinglePalpite } from "@/lib/auto-settle";
 import { getMatchRichData, type RichMatchResponse } from "@/lib/soccer-details.functions";
 import { getCachedRich, setCachedRich } from "@/lib/rich-cache";
+import { getCachedLogo, setCachedLogo, markLogoBroken } from "@/lib/logo-cache";
 import { Loader2, AlertCircle, Activity, ShieldAlert, Zap, PieChart } from "lucide-react";
 
 import {
