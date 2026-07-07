@@ -467,46 +467,20 @@ function DicasPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {filtered.flatMap((t) => {
-            const legs = splitPalpites(t.palpite);
-            // Considera múltipla também quando o palpite tem múltiplas pernas,
-            // mesmo que o type não tenha sido marcado como "Múltipla" no parser.
-            const isMult =
-              legs.length > 1 &&
-              (t.type === "Múltipla" ||
-                (t.entradas ?? 0) > 1 ||
-                /múltipla|multipla/i.test(t.event));
-            if (!isMult) {
-              return [
-                <TicketCard
-                  key={t.id}
-                  ticket={t}
-                  live={liveMap[t.id]}
-                  isDark={isDark}
-                  subtle={subtle}
-                  muted={muted}
-                  onOpen={() => setDetailsId(t.id)}
-                />,
-              ];
-            }
-            return legs.map((legText, i) => (
-              <LegCard
-                key={`${t.id}-${i}`}
-                ticket={t}
-                legIndex={i}
-                legText={legText}
-                legTotal={legs.length}
-                legLive={liveMap[t.id]?.legs?.[i]}
-                legStatus={t.legStatuses?.[i] ?? liveMap[t.id]?.legs?.[i]?.status ?? "aguardando"}
-                isDark={isDark}
-                subtle={subtle}
-                muted={muted}
-                onOpen={() => setDetailsId(t.id)}
-              />
-            ));
-          })}
+          {filtered.map((t) => (
+            <TicketCard
+              key={t.id}
+              ticket={t}
+              live={liveMap[t.id]}
+              isDark={isDark}
+              subtle={subtle}
+              muted={muted}
+              onOpen={() => setDetailsId(t.id)}
+            />
+          ))}
         </div>
       )}
+
 
 
       {modalOpen && (
@@ -601,7 +575,10 @@ function TicketCard({
         : null;
 
   const palpites = splitPalpites(ticket.palpite);
-  const isMultipla = ticket.type === "Múltipla";
+  const isMultipla =
+    ticket.type === "Múltipla" ||
+    (ticket.entradas ?? 0) > 1 ||
+    /múltipla|multipla/i.test(ticket.event);
   const parts = ticket.event.split(/\s+(?:vs|x|×|-)\s+/i);
   const team1 = (parts[0] ?? ticket.event).trim();
   const team2 = (parts[1] ?? "").trim();
@@ -615,6 +592,21 @@ function TicketCard({
     (live?.team2Logo ?? ticket.team2Logo) ||
     (live?.team2Id ? `/api/public/team-image/${live.team2Id}?type=team` : undefined);
   const showScore = score1 != null || score2 != null;
+
+  // Para múltipla: extrai os jogos do event ("Múltipla: A x B + C x D")
+  const multiGames: { team1: string; team2: string }[] = isMultipla
+    ? ticket.event
+        .replace(/^\s*(m[uú]ltipla\s*[:\-]?\s*)/i, "")
+        .split(/\s*\+\s*/)
+        .map((seg) => {
+          const p = seg.split(/\s+(?:vs|x|×)\s+/i);
+          return {
+            team1: (p[0] ?? seg).trim(),
+            team2: (p[1] ?? "").trim(),
+          };
+        })
+        .filter((g) => g.team1 && g.team2)
+    : [];
 
   return (
     <button
@@ -699,6 +691,70 @@ function TicketCard({
           </div>
         </div>
       )}
+
+      {/* Múltipla: sub-cards por jogo dentro do mesmo ticket */}
+      {isMultipla && multiGames.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <div className={`text-[10px] uppercase tracking-wider ${subtle}`}>
+            Jogos ({multiGames.length})
+          </div>
+          <div className="grid grid-cols-1 gap-2">
+            {multiGames.map((g, i) => {
+              const legInfo = live?.legs?.[i];
+              const gLogo1 =
+                legInfo?.team1Logo ||
+                (legInfo?.team1Id
+                  ? `/api/public/team-image/${legInfo.team1Id}?type=team`
+                  : undefined);
+              const gLogo2 =
+                legInfo?.team2Logo ||
+                (legInfo?.team2Id
+                  ? `/api/public/team-image/${legInfo.team2Id}?type=team`
+                  : undefined);
+              const gLive = legInfo?.live && !legInfo?.finished;
+              const gScore =
+                legInfo?.score1 != null || legInfo?.score2 != null;
+              return (
+                <div
+                  key={i}
+                  className={`rounded-lg border ${inner} px-3 py-2 flex items-center justify-between gap-2`}
+                >
+                  <TeamBadge
+                    name={legInfo?.team1 || g.team1}
+                    logo={gLogo1}
+                    isDark={isDark}
+                    align="left"
+                  />
+                  <div className="flex flex-col items-center min-w-[52px]">
+                    {gScore ? (
+                      <div className="text-sm font-bold leading-none tabular-nums text-emerald-500">
+                        {legInfo?.score1 ?? 0}
+                        <span className={`mx-1 ${muted}`}>-</span>
+                        {legInfo?.score2 ?? 0}
+                      </div>
+                    ) : (
+                      <div className={`text-[10px] font-semibold ${muted}`}>VS</div>
+                    )}
+                    {gLive && (
+                      <div className="mt-0.5 inline-flex items-center gap-1 text-[9px] font-semibold text-amber-500">
+                        <span className="h-1 w-1 rounded-full bg-amber-500 animate-pulse" />
+                        {legInfo?.minute ? `${legInfo.minute}'` : "AO VIVO"}
+                      </div>
+                    )}
+                  </div>
+                  <TeamBadge
+                    name={legInfo?.team2 || g.team2}
+                    logo={gLogo2}
+                    isDark={isDark}
+                    align="right"
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
 
       {/* Palpites (lista) com status por perna */}
       <div className={`rounded-xl border ${inner} p-3`}>
