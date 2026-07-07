@@ -638,7 +638,7 @@ function TicketCard({
                 : "border-neutral-200 text-neutral-600 bg-neutral-100")
             }
           >
-            {ticket.type}
+            {isMultipla ? "Múltipla" : ticket.type}
           </span>
           {parceiroTag && (
             <span
