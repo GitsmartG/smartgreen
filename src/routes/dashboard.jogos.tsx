@@ -53,7 +53,13 @@ function JogosHojePage() {
         });
         return { ...lg, matches };
       })
-      .filter((lg) => lg.matches.length > 0);
+      .filter((lg) => lg.matches.length > 0)
+      .sort((a, b) => {
+        const pa = leaguePriority(a);
+        const pb = leaguePriority(b);
+        if (pa !== pb) return pa - pb;
+        return a.name.localeCompare(b.name);
+      });
   }, [state.data, query, filter]);
 
   const totalCount = state.data?.payload?.totalMatches ?? 0;
