@@ -292,8 +292,8 @@ async function fetchSharedBetData(
   parceiro: Parceiro,
   rawUrl: string,
   betId?: string,
-): Promise<BetTipsResult | null> {
-  if (!betId || !/^\d+$/.test(betId)) return null;
+): Promise<{ result: BetTipsResult | null; emptyEvents: boolean }> {
+  if (!betId || !/^\d+$/.test(betId)) return { result: null, emptyEvents: false };
   const origin = makePartnerOrigin(rawUrl, parceiro);
   const endpoint = `${origin}/pt/get-sharing-data?bet_id=${encodeURIComponent(betId)}`;
   try {
@@ -303,14 +303,16 @@ async function fetchSharedBetData(
         Referer: rawUrl,
       },
     });
-    if (!res.ok) return null;
+    if (!res.ok) return { result: null, emptyEvents: false };
     const payload = await res.json().catch(() => null);
     const data = payload?.data as SharedBetData | undefined;
-    if (!data || typeof data !== "object") return null;
-    return sharedBetToResult(parceiro, data);
+    if (!data || typeof data !== "object") return { result: null, emptyEvents: false };
+    const events = Array.isArray(data.events) ? data.events : [];
+    if (events.length === 0) return { result: null, emptyEvents: true };
+    return { result: sharedBetToResult(parceiro, data), emptyEvents: false };
   } catch (err) {
     console.warn("get-sharing-data falhou:", err);
-    return null;
+    return { result: null, emptyEvents: false };
   }
 }
 
@@ -845,9 +847,11 @@ Deno.serve(async (req) => {
     // Links compartilhados da H2Bet/SeuBet usam bet_id de "booking". Esse ID
     // não é um selection_id do Swarm/FeedOdds; a própria casa expõe os dados em
     // /pt/get-sharing-data. Tenta isso antes do lookup por evento.
+    let sharedEmptyOn: Parceiro | null = null;
     for (const p of tryOrder) {
       const shared = await fetchSharedBetData(p, url, parsed.betId);
-      if (shared) return json(shared);
+      if (shared.result) return json(shared.result);
+      if (shared.emptyEvents && !sharedEmptyOn) sharedEmptyOn = p;
     }
 
     let swarmSelection: SwarmSelection | null = null;
@@ -922,13 +926,15 @@ Deno.serve(async (req) => {
       }
     }
     if (!found) {
+      const msg = sharedEmptyOn
+        ? "Esse link de compartilhamento não tem mais os dados do jogo (aposta já aceita/liquidada — a casa retornou eventos vazios). Cola a URL completa da partida (com /match/<esporte>/<região>/<comp>/<gameId>) ou preenche manual."
+        : "Bet_id não está mais ativo no parceiro (jogo já começou/terminou ou aposta foi liquidada). Cole a URL completa com o caminho /match/<esporte>/<região>/<comp>/<gameId> ou preencha manual.";
       return json({
         ok: false,
         parceiro: effectiveParceiro,
-        error:
-          "Bet_id não está mais ativo no parceiro (jogo já começou/terminou ou aposta foi liquidada). " +
-          "Cole a URL completa com o caminho /match/<esporte>/<região>/<comp>/<gameId> ou preencha manual.",
+        error: msg,
         triedIds: parsed.candidateIds,
+        debug: sharedEmptyOn ? { sharedEmptyOn } : undefined,
       });
     }
 
