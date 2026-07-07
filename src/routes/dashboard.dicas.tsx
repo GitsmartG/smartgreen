@@ -107,15 +107,25 @@ type LiveState = {
   legs?: Record<number, LegLive>;
 };
 
+// Keys em inglês normalizado — normalizedText() traduz PT→EN antes do lookup.
 const FLAG_LOGOS: Record<string, string> = {
-  argentina: "🇦🇷",
-  egypt: "🇪🇬",
-  egito: "🇪🇬",
-  switzerland: "🇨🇭",
-  suica: "🇨🇭",
-  suíça: "🇨🇭",
-  colombia: "🇨🇴",
-  colômbia: "🇨🇴",
+  argentina: "🇦🇷", brazil: "🇧🇷", uruguay: "🇺🇾", paraguay: "🇵🇾", chile: "🇨🇱",
+  colombia: "🇨🇴", peru: "🇵🇪", ecuador: "🇪🇨", bolivia: "🇧🇴", venezuela: "🇻🇪",
+  usa: "🇺🇸", mexico: "🇲🇽", canada: "🇨🇦", costa: "🇨🇷", "costa rica": "🇨🇷",
+  panama: "🇵🇦", honduras: "🇭🇳", jamaica: "🇯🇲",
+  england: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", scotland: "🏴󠁧󠁢󠁳󠁣󠁴󠁿", wales: "🏴󠁧󠁢󠁷󠁬󠁳󠁿", ireland: "🇮🇪",
+  france: "🇫🇷", germany: "🇩🇪", spain: "🇪🇸", italy: "🇮🇹", portugal: "🇵🇹",
+  netherlands: "🇳🇱", belgium: "🇧🇪", switzerland: "🇨🇭", austria: "🇦🇹",
+  poland: "🇵🇱", denmark: "🇩🇰", sweden: "🇸🇪", norway: "🇳🇴", finland: "🇫🇮",
+  croatia: "🇭🇷", serbia: "🇷🇸", greece: "🇬🇷", turkey: "🇹🇷", russia: "🇷🇺",
+  ukraine: "🇺🇦", czech: "🇨🇿", "czech republic": "🇨🇿", slovakia: "🇸🇰",
+  hungary: "🇭🇺", romania: "🇷🇴", bulgaria: "🇧🇬", albania: "🇦🇱",
+  egypt: "🇪🇬", morocco: "🇲🇦", tunisia: "🇹🇳", algeria: "🇩🇿", senegal: "🇸🇳",
+  nigeria: "🇳🇬", ghana: "🇬🇭", cameroon: "🇨🇲", ivory: "🇨🇮", "ivory coast": "🇨🇮",
+  "south africa": "🇿🇦", kenya: "🇰🇪",
+  japan: "🇯🇵", "south korea": "🇰🇷", korea: "🇰🇷", china: "🇨🇳", australia: "🇦🇺",
+  "saudi arabia": "🇸🇦", qatar: "🇶🇦", iran: "🇮🇷", iraq: "🇮🇶", uae: "🇦🇪",
+  "united arab emirates": "🇦🇪", israel: "🇮🇱",
 };
 
 const LIVE_PALETTE = {
@@ -1253,8 +1263,52 @@ function normalizedText(input: unknown): string {
     .replace(/\bespanha\b/g, "spain")
     .replace(/\bfranca\b/g, "france")
     .replace(/\binglaterra\b/g, "england")
+    .replace(/\bescocia\b/g, "scotland")
+    .replace(/\bpais de gales\b|\bgales\b/g, "wales")
+    .replace(/\birlanda\b/g, "ireland")
     .replace(/\bitalia\b/g, "italy")
-    .replace(/\bholanda\b|\bpaises baixos\b/g, "netherlands");
+    .replace(/\bholanda\b|\bpaises baixos\b/g, "netherlands")
+    .replace(/\bsuica\b/g, "switzerland")
+    .replace(/\baustria\b/g, "austria")
+    .replace(/\bpolonia\b/g, "poland")
+    .replace(/\bdinamarca\b/g, "denmark")
+    .replace(/\bsuecia\b/g, "sweden")
+    .replace(/\bnoruega\b/g, "norway")
+    .replace(/\bfinlandia\b/g, "finland")
+    .replace(/\bcroacia\b/g, "croatia")
+    .replace(/\bservia\b|\bservia\b/g, "serbia")
+    .replace(/\bgrecia\b/g, "greece")
+    .replace(/\bturquia\b/g, "turkey")
+    .replace(/\brussia\b/g, "russia")
+    .replace(/\bucrania\b/g, "ukraine")
+    .replace(/\brepublica tcheca\b|\btcheca\b/g, "czech")
+    .replace(/\beslovaquia\b/g, "slovakia")
+    .replace(/\bhungria\b/g, "hungary")
+    .replace(/\bromenia\b/g, "romania")
+    .replace(/\bbulgaria\b/g, "bulgaria")
+    .replace(/\bmarrocos\b/g, "morocco")
+    .replace(/\btunisia\b/g, "tunisia")
+    .replace(/\bargelia\b/g, "algeria")
+    .replace(/\bnigeria\b/g, "nigeria")
+    .replace(/\bcamaroes\b/g, "cameroon")
+    .replace(/\bcosta do marfim\b/g, "ivory coast")
+    .replace(/\bafrica do sul\b/g, "south africa")
+    .replace(/\bjapao\b/g, "japan")
+    .replace(/\bcoreia do sul\b|\bcoreia\b/g, "south korea")
+    .replace(/\bchina\b/g, "china")
+    .replace(/\baustralia\b/g, "australia")
+    .replace(/\barabia saudita\b/g, "saudi arabia")
+    .replace(/\bcatar\b/g, "qatar")
+    .replace(/\bira\b/g, "iran")
+    .replace(/\biraque\b/g, "iraq")
+    .replace(/\bemirados arabes\b|\bemirados\b/g, "uae")
+    .replace(/\bmexico\b/g, "mexico")
+    .replace(/\buruguai\b/g, "uruguay")
+    .replace(/\bparaguai\b/g, "paraguay")
+    .replace(/\bchile\b/g, "chile")
+    .replace(/\bcolombia\b/g, "colombia")
+    .replace(/\bequador\b/g, "ecuador")
+    .replace(/\bbrasil\b/g, "brazil");
 }
 
 function isSwappedMatch(ticket: Ticket, feedHome: string, feedAway: string): boolean {
