@@ -30,23 +30,40 @@ export const getMatchPrediction = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<PredictionResult> => {
     const key = process.env.STATPAL_API_KEY;
     if (!key) return { ok: false, error: "STATPAL_API_KEY não configurada" };
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12_000);
     try {
       const url = `https://statpal.io/api/v2/soccer/predictions?access_key=${encodeURIComponent(
         key,
       )}&match_id=${encodeURIComponent(data.matchId)}`;
-      const res = await fetch(url, { headers: { Accept: "application/json" } });
+      const res = await fetch(url, {
+        headers: { Accept: "application/json" },
+        signal: controller.signal,
+      });
       if (!res.ok) {
         return { ok: false, error: `HTTP ${res.status}` };
       }
-      const json = (await res.json()) as PredictionResult;
+      const json = (await res.json()) as PredictionResult & { error?: unknown };
       if (!json || typeof json !== "object") {
         return { ok: false, error: "Resposta inválida" };
+      }
+      if (json.error) {
+        const msg =
+          typeof json.error === "string"
+            ? json.error
+            : (json.error as { message?: string })?.message ?? "Sem previsão disponível";
+        return { ok: false, error: msg };
       }
       if (!json.prediction && !json.meta) {
         return { ok: false, error: "Sem previsão disponível para essa partida" };
       }
       return { ok: true, meta: json.meta, prediction: json.prediction };
     } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") {
+        return { ok: false, error: "Tempo esgotado ao consultar previsão" };
+      }
       return { ok: false, error: e instanceof Error ? e.message : "Erro ao consultar previsão" };
+    } finally {
+      clearTimeout(timer);
     }
   });

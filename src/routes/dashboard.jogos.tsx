@@ -563,34 +563,40 @@ function MatchRow({
       </div>
 
       <div className="flex items-center justify-center gap-1">
-        <button
-          type="button"
-          onClick={() => onPredict(match)}
-          title="Ver previsão do modelo"
-          aria-label="Ver previsão"
-          className={
-            "h-8 w-8 flex items-center justify-center rounded-md border transition-colors " +
-            (isDark
-              ? "border-neutral-800 bg-neutral-900 text-emerald-500 hover:bg-neutral-800"
-              : "border-neutral-200 bg-white text-emerald-600 hover:bg-neutral-50")
-          }
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onLineups(match)}
-          title="Ver escalação"
-          aria-label="Ver escalação"
-          className={
-            "h-8 w-8 flex items-center justify-center rounded-md border transition-colors " +
-            (isDark
-              ? "border-neutral-800 bg-neutral-900 text-sky-400 hover:bg-neutral-800"
-              : "border-neutral-200 bg-white text-sky-600 hover:bg-neutral-50")
-          }
-        >
-          <Users className="h-3.5 w-3.5" />
-        </button>
+        {status !== "finished" ? (
+          <>
+            <button
+              type="button"
+              onClick={() => onPredict(match)}
+              title="Ver previsão do modelo"
+              aria-label="Ver previsão"
+              className={
+                "h-8 w-8 flex items-center justify-center rounded-md border transition-colors " +
+                (isDark
+                  ? "border-neutral-800 bg-neutral-900 text-emerald-500 hover:bg-neutral-800"
+                  : "border-neutral-200 bg-white text-emerald-600 hover:bg-neutral-50")
+              }
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onLineups(match)}
+              title="Ver escalação"
+              aria-label="Ver escalação"
+              className={
+                "h-8 w-8 flex items-center justify-center rounded-md border transition-colors " +
+                (isDark
+                  ? "border-neutral-800 bg-neutral-900 text-sky-400 hover:bg-neutral-800"
+                  : "border-neutral-200 bg-white text-sky-600 hover:bg-neutral-50")
+              }
+            >
+              <Users className="h-3.5 w-3.5" />
+            </button>
+          </>
+        ) : (
+          <span className={`text-[10px] ${muted}`}>—</span>
+        )}
       </div>
     </div>
   );
@@ -686,7 +692,7 @@ function PredictionModal({
           {!loading && result && !result.ok && (
             <div className="rounded-md border border-red-500/30 bg-red-500/10 text-red-500 text-sm p-3 flex items-start gap-2">
               <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-              <span>{result.error || "Sem previsão disponível."}</span>
+              <span>{typeof result.error === "string" && result.error ? result.error : "Sem previsão disponível."}</span>
             </div>
           )}
 
@@ -875,7 +881,7 @@ function LineupsModal({
           {!loading && result && !result.ok && (
             <div className="rounded-md border border-red-500/30 bg-red-500/10 text-red-500 text-sm p-3 flex items-start gap-2">
               <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-              <span>{result.error || "Sem escalação disponível."}</span>
+              <span>{typeof result.error === "string" && result.error ? result.error : "Sem escalação disponível."}</span>
             </div>
           )}
 
