@@ -154,6 +154,16 @@ export async function readCachedDaily(date?: string): Promise<{
     .eq("match_date", d)
     .maybeSingle();
   if (error || !data) return null;
+  const payload = data.payload as DailyMatchesPayload;
+  // Invalida cache antigo que ainda não tem logo/id dos times
+  const first = payload?.leagues?.[0]?.matches?.[0];
+  if (first && !first.home?.image && !first.home?.id) return null;
+  return {
+    date: String(data.match_date),
+    payload,
+    fetchedAt: String(data.fetched_at),
+  };
+  if (error || !data) return null;
   return {
     date: String(data.match_date),
     payload: data.payload as DailyMatchesPayload,
