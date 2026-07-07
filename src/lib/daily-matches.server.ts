@@ -66,9 +66,18 @@ export function normalizeStatpalLive(raw: unknown): DailyMatchesPayload {
         id: String(m.main_id ?? m.fallback_id_1 ?? crypto.randomUUID()),
         status,
         time: typeof m.time === "string" ? m.time : undefined,
+        date: typeof m.date === "string" ? m.date : undefined,
         venue: typeof m.venue === "string" ? m.venue : undefined,
-        home: { name: String(home.name ?? "?"), goals: toNum(home.goals) },
-        away: { name: String(away.name ?? "?"), goals: toNum(away.goals) },
+        home: {
+          name: String(home.name ?? "?"),
+          goals: toNum(home.goals),
+          id: home.id != null ? String(home.id) : undefined,
+        },
+        away: {
+          name: String(away.name ?? "?"),
+          goals: toNum(away.goals),
+          id: away.id != null ? String(away.id) : undefined,
+        },
         finished: isFinished(status),
         live: isLive(status),
       };
