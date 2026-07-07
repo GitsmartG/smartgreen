@@ -158,15 +158,15 @@ function JogosHojePage() {
 
   const totalCount = state.data?.payload?.totalMatches ?? 0;
   const liveCount =
-    state.data?.payload?.leagues.reduce(
-      (sum, lg) => sum + lg.matches.filter((m) => m.live).length,
+    (state.data?.payload?.leagues ?? []).reduce(
+      (sum, lg) => sum + (lg.matches ?? []).filter((m) => m.live).length,
       0,
-    ) ?? 0;
+    );
   const finishedCount =
-    state.data?.payload?.leagues.reduce(
-      (sum, lg) => sum + lg.matches.filter((m) => m.finished).length,
+    (state.data?.payload?.leagues ?? []).reduce(
+      (sum, lg) => sum + (lg.matches ?? []).filter((m) => m.finished).length,
       0,
-    ) ?? 0;
+    );
 
   const updatedTime = state.data?.fetchedAt
     ? new Date(state.data.fetchedAt).toLocaleTimeString("pt-BR", {
