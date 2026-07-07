@@ -791,7 +791,7 @@ function PredictionModal({
               </span>
             </div>
             <h3 className={`text-base font-semibold truncate ${strong}`}>
-              {match.home.name} <span className={muted}>vs</span> {match.away.name}
+              {s(match.home.name, "?")} <span className={muted}>vs</span> {s(match.away.name, "?")}
             </h3>
             <p className={`text-[11px] mt-0.5 ${muted}`}>ID {match.id}</p>
           </div>
