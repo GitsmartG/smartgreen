@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
 
-type Parceiro = "seubet" | "h2bet";
 type Parceiro = ParceiroT;
 const PARCEIROS: { value: Parceiro; label: string; hint?: string }[] = [
   { value: "seubet", label: "SeuBet" },
