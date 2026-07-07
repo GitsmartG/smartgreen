@@ -536,6 +536,8 @@ function NovoTicketModal({
         entradas: 1,
         parceiro: feedResult.parceiro,
         url: url || undefined,
+        createdAtMs: Date.now(),
+        startMs: selected.startMs ?? null,
       });
     } else {
       if (!event.trim() || !palpite.trim() || !odd) return;
