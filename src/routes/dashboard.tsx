@@ -9,6 +9,7 @@ import {
   LogOut,
   Sun,
   Moon,
+  CalendarDays,
 } from "lucide-react";
 
 const LOGO_URL =
