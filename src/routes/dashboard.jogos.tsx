@@ -1,6 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { RefreshCw, AlertCircle, Search, Sparkles, X, Loader2 } from "lucide-react";
+import {
+  RefreshCw,
+  AlertCircle,
+  Search,
+  Sparkles,
+  X,
+  Loader2,
+  Radio,
+  Calendar,
+  Clock,
+} from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
 import { getTodayMatches, type DailyMatchesResult } from "@/lib/daily-matches.functions";
 import type { NormalizedLeague, NormalizedMatch } from "@/lib/daily-matches.server";
@@ -12,8 +22,6 @@ export const Route = createFileRoute("/dashboard/jogos")({
 
 type FilterKey = "todos" | "ao_vivo" | "encerrados" | "agendados";
 
-// Ordem de prioridade das ligas / países mais importantes.
-// Menor número = mais no topo.
 const LEAGUE_PRIORITY: { test: RegExp; rank: number }[] = [
   { test: /(uefa\s+)?champions\s+league|liga\s+dos\s+campeoes/i, rank: 0 },
   { test: /copa\s+libertadores|libertadores/i, rank: 1 },
@@ -55,8 +63,40 @@ function leaguePriority(lg: NormalizedLeague): number {
   return COUNTRY_PRIORITY[country] ?? 100;
 }
 
+function formatSpTime(date?: string, time?: string): string | undefined {
+  if (!time) return undefined;
+  const t = time.match(/^(\d{1,2}):(\d{2})/);
+  if (!t) return time;
+  const hh = t[1].padStart(2, "0");
+  const mm = t[2];
+  const d =
+    date && /^\d{4}[-.]\d{2}[-.]\d{2}$/.test(date)
+      ? date.replace(/\./g, "-")
+      : new Date().toISOString().slice(0, 10);
+  const iso = `${d}T${hh}:${mm}:00Z`;
+  const dt = new Date(iso);
+  if (Number.isNaN(dt.getTime())) return time;
+  return new Intl.DateTimeFormat("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Sao_Paulo",
+  }).format(dt);
+}
+
 function JogosHojePage() {
   const isDark = useIsDark();
+
+  const panel = isDark
+    ? "bg-neutral-900 border-neutral-800"
+    : "bg-white border-neutral-200";
+  const muted = isDark ? "text-neutral-400" : "text-neutral-500";
+  const subtle = isDark ? "text-neutral-500" : "text-neutral-500";
+  const inputCls =
+    "h-10 w-full rounded-md border pl-9 pr-3 text-sm outline-none transition-colors " +
+    (isDark
+      ? "bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600 focus:border-emerald-600"
+      : "bg-white border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:border-emerald-700");
+
   const [state, setState] = useState<{
     loading: boolean;
     data: DailyMatchesResult | null;
@@ -123,247 +163,252 @@ function JogosHojePage() {
     ? new Date(state.data.fetchedAt).toLocaleTimeString("pt-BR", {
         hour: "2-digit",
         minute: "2-digit",
-        second: "2-digit",
         timeZone: "America/Sao_Paulo",
       })
-    : "--:--:--";
-
-  // paleta terminal
-  const surface = isDark ? "bg-[#0a0a0c]" : "bg-white";
-  const textMain = isDark ? "text-slate-300" : "text-slate-700";
-  const textStrong = isDark ? "text-white" : "text-slate-900";
-  const textMuted = isDark ? "text-slate-500" : "text-slate-500";
-  const textFaint = isDark ? "text-slate-600" : "text-slate-400";
-  const chipBg = isDark ? "bg-white/5 border-white/10" : "bg-slate-100 border-slate-200";
-  const inputBg = isDark
-    ? "bg-white/5 border-white/10 text-slate-200 placeholder:text-slate-600 focus:border-emerald-500/50 focus:ring-emerald-500/40"
-    : "bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:ring-emerald-500/30";
-  const filterInactive = isDark
-    ? "text-slate-400 hover:text-white"
-    : "text-slate-500 hover:text-slate-900";
+    : "--:--";
 
   return (
-    <div className={`${surface} ${textMain} font-['Inter'] -m-4 md:-m-6 p-4 md:p-6 min-h-full`}>
-      <div className="max-w-5xl mx-auto space-y-6">
-        {/* Terminal Header */}
-        <header className="flex flex-col gap-6">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                </span>
-                <span className="text-[10px] font-bold tracking-widest uppercase text-emerald-500">
-                  Terminal Live Feed
-                </span>
-              </div>
-              <h1 className={`text-3xl font-bold tracking-tight ${textStrong}`}>Jogos de Hoje</h1>
-              <p className={`${textMuted} text-sm mt-1`}>
-                Atualizado em{" "}
-                <span className="font-['JetBrains_Mono']">{updatedTime}</span>
-                {state.data?.cached ? (
-                  <span className={`ml-2 text-[10px] uppercase tracking-widest ${textFaint}`}>
-                    · cache
-                  </span>
-                ) : state.data ? (
-                  <span className="ml-2 text-[10px] uppercase tracking-widest text-emerald-500">
-                    · live
-                  </span>
-                ) : null}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className={`flex border rounded-lg p-1 ${chipBg}`}>
-                <div className={`px-3 py-1.5 rounded-md ${isDark ? "bg-white/10" : "bg-slate-200"}`}>
-                  <span className={`text-[10px] block uppercase font-bold ${textMuted}`}>Total</span>
-                  <span className={`font-['JetBrains_Mono'] text-sm ${textStrong}`}>{totalCount}</span>
-                </div>
-                <div className="px-3 py-1.5">
-                  <span className={`text-[10px] block uppercase font-bold ${textMuted}`}>Live</span>
-                  <span className="font-['JetBrains_Mono'] text-sm text-amber-500">{liveCount}</span>
-                </div>
-                <div className="px-3 py-1.5">
-                  <span className={`text-[10px] block uppercase font-bold ${textMuted}`}>Fim</span>
-                  <span className={`font-['JetBrains_Mono'] text-sm ${textFaint}`}>{finishedCount}</span>
-                </div>
-              </div>
-              <button
-                onClick={() => void load()}
-                disabled={state.loading}
-                aria-label="Recarregar"
-                className="h-12 w-12 flex items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/20 transition-all disabled:opacity-50"
-              >
-                <RefreshCw className={`w-5 h-5 ${state.loading ? "animate-spin" : ""}`} />
-              </button>
-            </div>
-          </div>
-
-          {/* Filters Bar */}
-          <div className="flex flex-col md:flex-row gap-3">
-            <div className="relative flex-1 group">
-              <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${textMuted} group-focus-within:text-emerald-500 transition-colors`} />
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar por liga, time ou país..."
-                className={`w-full border rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-1 transition-all ${inputBg}`}
-              />
-            </div>
-            <div className={`flex gap-1 border p-1 rounded-xl ${chipBg}`}>
-              {(
-                [
-                  { key: "todos", label: "Todos" },
-                  { key: "ao_vivo", label: "Ao Vivo" },
-                  { key: "encerrados", label: "Encerrados" },
-                  { key: "agendados", label: "Agendados" },
-                ] as const
-              ).map((f) => (
-                <button
-                  key={f.key}
-                  onClick={() => setFilter(f.key)}
-                  className={
-                    "px-4 py-1.5 text-xs font-semibold rounded-lg transition-colors " +
-                    (filter === f.key
-                      ? "bg-emerald-500 text-black"
-                      : filterInactive)
-                  }
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </header>
-
-        {/* States */}
-        {state.loading && (
-          <div className={`rounded-xl border p-12 text-center ${chipBg} ${textMuted}`}>
-            <span className="font-['JetBrains_Mono'] text-xs uppercase tracking-widest">
-              Carregando feed do dia...
+    <div className="space-y-4">
+      {/* Topo */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight">Jogos de Hoje</h2>
+          <p className={`text-xs ${muted} mt-0.5 flex items-center gap-2 flex-wrap`}>
+            <span>{totalCount} jogos no total</span>
+            <span>·</span>
+            <span className="inline-flex items-center gap-1 text-emerald-500">
+              <Radio className="h-3 w-3" /> Feed ao vivo
             </span>
-          </div>
-        )}
-
-        {!state.loading && state.data && !state.data.ok && (
-          <div className="rounded-xl border border-red-500/30 bg-red-500/10 text-red-500 text-sm p-4 flex items-start gap-2">
-            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-            <span>{typeof state.data.error === "string" ? state.data.error : "Erro ao carregar."}</span>
-          </div>
-        )}
-
-        {!state.loading && state.data?.ok && filteredLeagues.length === 0 && (
-          <div className={`rounded-xl border p-12 text-center ${chipBg} ${textMuted}`}>
-            Nenhuma partida encontrada com esses filtros.
-          </div>
-        )}
-
-        {/* Match Feed */}
-        {!state.loading && filteredLeagues.length > 0 && (
-          <div className="space-y-8">
-            {filteredLeagues.map((lg) => (
-              <LeagueSection key={lg.id || lg.name} league={lg} isDark={isDark} onPredict={setPredictionMatch} />
-            ))}
-          </div>
-        )}
-
-        {predictionMatch && (
-          <PredictionModal match={predictionMatch} isDark={isDark} onClose={() => setPredictionMatch(null)} />
-        )}
-
-        {/* Footer legend */}
-        <footer className={`pt-6 flex items-center justify-between text-[10px] uppercase font-bold tracking-widest border-t ${isDark ? "border-white/5 text-slate-600" : "border-slate-200 text-slate-400"} flex-wrap gap-3`}>
-          <div className="flex gap-6 flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Ao Vivo
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-sky-500" /> Agendado (Brasília)
-            </div>
-            <div className="flex items-center gap-2">
-              <div className={`w-1.5 h-1.5 rounded-full ${isDark ? "bg-white/20" : "bg-slate-300"}`} /> Encerrado
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            Sync auto 00:01 UTC · <span className="text-emerald-500">Operacional</span>
-          </div>
-        </footer>
+            <span>·</span>
+            <span>Atualizado {updatedTime}</span>
+            {state.data?.cached ? (
+              <span className={subtle}>(cache)</span>
+            ) : null}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => void load()}
+            disabled={state.loading}
+            className={
+              "h-10 px-4 rounded-md border text-sm font-medium inline-flex items-center gap-2 transition-colors disabled:opacity-60 " +
+              (isDark
+                ? "border-neutral-800 bg-neutral-900 text-neutral-200 hover:bg-neutral-800"
+                : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50")
+            }
+          >
+            <RefreshCw className={`h-4 w-4 ${state.loading ? "animate-spin" : ""}`} />
+            {state.loading ? "Atualizando..." : "Atualizar"}
+          </button>
+        </div>
       </div>
+
+      {/* Tabs de status */}
+      <div className="flex flex-wrap gap-2">
+        <StatusTab
+          active={filter === "ao_vivo"}
+          onClick={() => setFilter(filter === "ao_vivo" ? "todos" : "ao_vivo")}
+          color="amber"
+          isDark={isDark}
+        >
+          <Radio className="h-3.5 w-3.5" /> Ao Vivo ({liveCount})
+        </StatusTab>
+        <StatusTab
+          active={filter === "agendados"}
+          onClick={() => setFilter(filter === "agendados" ? "todos" : "agendados")}
+          color="sky"
+          isDark={isDark}
+        >
+          <Calendar className="h-3.5 w-3.5" /> Agendados
+        </StatusTab>
+        <StatusTab
+          active={filter === "encerrados"}
+          onClick={() => setFilter(filter === "encerrados" ? "todos" : "encerrados")}
+          color="neutral"
+          isDark={isDark}
+        >
+          <Clock className="h-3.5 w-3.5" /> Encerrados ({finishedCount})
+        </StatusTab>
+      </div>
+
+      {/* Filtro de busca */}
+      <div className={`rounded-xl border p-4 ${panel}`}>
+        <div className="relative">
+          <Search
+            className={
+              "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 " +
+              (isDark ? "text-neutral-500" : "text-neutral-400")
+            }
+          />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por liga, time ou país..."
+            className={inputCls}
+          />
+        </div>
+      </div>
+
+      {/* Estados */}
+      {state.loading && (
+        <div className={`rounded-xl border p-12 text-center ${panel} ${muted}`}>
+          Carregando jogos do dia...
+        </div>
+      )}
+
+      {!state.loading && state.data && !state.data.ok && (
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 text-red-500 text-sm p-4 flex items-start gap-2">
+          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+          <span>
+            {typeof state.data.error === "string" ? state.data.error : "Erro ao carregar."}
+          </span>
+        </div>
+      )}
+
+      {!state.loading && state.data?.ok && filteredLeagues.length === 0 && (
+        <div className={`rounded-xl border p-12 text-center ${panel} ${muted}`}>
+          Nenhuma partida encontrada com esses filtros.
+        </div>
+      )}
+
+      {/* Lista */}
+      {!state.loading && filteredLeagues.length > 0 && (
+        <div className="space-y-4">
+          {filteredLeagues.map((lg) => (
+            <LeagueSection
+              key={lg.id || lg.name}
+              league={lg}
+              isDark={isDark}
+              onPredict={setPredictionMatch}
+              panel={panel}
+              muted={muted}
+              subtle={subtle}
+            />
+          ))}
+        </div>
+      )}
+
+      {predictionMatch && (
+        <PredictionModal
+          match={predictionMatch}
+          isDark={isDark}
+          onClose={() => setPredictionMatch(null)}
+        />
+      )}
     </div>
   );
 }
 
-function LeagueSection({ league, isDark, onPredict }: { league: NormalizedLeague; isDark: boolean; onPredict: (m: NormalizedMatch) => void }) {
-  const headerBg = isDark ? "bg-[#0a0a0c]/85" : "bg-white/85";
-  const textStrong = isDark ? "text-white" : "text-slate-900";
-  const textMuted = isDark ? "text-slate-500" : "text-slate-500";
-  const borderCol = isDark ? "border-white/10" : "border-slate-200";
-  const gradientLine = isDark
-    ? "bg-gradient-to-r from-white/10 to-transparent"
-    : "bg-gradient-to-r from-slate-300 to-transparent";
+function StatusTab({
+  active,
+  onClick,
+  color,
+  isDark,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  color: "amber" | "sky" | "neutral";
+  isDark: boolean;
+  children: React.ReactNode;
+}) {
+  const colorMap = {
+    amber: "text-amber-500 border-amber-500/40 bg-amber-500/10",
+    sky: "text-sky-500 border-sky-500/40 bg-sky-500/10",
+    neutral: isDark
+      ? "text-neutral-300 border-neutral-700 bg-neutral-800/40"
+      : "text-neutral-700 border-neutral-300 bg-neutral-100",
+  } as const;
+  const inactive = isDark
+    ? "text-neutral-400 border-neutral-800 bg-neutral-900 hover:bg-neutral-800"
+    : "text-neutral-600 border-neutral-200 bg-white hover:bg-neutral-50";
+  return (
+    <button
+      onClick={onClick}
+      className={
+        "h-9 px-3 rounded-md border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors " +
+        (active ? colorMap[color] : inactive)
+      }
+    >
+      {children}
+    </button>
+  );
+}
+
+function LeagueSection({
+  league,
+  isDark,
+  onPredict,
+  panel,
+  muted,
+  subtle,
+}: {
+  league: NormalizedLeague;
+  isDark: boolean;
+  onPredict: (m: NormalizedMatch) => void;
+  panel: string;
+  muted: string;
+  subtle: string;
+}) {
+  const divider = isDark ? "divide-neutral-800" : "divide-neutral-200";
   const countryLabel = league.country ? league.country.toUpperCase() : "";
 
   return (
-    <section className="space-y-2">
-      <div className={`flex items-center gap-3 px-2 py-1 sticky top-0 backdrop-blur-md z-10 ${headerBg}`}>
-        <CountryChip code={countryLabel} isDark={isDark} />
-        <h2 className={`text-sm font-bold tracking-wide uppercase ${textMuted}`}>
-          {countryLabel && <span className="mr-1">{countryLabel}</span>}
-          <span className={textStrong}>{league.name}</span>
-        </h2>
-        <div className={`flex-1 h-px ${gradientLine}`} />
-        <span className={`text-[10px] font-['JetBrains_Mono'] ${textMuted}`}>
+    <section className={`rounded-xl border ${panel} overflow-hidden`}>
+      <header
+        className={
+          "flex items-center gap-3 px-4 py-2.5 border-b " +
+          (isDark ? "border-neutral-800 bg-neutral-950/40" : "border-neutral-200 bg-neutral-50")
+        }
+      >
+        {countryLabel && (
+          <span
+            className={
+              "text-[10px] font-bold tracking-wider px-1.5 py-0.5 rounded border " +
+              (isDark
+                ? "border-neutral-800 text-neutral-400 bg-neutral-900"
+                : "border-neutral-300 text-neutral-500 bg-white")
+            }
+          >
+            {countryLabel.slice(0, 3)}
+          </span>
+        )}
+        <h3 className="text-sm font-semibold flex-1 min-w-0 truncate">
+          {league.name}
+        </h3>
+        <span className={`text-[11px] ${subtle}`}>
           {league.matches.length} {league.matches.length === 1 ? "jogo" : "jogos"}
         </span>
-      </div>
+      </header>
 
-      <div className={`space-y-px rounded-xl overflow-hidden border ${borderCol}`}>
+      <div className={`divide-y ${divider}`}>
         {league.matches.map((m) => (
-          <MatchRow key={m.id} match={m} isDark={isDark} onPredict={onPredict} />
+          <MatchRow
+            key={m.id}
+            match={m}
+            isDark={isDark}
+            onPredict={onPredict}
+            muted={muted}
+          />
         ))}
       </div>
     </section>
   );
 }
 
-function CountryChip({ code, isDark }: { code: string; isDark: boolean }) {
-  const short = code.slice(0, 3) || "?";
-  return (
-    <div
-      className={
-        "w-8 h-5 rounded-sm border flex items-center justify-center text-[8px] font-bold tracking-wider " +
-        (isDark
-          ? "bg-white/5 border-white/10 text-slate-400"
-          : "bg-slate-100 border-slate-200 text-slate-500")
-      }
-    >
-      {short}
-    </div>
-  );
-}
-
-function formatSpTime(date?: string, time?: string): string | undefined {
-  if (!time) return undefined;
-  const t = time.match(/^(\d{1,2}):(\d{2})/);
-  if (!t) return time;
-  const hh = t[1].padStart(2, "0");
-  const mm = t[2];
-  const d = date && /^\d{4}[-.]\d{2}[-.]\d{2}$/.test(date)
-    ? date.replace(/\./g, "-")
-    : new Date().toISOString().slice(0, 10);
-  const iso = `${d}T${hh}:${mm}:00Z`;
-  const dt = new Date(iso);
-  if (Number.isNaN(dt.getTime())) return time;
-  return new Intl.DateTimeFormat("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "America/Sao_Paulo",
-  }).format(dt);
-}
-
-function TeamLogo({ id, logo, name, isDark, dim }: { id?: string; logo?: string; name: string; isDark: boolean; dim?: boolean }) {
+function TeamLogo({
+  id,
+  logo,
+  name,
+  isDark,
+  dim,
+}: {
+  id?: string;
+  logo?: string;
+  name: string;
+  isDark: boolean;
+  dim?: boolean;
+}) {
   const [broken, setBroken] = useState(false);
   const src = logo || (id ? `/api/public/team-image/${id}?type=team` : null);
   const dimCls = dim ? "opacity-60" : "";
@@ -374,23 +419,24 @@ function TeamLogo({ id, logo, name, isDark, dim }: { id?: string; logo?: string;
         alt={name}
         loading="lazy"
         onError={() => setBroken(true)}
-        className={`h-7 w-7 object-contain shrink-0 ${dimCls}`}
+        className={`h-6 w-6 object-contain shrink-0 ${dimCls}`}
       />
     );
   }
-  const initials = name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? "")
-    .join("") || "?";
+  const initials =
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase() ?? "")
+      .join("") || "?";
   return (
     <div
       className={
-        `h-7 w-7 rounded-full border flex items-center justify-center text-[9px] font-bold shrink-0 ${dimCls} ` +
+        `h-6 w-6 rounded-full border flex items-center justify-center text-[9px] font-bold shrink-0 ${dimCls} ` +
         (isDark
-          ? "bg-white/5 border-white/10 text-slate-300"
-          : "bg-slate-100 border-slate-200 text-slate-600")
+          ? "bg-neutral-800 border-neutral-700 text-neutral-300"
+          : "bg-neutral-100 border-neutral-200 text-neutral-600")
       }
     >
       {initials}
@@ -398,73 +444,61 @@ function TeamLogo({ id, logo, name, isDark, dim }: { id?: string; logo?: string;
   );
 }
 
-function MatchRow({ match, isDark, onPredict }: { match: NormalizedMatch; isDark: boolean; onPredict: (m: NormalizedMatch) => void }) {
+function MatchRow({
+  match,
+  isDark,
+  onPredict,
+  muted,
+}: {
+  match: NormalizedMatch;
+  isDark: boolean;
+  onPredict: (m: NormalizedMatch) => void;
+  muted: string;
+}) {
   const spTime = formatSpTime(match.date, match.time);
-  const status = match.live
-    ? "live"
-    : match.finished
-      ? "finished"
-      : "scheduled";
+  const status = match.live ? "live" : match.finished ? "finished" : "scheduled";
 
-  const borderLeft =
-    status === "live"
-      ? "border-l-2 border-amber-500"
-      : status === "scheduled"
-        ? "border-l-2 border-sky-500/50"
-        : isDark
-          ? "border-l-2 border-white/10"
-          : "border-l-2 border-slate-200";
-
-  const rowBg = isDark
-    ? "bg-white/[0.02] hover:bg-white/[0.05]"
-    : "bg-slate-50 hover:bg-slate-100";
-  const rowText = isDark ? "text-white" : "text-slate-900";
-  const rowTextDim = isDark ? "text-slate-300" : "text-slate-700";
-  const rowTextMuted = isDark ? "text-slate-500" : "text-slate-500";
-  const scoreCell = isDark ? "bg-white/5" : "bg-slate-100";
+  const rowHover = isDark ? "hover:bg-neutral-800/40" : "hover:bg-neutral-50";
+  const scoreBg = isDark ? "bg-neutral-950/60 border-neutral-800" : "bg-neutral-50 border-neutral-200";
 
   const statusLabel =
     status === "live"
-      ? `${match.status || "AO VIVO"}`
+      ? match.status || "AO VIVO"
       : status === "finished"
         ? "ENCERRADO"
         : spTime ?? "AGENDADO";
 
   const statusClass =
     status === "live"
-      ? "text-amber-500 animate-pulse"
+      ? "text-amber-500"
       : status === "scheduled"
-        ? "text-sky-400"
-        : rowTextMuted;
+        ? "text-sky-500"
+        : muted;
 
   const scoreColor =
     status === "live"
       ? "text-emerald-500"
       : status === "finished"
-        ? rowText
-        : rowTextMuted;
+        ? ""
+        : muted;
 
   return (
     <div
-      className={`group grid grid-cols-[88px_1fr_72px_1fr_44px] items-center transition-colors ${rowBg} ${borderLeft}`}
+      className={`grid grid-cols-[80px_1fr_64px_1fr_44px] items-center gap-2 px-3 py-2.5 transition-colors ${rowHover}`}
     >
-      <div className="py-4 px-4 flex flex-col items-start">
-        <span
-          className={`text-[10px] font-bold font-['JetBrains_Mono'] uppercase tracking-tight ${statusClass}`}
-        >
+      <div className="flex flex-col">
+        <span className={`text-[10px] font-bold uppercase tracking-wider ${statusClass}`}>
           {statusLabel}
         </span>
         {status === "scheduled" && spTime && (
-          <span className={`text-[8px] mt-0.5 uppercase tracking-widest ${rowTextMuted}`}>
-            Brasília
-          </span>
+          <span className={`text-[9px] mt-0.5 ${muted}`}>Brasília</span>
         )}
       </div>
 
-      <div className="flex items-center justify-end gap-3 pr-4 min-w-0">
+      <div className="flex items-center justify-end gap-2 min-w-0">
         <span
-          className={`text-sm font-semibold truncate text-right ${
-            status === "finished" ? rowTextDim : rowText
+          className={`text-sm font-medium truncate text-right ${
+            status === "finished" ? muted : ""
           }`}
         >
           {match.home.name}
@@ -478,17 +512,17 @@ function MatchRow({ match, isDark, onPredict }: { match: NormalizedMatch; isDark
         />
       </div>
 
-      <div className={`h-full flex items-center justify-center ${scoreCell}`}>
+      <div className={`h-9 rounded-md border flex items-center justify-center ${scoreBg}`}>
         {status === "scheduled" ? (
-          <span className={`font-['JetBrains_Mono'] text-sm font-bold ${rowTextMuted}`}>VS</span>
+          <span className={`text-xs font-semibold ${muted}`}>VS</span>
         ) : (
-          <span className={`font-['JetBrains_Mono'] text-lg font-bold tracking-widest ${scoreColor}`}>
-            {(match.home.goals ?? 0)}-{(match.away.goals ?? 0)}
+          <span className={`text-base font-bold tabular-nums ${scoreColor}`}>
+            {match.home.goals ?? 0}-{match.away.goals ?? 0}
           </span>
         )}
       </div>
 
-      <div className="flex items-center gap-3 pl-4 min-w-0">
+      <div className="flex items-center gap-2 min-w-0">
         <TeamLogo
           id={match.away.id}
           logo={match.away.image}
@@ -497,21 +531,26 @@ function MatchRow({ match, isDark, onPredict }: { match: NormalizedMatch; isDark
           dim={status === "finished"}
         />
         <span
-          className={`text-sm font-semibold truncate ${
-            status === "finished" ? rowTextDim : rowText
+          className={`text-sm font-medium truncate ${
+            status === "finished" ? muted : ""
           }`}
         >
           {match.away.name}
         </span>
       </div>
 
-      <div className="flex items-center justify-center pr-2">
+      <div className="flex items-center justify-center">
         <button
           type="button"
           onClick={() => onPredict(match)}
           title="Ver previsão do modelo"
           aria-label="Ver previsão"
-          className="h-8 w-8 flex items-center justify-center rounded-lg bg-fuchsia-500/10 border border-fuchsia-500/30 text-fuchsia-400 hover:bg-fuchsia-500/20 transition-colors"
+          className={
+            "h-8 w-8 flex items-center justify-center rounded-md border transition-colors " +
+            (isDark
+              ? "border-neutral-800 bg-neutral-900 text-emerald-500 hover:bg-neutral-800"
+              : "border-neutral-200 bg-white text-emerald-600 hover:bg-neutral-50")
+          }
         >
           <Sparkles className="h-3.5 w-3.5" />
         </button>
@@ -555,48 +594,51 @@ function PredictionModal({
   }, [match.id]);
 
   const panel = isDark
-    ? "bg-[#0a0a0c] border-white/10 text-slate-200"
-    : "bg-white border-slate-200 text-slate-800";
-  const muted = isDark ? "text-slate-500" : "text-slate-500";
-  const strong = isDark ? "text-white" : "text-slate-900";
-  const chip = isDark ? "bg-white/5 border-white/10" : "bg-slate-100 border-slate-200";
+    ? "bg-neutral-900 border-neutral-800 text-neutral-200"
+    : "bg-white border-neutral-200 text-neutral-800";
+  const muted = isDark ? "text-neutral-400" : "text-neutral-500";
+  const strong = isDark ? "text-neutral-100" : "text-neutral-900";
+  const inner = isDark ? "bg-neutral-950/60 border-neutral-800" : "bg-neutral-50 border-neutral-200";
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className={`w-full max-w-lg rounded-2xl border shadow-2xl ${panel}`}
+        className={`w-full max-w-lg rounded-xl border shadow-xl ${panel}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between p-5 border-b border-white/5">
+        <div className="flex items-start justify-between p-5 border-b border-neutral-800/30">
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="h-3.5 w-3.5 text-fuchsia-400" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-400">
+              <Sparkles className="h-3.5 w-3.5 text-emerald-500" />
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">
                 Previsão do Modelo
               </span>
             </div>
-            <h3 className={`text-base font-bold truncate ${strong}`}>
+            <h3 className={`text-base font-semibold truncate ${strong}`}>
               {match.home.name} <span className={muted}>vs</span> {match.away.name}
             </h3>
-            <p className={`text-[11px] font-['JetBrains_Mono'] mt-0.5 ${muted}`}>
-              ID {match.id}
-            </p>
+            <p className={`text-[11px] mt-0.5 ${muted}`}>ID {match.id}</p>
           </div>
           <button
             onClick={onClose}
             aria-label="Fechar"
-            className={`h-8 w-8 flex items-center justify-center rounded-lg border ${chip} hover:opacity-80`}
+            className={
+              "h-8 w-8 flex items-center justify-center rounded-md border transition-colors " +
+              (isDark
+                ? "border-neutral-800 bg-neutral-900 hover:bg-neutral-800"
+                : "border-neutral-200 bg-white hover:bg-neutral-50")
+            }
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+        <div className="p-5 space-y-3 max-h-[70vh] overflow-y-auto">
           {loading && (
             <div className={`flex items-center gap-2 text-sm ${muted}`}>
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -605,7 +647,7 @@ function PredictionModal({
           )}
 
           {!loading && result && !result.ok && (
-            <div className="rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 text-sm p-4 flex items-start gap-2">
+            <div className="rounded-md border border-red-500/30 bg-red-500/10 text-red-500 text-sm p-3 flex items-start gap-2">
               <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
               <span>{result.error || "Sem previsão disponível."}</span>
             </div>
@@ -614,17 +656,19 @@ function PredictionModal({
           {!loading && result?.ok && (
             <>
               {result.prediction?.choice && (
-                <div className={`rounded-xl border p-4 ${chip}`}>
-                  <div className={`text-[10px] uppercase font-bold tracking-widest ${muted} mb-1`}>
+                <div className={`rounded-md border p-3 ${inner}`}>
+                  <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1`}>
                     Escolha do modelo
                   </div>
-                  <div className={`text-lg font-bold ${strong}`}>{result.prediction.choice}</div>
+                  <div className={`text-base font-semibold ${strong}`}>
+                    {result.prediction.choice}
+                  </div>
                 </div>
               )}
 
               {result.prediction?.prematch_odds && (
-                <div className={`rounded-xl border p-4 ${chip}`}>
-                  <div className={`text-[10px] uppercase font-bold tracking-widest ${muted} mb-2`}>
+                <div className={`rounded-md border p-3 ${inner}`}>
+                  <div className={`text-[10px] uppercase tracking-wider ${muted} mb-2`}>
                     Odds pré-jogo
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-sm">
@@ -642,7 +686,7 @@ function PredictionModal({
                     </div>
                     <div>
                       <div className={`text-[10px] uppercase ${muted}`}>Odd</div>
-                      <div className="font-['JetBrains_Mono'] text-emerald-400 font-bold">
+                      <div className="text-emerald-500 font-bold tabular-nums">
                         {result.prediction.prematch_odds.odd ?? "—"}
                       </div>
                     </div>
@@ -651,19 +695,19 @@ function PredictionModal({
               )}
 
               {result.prediction?.reasoning && (
-                <div className={`rounded-xl border p-4 ${chip}`}>
-                  <div className={`text-[10px] uppercase font-bold tracking-widest ${muted} mb-2`}>
+                <div className={`rounded-md border p-3 ${inner}`}>
+                  <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1.5`}>
                     Justificativa
                   </div>
-                  <p className={`text-sm leading-relaxed ${isDark ? "text-slate-300" : "text-slate-700"}`}>
+                  <p className={`text-sm leading-relaxed ${isDark ? "text-neutral-300" : "text-neutral-700"}`}>
                     {result.prediction.reasoning}
                   </p>
                 </div>
               )}
 
               {result.meta && (
-                <div className={`rounded-xl border p-4 ${chip}`}>
-                  <div className={`text-[10px] uppercase font-bold tracking-widest ${muted} mb-2`}>
+                <div className={`rounded-md border p-3 ${inner}`}>
+                  <div className={`text-[10px] uppercase tracking-wider ${muted} mb-2`}>
                     Metadados
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
