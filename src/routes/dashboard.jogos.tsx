@@ -982,11 +982,11 @@ function LineupsModal({
               <Users className="h-3.5 w-3.5 text-sky-500" />
               <span className="text-[10px] font-bold uppercase tracking-wider text-sky-500">
                 Escalação
-                {result?.status ? ` · ${result.status}` : ""}
+                {s(result?.status) ? ` · ${s(result?.status)}` : ""}
               </span>
             </div>
             <h3 className={`text-base font-semibold truncate ${strong}`}>
-              {match.home.name} <span className={muted}>vs</span> {match.away.name}
+              {s(match.home.name, "?")} <span className={muted}>vs</span> {s(match.away.name, "?")}
             </h3>
             <p className={`text-[11px] mt-0.5 ${muted}`}>ID {match.id}</p>
           </div>
