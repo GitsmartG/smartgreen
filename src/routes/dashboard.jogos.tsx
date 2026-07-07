@@ -97,7 +97,7 @@ function mergeMatch(base: NormalizedMatch, live: NormalizedMatch): NormalizedMat
 
 function mergeLivePayload(base: DailyMatchesPayload | undefined, live: DailyMatchesPayload): DailyMatchesPayload {
   if (!base) return live;
-  const leagues = base.leagues.map((lg) => ({ ...lg, matches: [...(lg.matches ?? [])] }));
+  const leagues = (base.leagues ?? []).map((lg) => ({ ...lg, matches: [...(lg.matches ?? [])] }));
   const byId = new Map<string, { leagueIndex: number; matchIndex: number }>();
   const byTeams = new Map<string, { leagueIndex: number; matchIndex: number }>();
 
