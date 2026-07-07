@@ -57,6 +57,7 @@ export const Route = createFileRoute("/dashboard/dicas")({
 type Tab = "todos" | "aguardando" | "ao_vivo" | "green" | "red";
 
 type LiveState = {
+  status?: string;
   live: boolean;
   finished: boolean;
   score1: number | null;
@@ -116,25 +117,21 @@ function DicasPage() {
   const [lastCheckMs, setLastCheckMs] = useState<number | null>(null);
 
   const runCheck = async () => {
-    const relevant = tickets.filter(
-      (t) => (t.status === "ao_vivo" || t.status === "aguardando") &&
-        (t.esporte || "").toLowerCase().includes("fute"),
-    );
+    const relevant = tickets.filter((t) => (t.esporte || "").toLowerCase().includes("fute"));
     if (!relevant.length) return;
     setRefreshing(true);
     try {
       const res = await getSoccerLivescores();
       if (!res.ok) return;
-      const matches = res.matches;
+      const matches = Array.isArray(res.matches) ? res.matches : [];
 
       const nextLive: Record<string, LiveState> = {};
       for (const t of tickets) {
         const m = findMatchForTicket(t, matches);
         if (!m) continue;
-        const parts = t.event.split(/\s+(?:vs|x|×|-)\s+/i);
-        const tHome = parts[0] ?? "";
-        const swapped = !!(parts[1] && !new RegExp(tHome.split(" ")[0] ?? "", "i").test(m.team1));
+        const swapped = isSwappedMatch(t, m.team1, m.team2);
         nextLive[t.id] = {
+          status: m.status,
           live: m.live,
           finished: m.finished,
           score1: swapped ? m.score2 : m.score1,
@@ -150,28 +147,48 @@ function DicasPage() {
       setTickets((prev) => {
         let changed = false;
         const next = prev.map((t) => {
-          if (t.status === "green" || t.status === "red") return t;
+          if (!(t.esporte || "").toLowerCase().includes("fute")) return t;
           const m = findMatchForTicket(t, matches);
           if (m) {
+            const swapped = isSwappedMatch(t, m.team1, m.team2);
+            const score1 = swapped ? m.score2 : m.score1;
+            const score2 = swapped ? m.score1 : m.score2;
+            const team1Logo = swapped ? m.team2Logo : m.team1Logo;
+            const team2Logo = swapped ? m.team1Logo : m.team2Logo;
+            const patch: Partial<Ticket> = { resultCheckedAtMs: Date.now() };
+            if (t.score1 !== score1) patch.score1 = score1;
+            if (t.score2 !== score2) patch.score2 = score2;
+            if (team1Logo && t.team1Logo !== team1Logo) patch.team1Logo = team1Logo;
+            if (team2Logo && t.team2Logo !== team2Logo) patch.team2Logo = team2Logo;
+
+            if (t.status === "green" || t.status === "red") {
+              if (Object.keys(patch).length > 1) changed = true;
+              return Object.keys(patch).length > 1 ? { ...t, ...patch } : t;
+            }
             const graded = gradePalpite(t.palpite, m, t);
             if (graded) {
               changed = true;
-              return { ...t, status: graded };
+              return { ...t, ...patch, status: graded };
             }
             if (m.live && t.status !== "ao_vivo") {
               changed = true;
-              return { ...t, status: "ao_vivo" as TipStatus };
+              return { ...t, ...patch, status: "ao_vivo" as TipStatus };
+            }
+            if (m.finished && t.status === "ao_vivo") {
+              changed = true;
+              return { ...t, ...patch, status: "aguardando" as TipStatus };
             }
             if (!m.live && !m.finished && t.status !== "aguardando") {
               changed = true;
-              return { ...t, status: "aguardando" as TipStatus };
+              return { ...t, ...patch, status: "aguardando" as TipStatus };
             }
-            return t;
+            if (Object.keys(patch).length > 1) changed = true;
+            return Object.keys(patch).length > 1 ? { ...t, ...patch } : t;
           }
-          // sem match no feed: se startMs no futuro, marca aguardando
-          if (t.startMs && t.startMs > Date.now() && t.status !== "aguardando") {
+          // sem match no feed: não mantém "ao vivo" sem confirmação real do provedor.
+          if (t.status === "ao_vivo") {
             changed = true;
-            return { ...t, status: "aguardando" as TipStatus };
+            return { ...t, status: "aguardando" as TipStatus, resultCheckedAtMs: Date.now() };
           }
           return t;
         });
@@ -489,7 +506,11 @@ function TicketCard({
   const team1 = (parts[0] ?? ticket.event).trim();
   const team2 = (parts[1] ?? "").trim();
   const isLive = live?.live && !live.finished;
-  const showScore = isLive && (live?.score1 != null || live?.score2 != null);
+  const score1 = live?.score1 ?? ticket.score1;
+  const score2 = live?.score2 ?? ticket.score2;
+  const team1Logo = live?.team1Logo ?? ticket.team1Logo;
+  const team2Logo = live?.team2Logo ?? ticket.team2Logo;
+  const showScore = score1 != null || score2 != null;
 
   return (
     <button
@@ -538,13 +559,13 @@ function TicketCard({
       {/* Matchup: escudos + placar */}
       <div className={`rounded-xl border ${inner} px-3 py-3`}>
         <div className="flex items-center justify-between gap-3">
-          <TeamBadge name={team1} logo={live?.team1Logo} isDark={isDark} align="left" />
+          <TeamBadge name={team1} logo={team1Logo} isDark={isDark} align="left" />
           <div className="flex flex-col items-center min-w-[60px]">
             {showScore ? (
               <div className="text-xl font-bold leading-none tabular-nums">
-                <span className="text-emerald-500">{live!.score1 ?? 0}</span>
+                <span className="text-emerald-500">{score1 ?? 0}</span>
                 <span className={`mx-1 ${muted}`}>-</span>
-                <span className="text-emerald-500">{live!.score2 ?? 0}</span>
+                <span className="text-emerald-500">{score2 ?? 0}</span>
               </div>
             ) : (
               <div className={`text-xs font-semibold ${muted}`}>VS</div>
@@ -559,7 +580,7 @@ function TicketCard({
               </div>
             )}
           </div>
-          <TeamBadge name={team2 || "—"} logo={live?.team2Logo} isDark={isDark} align="right" />
+            <TeamBadge name={team2 || "—"} logo={team2Logo} isDark={isDark} align="right" />
         </div>
         <div className={`text-[11px] mt-2 text-center truncate ${muted}`}>{ticket.league}</div>
       </div>
@@ -630,6 +651,36 @@ function splitPalpites(raw: string): string[] {
     .map((p) => p.trim())
     .filter(Boolean);
   return parts.length ? parts : [raw.trim()];
+}
+
+function normalizedText(s: string): string {
+  const base = s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return base
+    .replace(/\begito\b/g, "egypt")
+    .replace(/\bestados unidos\b|\beua\b/g, "usa")
+    .replace(/\bbelgica\b/g, "belgium")
+    .replace(/\balemanha\b/g, "germany")
+    .replace(/\bespanha\b/g, "spain")
+    .replace(/\bfranca\b/g, "france")
+    .replace(/\binglaterra\b/g, "england")
+    .replace(/\bitalia\b/g, "italy")
+    .replace(/\bholanda\b|\bpaises baixos\b/g, "netherlands");
+}
+
+function isSwappedMatch(ticket: Ticket, feedHome: string, feedAway: string): boolean {
+  const parts = ticket.event.split(/\s+(?:vs|x|×|-)\s+/i);
+  const tHome = normalizedText(parts[0] ?? "");
+  const tAway = normalizedText(parts[1] ?? "");
+  const home = normalizedText(feedHome);
+  const away = normalizedText(feedAway);
+  if (!tHome || !tAway) return false;
+  return away.includes(tHome) || tAway.includes(home);
 }
 
 
@@ -812,7 +863,7 @@ function NovoTicketModal({
   };
 
   const initialStatusForStart = (startMs?: number | null): TipStatus =>
-    startMs && startMs <= Date.now() ? "ao_vivo" : "aguardando";
+    startMs && startMs <= Date.now() && Date.now() - startMs < 3 * 60 * 60 * 1000 ? "ao_vivo" : "aguardando";
 
   const submit = () => {
     if (mode === "auto") {
@@ -878,7 +929,7 @@ function NovoTicketModal({
       if (!event.trim() || !palpite.trim() || !odd) return;
       onCreate({
         id: crypto.randomUUID().slice(0, 8).toUpperCase(),
-        status: "ao_vivo",
+          status: "aguardando",
         type: "Simples",
         league: league || event,
         event,
