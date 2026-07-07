@@ -507,7 +507,7 @@ function MatchRow({
 
   return (
     <div
-      className={`grid grid-cols-[80px_1fr_64px_1fr_44px] items-center gap-2 px-3 py-2.5 transition-colors ${rowHover}`}
+      className={`grid grid-cols-[80px_1fr_64px_1fr_84px] items-center gap-2 px-3 py-2.5 transition-colors ${rowHover}`}
     >
       <div className="flex flex-col">
         <span className={`text-[10px] font-bold uppercase tracking-wider ${statusClass}`}>
