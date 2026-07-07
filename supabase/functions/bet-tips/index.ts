@@ -737,7 +737,7 @@ Deno.serve(async (req) => {
       };
       return json({
         ok: true,
-        parceiro,
+        parceiro: usedParceiro,
         match,
         matchedBy: "id",
         matchedValue: swarmSelection.eventId,
