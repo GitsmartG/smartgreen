@@ -951,8 +951,21 @@ function LegCard({
 
 function splitPalpites(raw: string): string[] {
   if (!raw) return ["—"];
-  const parts = raw
-    .split(/\r?\n|;| \+ | \/ | \| /g)
+  // Tira numeração inicial tipo "1) ", "2. " que aparece em múltiplas coladas.
+  const normalized = raw
+    .replace(/\s*(?:^|(?<=\s))(?:\d+\s*[\)\.\-:]\s+)/g, "\n")
+    // Padrões óbvios de separador de perna
+    .replace(/\s+•\s+/g, "\n")
+    .replace(/\s+—\s+/g, "\n");
+  const parts = normalized
+    // quebras fortes primeiro
+    .split(/\r?\n|;| \+ | \/ | \| | · /g)
+    .flatMap((chunk) => {
+      // se ainda parece ter mais de um palpite ligado por " e " ou ", ",
+      // e cada pedaço tem um verbo/mercado, quebra também.
+      const soft = chunk.split(/\s+e\s+(?=[A-ZÁÉÍÓÚÂÊÔÃÕÇ])| ,\s+|,\s+(?=[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/);
+      return soft.length > 1 && soft.every((s) => s.trim().length >= 8) ? soft : [chunk];
+    })
     .map((p) => p.trim())
     .filter(Boolean);
   return parts.length ? parts : [raw.trim()];
