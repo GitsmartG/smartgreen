@@ -17,6 +17,7 @@ import { Route as DashboardNotificacoesRouteImport } from './routes/dashboard.no
 import { Route as DashboardJogosRouteImport } from './routes/dashboard.jogos'
 import { Route as DashboardDicasRouteImport } from './routes/dashboard.dicas'
 import { Route as DashboardConfiguracoesRouteImport } from './routes/dashboard.configuracoes'
+import { Route as ApiPublicTeamImageIdRouteImport } from './routes/api/public/team-image.$id'
 import { Route as ApiPublicHooksRefreshDailyMatchesRouteImport } from './routes/api/public/hooks/refresh-daily-matches'
 
 const DashboardRoute = DashboardRouteImport.update({
@@ -59,6 +60,11 @@ const DashboardConfiguracoesRoute = DashboardConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => DashboardRoute,
 } as any)
+const ApiPublicTeamImageIdRoute = ApiPublicTeamImageIdRouteImport.update({
+  id: '/api/public/team-image/$id',
+  path: '/api/public/team-image/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksRefreshDailyMatchesRoute =
   ApiPublicHooksRefreshDailyMatchesRouteImport.update({
     id: '/api/public/hooks/refresh-daily-matches',
@@ -76,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
+  '/api/public/team-image/$id': typeof ApiPublicTeamImageIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByTo {
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard': typeof DashboardIndexRoute
   '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
+  '/api/public/team-image/$id': typeof ApiPublicTeamImageIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,6 +106,7 @@ export interface FileRoutesById {
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
+  '/api/public/team-image/$id': typeof ApiPublicTeamImageIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +120,7 @@ export interface FileRouteTypes {
     | '/dashboard/usuarios'
     | '/dashboard/'
     | '/api/public/hooks/refresh-daily-matches'
+    | '/api/public/team-image/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/dashboard/usuarios'
     | '/dashboard'
     | '/api/public/hooks/refresh-daily-matches'
+    | '/api/public/team-image/$id'
   id:
     | '__root__'
     | '/'
@@ -132,12 +143,14 @@ export interface FileRouteTypes {
     | '/dashboard/usuarios'
     | '/dashboard/'
     | '/api/public/hooks/refresh-daily-matches'
+    | '/api/public/team-image/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRouteWithChildren
   ApiPublicHooksRefreshDailyMatchesRoute: typeof ApiPublicHooksRefreshDailyMatchesRoute
+  ApiPublicTeamImageIdRoute: typeof ApiPublicTeamImageIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -198,6 +211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardConfiguracoesRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/api/public/team-image/$id': {
+      id: '/api/public/team-image/$id'
+      path: '/api/public/team-image/$id'
+      fullPath: '/api/public/team-image/$id'
+      preLoaderRoute: typeof ApiPublicTeamImageIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/refresh-daily-matches': {
       id: '/api/public/hooks/refresh-daily-matches'
       path: '/api/public/hooks/refresh-daily-matches'
@@ -235,6 +255,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRouteWithChildren,
   ApiPublicHooksRefreshDailyMatchesRoute:
     ApiPublicHooksRefreshDailyMatchesRoute,
+  ApiPublicTeamImageIdRoute: ApiPublicTeamImageIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
