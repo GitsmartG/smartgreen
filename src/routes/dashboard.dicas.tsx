@@ -6,6 +6,7 @@ import { getSoccerLivescores, type LiveMatch } from "@/lib/livescores.functions"
 import { findMatchForTicket, gradePalpite, gradeSinglePalpite } from "@/lib/auto-settle";
 import { getMatchRichData, type RichMatchResponse } from "@/lib/soccer-details.functions";
 import { getCachedRich, setCachedRich } from "@/lib/rich-cache";
+import { getCachedLogo, setCachedLogo, markLogoBroken } from "@/lib/logo-cache";
 import { Loader2, AlertCircle, Activity, ShieldAlert, Zap, PieChart } from "lucide-react";
 
 import {
@@ -1094,7 +1095,13 @@ function extractMultiGames(event: string): MultiGame[] {
 }
 
 function teamLogoUrl(logo?: string, teamId?: string, teamName?: string): string | undefined {
-  if (typeof logo === "string" && logo.trim()) return logo.trim();
+  if (typeof logo === "string" && logo.trim()) {
+    const url = logo.trim();
+    setCachedLogo(teamName, url);
+    return url;
+  }
+  const cached = getCachedLogo(teamName);
+  if (cached) return cached;
   const emoji = teamName ? FLAG_LOGOS[normalizedText(teamName)] : undefined;
   if (emoji) {
     return `data:image/svg+xml;utf8,${encodeURIComponent(
@@ -1263,7 +1270,11 @@ function TeamBadge({
           alt={name}
           className="h-10 w-10 object-contain shrink-0"
           loading="lazy"
-          onError={(e) => {
+          onLoad={() => {
+            if (!safeLogo.startsWith("data:")) setCachedLogo(name, safeLogo);
+          }}
+          onError={() => {
+            markLogoBroken(name, safeLogo);
             setBrokenLogo(true);
           }}
         />
