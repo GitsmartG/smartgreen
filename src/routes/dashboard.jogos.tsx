@@ -308,9 +308,9 @@ function formatSpTime(date?: string, time?: string): string | undefined {
   }).format(dt);
 }
 
-function TeamLogo({ id, name, isDark, dim }: { id?: string; name: string; isDark: boolean; dim?: boolean }) {
+function TeamLogo({ id, logo, name, isDark, dim }: { id?: string; logo?: string; name: string; isDark: boolean; dim?: boolean }) {
   const [broken, setBroken] = useState(false);
-  const src = id ? `/api/public/team-image/${id}?type=team` : null;
+  const src = logo || (id ? `/api/public/team-image/${id}?type=team` : null);
   const dimCls = dim ? "opacity-60" : "";
   if (src && !broken) {
     return (
@@ -319,7 +319,7 @@ function TeamLogo({ id, name, isDark, dim }: { id?: string; name: string; isDark
         alt={name}
         loading="lazy"
         onError={() => setBroken(true)}
-        className={`h-7 w-7 rounded-full object-contain bg-white/90 border border-white/10 shrink-0 ${dimCls}`}
+        className={`h-7 w-7 object-contain shrink-0 ${dimCls}`}
       />
     );
   }
