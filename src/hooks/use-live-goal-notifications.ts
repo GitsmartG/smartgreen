@@ -29,7 +29,7 @@ type Snapshot = {
 const POLL_MS = 15_000;
 const MAX_NOTIFS = 25;
 const STORAGE_KEY = "live-notifs-v1";
-const SNAP_KEY = "live-notifs-snap-v1";
+
 
 function loadNotifs(): LiveNotification[] {
   if (typeof window === "undefined") return [];
