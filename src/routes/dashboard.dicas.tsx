@@ -600,18 +600,48 @@ function TicketCard({
         <div className={`text-[11px] mt-2 text-center truncate ${muted}`}>{ticket.league}</div>
       </div>
 
-      {/* Palpites (lista) */}
+      {/* Palpites (lista) com status por perna */}
       <div className={`rounded-xl border ${inner} p-3`}>
         <div className={`text-[10px] uppercase tracking-wider ${subtle} mb-2`}>
           {palpites.length > 1 ? `Palpites (${palpites.length})` : "Palpite"}
         </div>
         <ul className="flex flex-col gap-1.5">
-          {palpites.map((p, i) => (
-            <li key={i} className="flex items-start gap-2 text-sm">
-              <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-              <span className="font-medium break-words leading-snug">{p}</span>
-            </li>
-          ))}
+          {palpites.map((p, i) => {
+            const legStatus = ticket.legStatuses?.[i];
+            const dotCls =
+              legStatus === "green"
+                ? "bg-emerald-500"
+                : legStatus === "red"
+                  ? "bg-red-500"
+                  : legStatus === "ao_vivo"
+                    ? "bg-amber-500 animate-pulse"
+                    : "bg-neutral-500/60";
+            const legLabel =
+              legStatus === "green"
+                ? "Green"
+                : legStatus === "red"
+                  ? "Red"
+                  : legStatus === "ao_vivo"
+                    ? "Ao vivo"
+                    : "Aguardando";
+            const legLabelCls =
+              legStatus === "green"
+                ? "text-emerald-500"
+                : legStatus === "red"
+                  ? "text-red-500"
+                  : legStatus === "ao_vivo"
+                    ? "text-amber-500"
+                    : muted;
+            return (
+              <li key={i} className="flex items-start gap-2 text-sm">
+                <span className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${dotCls}`} />
+                <span className="font-medium break-words leading-snug flex-1 min-w-0">{p}</span>
+                <span className={`text-[10px] font-semibold uppercase tracking-wider shrink-0 mt-0.5 ${legLabelCls}`}>
+                  {legLabel}
+                </span>
+              </li>
+            );
+          })}
         </ul>
       </div>
 
