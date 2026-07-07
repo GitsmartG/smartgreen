@@ -57,7 +57,10 @@ export const getMatchPrediction = createServerFn({ method: "GET" })
       if (!json.prediction && !json.meta) {
         return { ok: false, error: "Sem previsão disponível para essa partida" };
       }
-      return { ok: true, meta: json.meta, prediction: json.prediction };
+      const prediction = json.prediction
+        ? await translatePrediction(json.prediction)
+        : undefined;
+      return { ok: true, meta: json.meta, prediction };
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") {
         return { ok: false, error: "Tempo esgotado ao consultar previsão" };
