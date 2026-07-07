@@ -823,7 +823,7 @@ function TeamBadge({
         <img
           src={logo}
           alt={name}
-          className="h-10 w-10 rounded-full object-contain bg-white/90 border border-neutral-200 shrink-0"
+          className="h-10 w-10 object-contain shrink-0"
           loading="lazy"
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).style.display = "none";
