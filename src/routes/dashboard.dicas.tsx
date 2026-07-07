@@ -54,7 +54,37 @@ export const Route = createFileRoute("/dashboard/dicas")({
   component: DicasPage,
 });
 
-type Tab = "todos" | "ao_vivo" | "green" | "red";
+type Tab = "todos" | "aguardando" | "ao_vivo" | "green" | "red";
+
+type LiveState = {
+  live: boolean;
+  finished: boolean;
+  score1: number | null;
+  score2: number | null;
+  minute?: string;
+  team1Logo?: string;
+  team2Logo?: string;
+  swapped: boolean;
+};
+
+const LIVE_PALETTE = {
+  amber: {
+    base: "text-amber-500 border-amber-500/40 bg-amber-500/10",
+    activeRing: "ring-2 ring-amber-500/50",
+  },
+  emerald: {
+    base: "text-emerald-500 border-emerald-500/40 bg-emerald-500/10",
+    activeRing: "ring-2 ring-emerald-500/50",
+  },
+  red: {
+    base: "text-red-500 border-red-500/40 bg-red-500/10",
+    activeRing: "ring-2 ring-red-500/50",
+  },
+  sky: {
+    base: "text-sky-500 border-sky-500/40 bg-sky-500/10",
+    activeRing: "ring-2 ring-sky-500/50",
+  },
+} as const;
 
 function DicasPage() {
   const isDark = useIsDark();
@@ -81,25 +111,69 @@ function DicasPage() {
     saveTickets(tickets);
   }, [tickets]);
 
-  // Auto-detect green/red para tickets ao vivo via Statpal
+  const [liveMap, setLiveMap] = useState<Record<string, LiveState>>({});
+
+  // Polling: enriquece com dados ao vivo (escudos/placar) + auto-grade + status aguardando/ao_vivo
   useEffect(() => {
     let cancelled = false;
     const check = async () => {
-      const lives = tickets.filter((t) => t.status === "ao_vivo" && (t.esporte || "").toLowerCase().includes("fute"));
-      if (!lives.length) return;
+      const relevant = tickets.filter(
+        (t) => (t.status === "ao_vivo" || t.status === "aguardando") &&
+          (t.esporte || "").toLowerCase().includes("fute"),
+      );
+      if (!relevant.length) return;
       try {
         const res = await getSoccerLivescores();
-        if (cancelled || !res.ok || !res.matches.length) return;
+        if (cancelled || !res.ok) return;
+        const matches = res.matches;
+
+        const nextLive: Record<string, LiveState> = {};
+        for (const t of tickets) {
+          const m = findMatchForTicket(t, matches);
+          if (!m) continue;
+          const parts = t.event.split(/\s+(?:vs|x|×|-)\s+/i);
+          const tHome = parts[0] ?? "";
+          const swapped = !!(parts[1] && !new RegExp(tHome.split(" ")[0] ?? "", "i").test(m.team1));
+          nextLive[t.id] = {
+            live: m.live,
+            finished: m.finished,
+            score1: swapped ? m.score2 : m.score1,
+            score2: swapped ? m.score1 : m.score2,
+            minute: m.minute,
+            team1Logo: swapped ? m.team2Logo : m.team1Logo,
+            team2Logo: swapped ? m.team1Logo : m.team2Logo,
+            swapped,
+          };
+        }
+        if (!cancelled) setLiveMap(nextLive);
+
         setTickets((prev) => {
           let changed = false;
           const next = prev.map((t) => {
-            if (t.status !== "ao_vivo") return t;
-            const m = findMatchForTicket(t, res.matches);
-            if (!m) return t;
-            const graded = gradePalpite(t.palpite, m, t);
-            if (!graded) return t;
-            changed = true;
-            return { ...t, status: graded };
+            if (t.status === "green" || t.status === "red") return t;
+            const m = findMatchForTicket(t, matches);
+            if (m) {
+              const graded = gradePalpite(t.palpite, m, t);
+              if (graded) {
+                changed = true;
+                return { ...t, status: graded };
+              }
+              if (m.live && t.status !== "ao_vivo") {
+                changed = true;
+                return { ...t, status: "ao_vivo" as TipStatus };
+              }
+              if (!m.live && !m.finished && t.status !== "aguardando") {
+                changed = true;
+                return { ...t, status: "aguardando" as TipStatus };
+              }
+              return t;
+            }
+            // sem match no feed: se tem startMs futuro, marca aguardando
+            if (t.startMs && t.startMs > Date.now() && t.status !== "aguardando") {
+              changed = true;
+              return { ...t, status: "aguardando" as TipStatus };
+            }
+            return t;
           });
           return changed ? next : prev;
         });
@@ -133,11 +207,13 @@ function DicasPage() {
 
   const counts = useMemo(() => {
     return {
+      aguardando: tickets.filter((t) => t.status === "aguardando").length,
       ao_vivo: tickets.filter((t) => t.status === "ao_vivo").length,
       green: tickets.filter((t) => t.status === "green").length,
       red: tickets.filter((t) => t.status === "red").length,
     };
   }, [tickets]);
+
 
   const filtered = useMemo(() => {
     return tickets.filter((t) => {
@@ -200,6 +276,14 @@ function DicasPage() {
 
       {/* Tabs de status */}
       <div className="flex flex-wrap gap-2">
+        <StatusTab
+          active={tab === "aguardando"}
+          onClick={() => setTab(tab === "aguardando" ? "todos" : "aguardando")}
+          color="sky"
+          isDark={isDark}
+        >
+          <Calendar className="h-3.5 w-3.5" /> Em Aguardo ({counts.aguardando})
+        </StatusTab>
         <StatusTab
           active={tab === "ao_vivo"}
           onClick={() => setTab(tab === "ao_vivo" ? "todos" : "ao_vivo")}
@@ -278,6 +362,7 @@ function DicasPage() {
             <TicketCard
               key={t.id}
               ticket={t}
+              live={liveMap[t.id]}
               isDark={isDark}
               subtle={subtle}
               muted={muted}
@@ -321,24 +406,11 @@ function StatusTab({
 }: {
   active: boolean;
   onClick: () => void;
-  color: "amber" | "emerald" | "red";
+  color: "amber" | "emerald" | "red" | "sky";
   isDark: boolean;
   children: React.ReactNode;
 }) {
-  const palette = {
-    amber: {
-      base: "text-amber-500 border-amber-500/40 bg-amber-500/10",
-      activeRing: "ring-2 ring-amber-500/50",
-    },
-    emerald: {
-      base: "text-emerald-500 border-emerald-500/40 bg-emerald-500/10",
-      activeRing: "ring-2 ring-emerald-500/50",
-    },
-    red: {
-      base: "text-red-500 border-red-500/40 bg-red-500/10",
-      activeRing: "ring-2 ring-red-500/50",
-    },
-  }[color];
+  const palette = LIVE_PALETTE[color];
 
   return (
     <button
@@ -359,12 +431,14 @@ function StatusTab({
 
 function TicketCard({
   ticket,
+  live,
   isDark,
   subtle,
   muted,
   onOpen,
 }: {
   ticket: Ticket;
+  live?: LiveState;
   isDark: boolean;
   subtle: string;
   muted: string;
@@ -380,7 +454,9 @@ function TicketCard({
       ? "from-emerald-500/80 to-emerald-500/0"
       : ticket.status === "red"
         ? "from-red-500/80 to-red-500/0"
-        : "from-amber-500/80 to-amber-500/0";
+        : ticket.status === "aguardando"
+          ? "from-sky-500/80 to-sky-500/0"
+          : "from-amber-500/80 to-amber-500/0";
   const parceiroTag =
     ticket.parceiro === "seubet"
       ? { label: "SeuBet", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" }
@@ -389,6 +465,11 @@ function TicketCard({
         : null;
 
   const palpites = splitPalpites(ticket.palpite);
+  const parts = ticket.event.split(/\s+(?:vs|x|×|-)\s+/i);
+  const team1 = (parts[0] ?? ticket.event).trim();
+  const team2 = (parts[1] ?? "").trim();
+  const isLive = live?.live && !live.finished;
+  const showScore = isLive && (live?.score1 != null || live?.score2 != null);
 
   return (
     <button
@@ -434,10 +515,33 @@ function TicketCard({
         </div>
       </div>
 
-      {/* Título / evento */}
-      <div className="min-w-0">
-        <div className="font-semibold text-base leading-snug break-words">{ticket.event}</div>
-        <div className={`text-xs mt-1 truncate ${muted}`}>{ticket.league}</div>
+      {/* Matchup: escudos + placar */}
+      <div className={`rounded-xl border ${inner} px-3 py-3`}>
+        <div className="flex items-center justify-between gap-3">
+          <TeamBadge name={team1} logo={live?.team1Logo} isDark={isDark} align="left" />
+          <div className="flex flex-col items-center min-w-[60px]">
+            {showScore ? (
+              <div className="text-xl font-bold leading-none tabular-nums">
+                <span className="text-emerald-500">{live!.score1 ?? 0}</span>
+                <span className={`mx-1 ${muted}`}>-</span>
+                <span className="text-emerald-500">{live!.score2 ?? 0}</span>
+              </div>
+            ) : (
+              <div className={`text-xs font-semibold ${muted}`}>VS</div>
+            )}
+            {isLive && (
+              <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-amber-500">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500" />
+                </span>
+                {live?.minute ? `${live.minute}'` : "AO VIVO"}
+              </div>
+            )}
+          </div>
+          <TeamBadge name={team2 || "—"} logo={live?.team2Logo} isDark={isDark} align="right" />
+        </div>
+        <div className={`text-[11px] mt-2 text-center truncate ${muted}`}>{ticket.league}</div>
       </div>
 
       {/* Palpites (lista) */}
@@ -527,6 +631,13 @@ function Stat({
 }
 
 function StatusPill({ status }: { status: TipStatus }) {
+  if (status === "aguardando") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold bg-sky-500/15 text-sky-500 border border-sky-500/30">
+        <Calendar className="h-3 w-3" /> Em Aguardo
+      </span>
+    );
+  }
   if (status === "ao_vivo") {
     return (
       <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold bg-amber-500/15 text-amber-500 border border-amber-500/30">
@@ -545,6 +656,54 @@ function StatusPill({ status }: { status: TipStatus }) {
     <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold bg-red-500/15 text-red-500 border border-red-500/30">
       <TrendingUp className="h-3 w-3 rotate-180" /> Red
     </span>
+  );
+}
+
+function TeamBadge({
+  name,
+  logo,
+  isDark,
+  align,
+}: {
+  name: string;
+  logo?: string;
+  isDark: boolean;
+  align: "left" | "right";
+}) {
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("") || "?";
+  const fallback = isDark
+    ? "bg-neutral-800 text-neutral-300 border-neutral-700"
+    : "bg-neutral-100 text-neutral-600 border-neutral-200";
+  return (
+    <div
+      className={`flex-1 min-w-0 flex items-center gap-2 ${align === "right" ? "flex-row-reverse text-right" : ""}`}
+    >
+      {logo ? (
+        <img
+          src={logo}
+          alt={name}
+          className="h-10 w-10 rounded-full object-contain bg-white/90 border border-neutral-200 shrink-0"
+          loading="lazy"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = "none";
+          }}
+        />
+      ) : (
+        <div
+          className={`h-10 w-10 rounded-full border flex items-center justify-center text-[11px] font-bold shrink-0 ${fallback}`}
+        >
+          {initials}
+        </div>
+      )}
+      <div className="min-w-0">
+        <div className="text-sm font-semibold leading-tight truncate">{name}</div>
+      </div>
+    </div>
   );
 }
 

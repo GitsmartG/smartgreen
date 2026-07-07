@@ -5,8 +5,12 @@ export type LiveMatch = {
   status: string;
   team1: string;
   team2: string;
+  team1Logo?: string;
+  team2Logo?: string;
   score1: number | null;
   score2: number | null;
+  minute?: string;
+  live: boolean;
   finished: boolean;
 };
 
@@ -53,7 +57,32 @@ function normalizeMatch(raw: StatpalMatch): LiveMatch | null {
   const [s1, s2] = parseScore(scoreRaw);
   if (!team1 || !team2) return null;
   const finished = /finish|ended|ft|full|after|aet|pen/i.test(status);
-  return { id: id || `${team1}-${team2}`, status, team1, team2, score1: s1, score2: s2, finished };
+  const notStarted = /^(ns|not\s*started|sched|pending|tbd|postp|canc)/i.test(status);
+  const live = !finished && !notStarted && (s1 != null || /^\d/.test(status) || /1h|2h|ht|half|live|et|extra/i.test(status));
+  const team1Logo =
+    pickString(raw, "home_image", "localteam_image") ||
+    pickString((raw as Record<string, unknown>).home, "image", "logo", "crest") ||
+    pickString((raw as Record<string, unknown>).localteam, "image", "logo", "crest") ||
+    undefined;
+  const team2Logo =
+    pickString(raw, "away_image", "visitorteam_image") ||
+    pickString((raw as Record<string, unknown>).away, "image", "logo", "crest") ||
+    pickString((raw as Record<string, unknown>).visitorteam, "image", "logo", "crest") ||
+    undefined;
+  const minute = pickString(raw, "minute", "inj_minute", "elapsed", "time_status") || undefined;
+  return {
+    id: id || `${team1}-${team2}`,
+    status,
+    team1,
+    team2,
+    team1Logo,
+    team2Logo,
+    score1: s1,
+    score2: s2,
+    minute,
+    live,
+    finished,
+  };
 }
 
 function extractMatches(payload: unknown): LiveMatch[] {
