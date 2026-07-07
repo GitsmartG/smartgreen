@@ -14,8 +14,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as DashboardUsuariosRouteImport } from './routes/dashboard.usuarios'
 import { Route as DashboardNotificacoesRouteImport } from './routes/dashboard.notificacoes'
+import { Route as DashboardJogosRouteImport } from './routes/dashboard.jogos'
 import { Route as DashboardDicasRouteImport } from './routes/dashboard.dicas'
 import { Route as DashboardConfiguracoesRouteImport } from './routes/dashboard.configuracoes'
+import { Route as ApiPublicHooksRefreshDailyMatchesRouteImport } from './routes/api/public/hooks/refresh-daily-matches'
 
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
@@ -42,6 +44,11 @@ const DashboardNotificacoesRoute = DashboardNotificacoesRouteImport.update({
   path: '/notificacoes',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardJogosRoute = DashboardJogosRouteImport.update({
+  id: '/jogos',
+  path: '/jogos',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardDicasRoute = DashboardDicasRouteImport.update({
   id: '/dicas',
   path: '/dicas',
@@ -52,23 +59,33 @@ const DashboardConfiguracoesRoute = DashboardConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => DashboardRoute,
 } as any)
+const ApiPublicHooksRefreshDailyMatchesRoute =
+  ApiPublicHooksRefreshDailyMatchesRouteImport.update({
+    id: '/api/public/hooks/refresh-daily-matches',
+    path: '/api/public/hooks/refresh-daily-matches',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/dicas': typeof DashboardDicasRoute
+  '/dashboard/jogos': typeof DashboardJogosRoute
   '/dashboard/notificacoes': typeof DashboardNotificacoesRoute
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/dicas': typeof DashboardDicasRoute
+  '/dashboard/jogos': typeof DashboardJogosRoute
   '/dashboard/notificacoes': typeof DashboardNotificacoesRoute
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -76,9 +93,11 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRouteWithChildren
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/dicas': typeof DashboardDicasRoute
+  '/dashboard/jogos': typeof DashboardJogosRoute
   '/dashboard/notificacoes': typeof DashboardNotificacoesRoute
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -87,31 +106,38 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/dashboard/configuracoes'
     | '/dashboard/dicas'
+    | '/dashboard/jogos'
     | '/dashboard/notificacoes'
     | '/dashboard/usuarios'
     | '/dashboard/'
+    | '/api/public/hooks/refresh-daily-matches'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/dashboard/configuracoes'
     | '/dashboard/dicas'
+    | '/dashboard/jogos'
     | '/dashboard/notificacoes'
     | '/dashboard/usuarios'
     | '/dashboard'
+    | '/api/public/hooks/refresh-daily-matches'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
     | '/dashboard/configuracoes'
     | '/dashboard/dicas'
+    | '/dashboard/jogos'
     | '/dashboard/notificacoes'
     | '/dashboard/usuarios'
     | '/dashboard/'
+    | '/api/public/hooks/refresh-daily-matches'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRouteWithChildren
+  ApiPublicHooksRefreshDailyMatchesRoute: typeof ApiPublicHooksRefreshDailyMatchesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -151,6 +177,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardNotificacoesRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/jogos': {
+      id: '/dashboard/jogos'
+      path: '/jogos'
+      fullPath: '/dashboard/jogos'
+      preLoaderRoute: typeof DashboardJogosRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/dicas': {
       id: '/dashboard/dicas'
       path: '/dicas'
@@ -165,12 +198,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardConfiguracoesRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/api/public/hooks/refresh-daily-matches': {
+      id: '/api/public/hooks/refresh-daily-matches'
+      path: '/api/public/hooks/refresh-daily-matches'
+      fullPath: '/api/public/hooks/refresh-daily-matches'
+      preLoaderRoute: typeof ApiPublicHooksRefreshDailyMatchesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface DashboardRouteChildren {
   DashboardConfiguracoesRoute: typeof DashboardConfiguracoesRoute
   DashboardDicasRoute: typeof DashboardDicasRoute
+  DashboardJogosRoute: typeof DashboardJogosRoute
   DashboardNotificacoesRoute: typeof DashboardNotificacoesRoute
   DashboardUsuariosRoute: typeof DashboardUsuariosRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
@@ -179,6 +220,7 @@ interface DashboardRouteChildren {
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardConfiguracoesRoute: DashboardConfiguracoesRoute,
   DashboardDicasRoute: DashboardDicasRoute,
+  DashboardJogosRoute: DashboardJogosRoute,
   DashboardNotificacoesRoute: DashboardNotificacoesRoute,
   DashboardUsuariosRoute: DashboardUsuariosRoute,
   DashboardIndexRoute: DashboardIndexRoute,
@@ -191,6 +233,8 @@ const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRouteWithChildren,
+  ApiPublicHooksRefreshDailyMatchesRoute:
+    ApiPublicHooksRefreshDailyMatchesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

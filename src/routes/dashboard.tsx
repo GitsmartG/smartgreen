@@ -9,6 +9,7 @@ import {
   LogOut,
   Sun,
   Moon,
+  CalendarDays,
 } from "lucide-react";
 
 const LOGO_URL =
@@ -57,6 +58,7 @@ function DashboardLayout() {
     { label: "Visão geral", icon: LayoutDashboard, to: "/dashboard" },
     { label: "Usuários", icon: Users, to: "/dashboard/usuarios" },
     { label: "Dicas de Apostas", icon: Ticket, to: "/dashboard/dicas" },
+    { label: "Jogos de Hoje", icon: CalendarDays, to: "/dashboard/jogos" },
     { label: "Notificações Push", icon: Bell, to: "/dashboard/notificacoes" },
     { label: "Configurações", icon: Settings, to: "/dashboard/configuracoes" },
   ];
@@ -66,21 +68,25 @@ function DashboardLayout() {
       ? "Gerenciar Usuários"
       : pathname === "/dashboard/dicas"
         ? "Dicas de Apostas"
-        : pathname === "/dashboard/notificacoes"
-          ? "Notificações Push"
-          : pathname === "/dashboard/configuracoes"
-            ? "Configurações"
-            : "Visão geral";
+        : pathname === "/dashboard/jogos"
+          ? "Jogos de Hoje"
+          : pathname === "/dashboard/notificacoes"
+            ? "Notificações Push"
+            : pathname === "/dashboard/configuracoes"
+              ? "Configurações"
+              : "Visão geral";
   const headerSub =
     pathname === "/dashboard/usuarios"
       ? "Visualize e gerencie os usuários do seu app."
       : pathname === "/dashboard/dicas"
         ? "Gerencie e publique tickets de tips esportivas."
-        : pathname === "/dashboard/notificacoes"
-          ? "Envie e agende notificações push."
-          : pathname === "/dashboard/configuracoes"
-            ? "Personalize seu painel e sua conta."
-            : "Bem-vindo de volta 👋";
+        : pathname === "/dashboard/jogos"
+          ? "Partidas do dia atualizadas automaticamente."
+          : pathname === "/dashboard/notificacoes"
+            ? "Envie e agende notificações push."
+            : pathname === "/dashboard/configuracoes"
+              ? "Personalize seu painel e sua conta."
+              : "Bem-vindo de volta 👋";
 
 
   return (
