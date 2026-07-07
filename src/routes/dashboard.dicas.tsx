@@ -202,10 +202,11 @@ function DicasPage() {
         let entry: LiveState | null = null;
         if (m) {
           const swapped = isSwappedMatch(t, m.team1, m.team2);
+          const alreadyResolved = t.status === "green" || t.status === "red";
           entry = {
             status: m.status,
-            live: m.live,
-            finished: m.finished,
+            live: alreadyResolved ? false : m.live,
+            finished: alreadyResolved ? true : m.finished,
             score1: swapped ? m.score2 : m.score1,
             score2: swapped ? m.score1 : m.score2,
             minute: m.minute,
@@ -697,7 +698,7 @@ function TicketCard({
   const parts = ticket.event.split(/\s+(?:vs|x|×|-)\s+/i);
   const team1 = (parts[0] ?? ticket.event).trim();
   const team2 = (parts[1] ?? "").trim();
-  const isLive = live?.live && !live.finished;
+  const isLive = !!live?.live && !live.finished && ticket.status !== "green" && ticket.status !== "red";
   const score1 = live?.score1 ?? ticket.score1;
   const score2 = live?.score2 ?? ticket.score2;
   const team1Logo = teamLogoUrl(live?.team1Logo ?? ticket.team1Logo, live?.team1Id, team1);

@@ -791,7 +791,7 @@ function PredictionModal({
               </span>
             </div>
             <h3 className={`text-base font-semibold truncate ${strong}`}>
-              {match.home.name} <span className={muted}>vs</span> {match.away.name}
+              {s(match.home.name, "?")} <span className={muted}>vs</span> {s(match.away.name, "?")}
             </h3>
             <p className={`text-[11px] mt-0.5 ${muted}`}>ID {match.id}</p>
           </div>
@@ -826,13 +826,13 @@ function PredictionModal({
 
           {!loading && result?.ok && (
             <>
-              {result.prediction?.choice && (
+              {s(result.prediction?.choice) && (
                 <div className={`rounded-md border p-3 ${inner}`}>
                   <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1`}>
                     Escolha do modelo
                   </div>
                   <div className={`text-base font-semibold ${strong}`}>
-                    {result.prediction.choice}
+                    {s(result.prediction?.choice)}
                   </div>
                 </div>
               )}
@@ -845,33 +845,33 @@ function PredictionModal({
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
                       <div className={`text-[10px] uppercase ${muted}`}>Mercado</div>
-                      <div className={strong}>{result.prediction.prematch_odds.market ?? "—"}</div>
+                      <div className={strong}>{s(result.prediction.prematch_odds.market, "—")}</div>
                     </div>
                     <div>
                       <div className={`text-[10px] uppercase ${muted}`}>Modificador</div>
-                      <div className={strong}>{result.prediction.prematch_odds.modifier ?? "—"}</div>
+                      <div className={strong}>{s(result.prediction.prematch_odds.modifier, "—")}</div>
                     </div>
                     <div>
                       <div className={`text-[10px] uppercase ${muted}`}>Seleção</div>
-                      <div className={strong}>{result.prediction.prematch_odds.selection ?? "—"}</div>
+                      <div className={strong}>{s(result.prediction.prematch_odds.selection, "—")}</div>
                     </div>
                     <div>
                       <div className={`text-[10px] uppercase ${muted}`}>Odd</div>
                       <div className="text-emerald-500 font-bold tabular-nums">
-                        {result.prediction.prematch_odds.odd ?? "—"}
+                        {s(result.prediction.prematch_odds.odd, "—")}
                       </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {result.prediction?.reasoning && (
+              {s(result.prediction?.reasoning) && (
                 <div className={`rounded-md border p-3 ${inner}`}>
                   <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1.5`}>
                     Justificativa
                   </div>
                   <p className={`text-sm leading-relaxed ${isDark ? "text-neutral-300" : "text-neutral-700"}`}>
-                    {result.prediction.reasoning}
+                    {s(result.prediction?.reasoning)}
                   </p>
                 </div>
               )}
@@ -884,26 +884,26 @@ function PredictionModal({
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
                       <span className={muted}>Liga: </span>
-                      <span className={strong}>{result.meta.league?.name ?? "—"}</span>
+                      <span className={strong}>{s(result.meta.league?.name, "—")}</span>
                     </div>
                     <div>
                       <span className={muted}>País: </span>
-                      <span className={strong}>{result.meta.country?.name ?? "—"}</span>
+                      <span className={strong}>{s(result.meta.country?.name, "—")}</span>
                     </div>
                     <div>
                       <span className={muted}>Data: </span>
-                      <span className={strong}>{result.meta.date ?? "—"}</span>
+                      <span className={strong}>{s(result.meta.date, "—")}</span>
                     </div>
                     <div>
                       <span className={muted}>Hora: </span>
-                      <span className={strong}>{result.meta.time ?? "—"}</span>
+                      <span className={strong}>{s(result.meta.time, "—")}</span>
                     </div>
-                    {result.meta.venue?.name && (
+                    {s(result.meta.venue?.name) && (
                       <div className="col-span-2">
                         <span className={muted}>Estádio: </span>
                         <span className={strong}>
-                          {result.meta.venue.name}
-                          {result.meta.venue.city ? `, ${result.meta.venue.city}` : ""}
+                          {s(result.meta.venue?.name)}
+                          {s(result.meta.venue?.city) ? `, ${s(result.meta.venue?.city)}` : ""}
                         </span>
                       </div>
                     )}
@@ -982,11 +982,11 @@ function LineupsModal({
               <Users className="h-3.5 w-3.5 text-sky-500" />
               <span className="text-[10px] font-bold uppercase tracking-wider text-sky-500">
                 Escalação
-                {result?.status ? ` · ${result.status}` : ""}
+                {s(result?.status) ? ` · ${s(result?.status)}` : ""}
               </span>
             </div>
             <h3 className={`text-base font-semibold truncate ${strong}`}>
-              {match.home.name} <span className={muted}>vs</span> {match.away.name}
+              {s(match.home.name, "?")} <span className={muted}>vs</span> {s(match.away.name, "?")}
             </h3>
             <p className={`text-[11px] mt-0.5 ${muted}`}>ID {match.id}</p>
           </div>
@@ -1054,14 +1054,14 @@ function TeamLineupBlock({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className={`text-sm font-semibold truncate ${strong}`}>
-            {team.team_name ?? "—"}
+            {s(team.team_name, "—")}
           </div>
           <div className={`text-[11px] ${muted}`}>
-            {team.team_formation ? `Formação ${team.team_formation}` : ""}
-            {team.coach?.name ? ` · Téc. ${team.coach.name}` : ""}
+            {s(team.team_formation) ? `Formação ${s(team.team_formation)}` : ""}
+            {s(team.coach?.name) ? ` · Téc. ${s(team.coach?.name)}` : ""}
           </div>
         </div>
-        {typeof team.confidence === "number" && (
+        {typeof team.confidence === "number" && Number.isFinite(team.confidence) && (
           <span
             className={
               "text-[10px] font-bold px-1.5 py-0.5 rounded border border-emerald-500/40 bg-emerald-500/10 text-emerald-500"
@@ -1103,10 +1103,10 @@ function PlayerGroup({
             <span
               className={`inline-flex items-center justify-center w-6 h-5 rounded text-[10px] font-bold tabular-nums border ${muted}`}
             >
-              {p?.number ?? "—"}
+              {s(p?.number, "—")}
             </span>
-            <span className={`flex-1 truncate ${strong}`}>{p?.name ?? "—"}</span>
-            <span className={`text-[10px] uppercase ${muted}`}>{p?.position ?? ""}</span>
+            <span className={`flex-1 truncate ${strong}`}>{s(p?.name, "—")}</span>
+            <span className={`text-[10px] uppercase ${muted}`}>{s(p?.position, "")}</span>
           </li>
         ))}
       </ul>
@@ -1136,9 +1136,9 @@ function SidelinedGroup({
             <span
               className={`inline-flex items-center justify-center w-6 h-5 rounded text-[10px] font-bold tabular-nums border ${muted}`}
             >
-              {p?.number ?? "—"}
+              {s(p?.number, "—")}
             </span>
-            <span className={`flex-1 truncate ${strong}`}>{p?.name ?? "—"}</span>
+            <span className={`flex-1 truncate ${strong}`}>{s(p?.name, "—")}</span>
             <span
               className={
                 "text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded border " +
@@ -1147,8 +1147,8 @@ function SidelinedGroup({
                   : "border-amber-500/40 bg-amber-500/10 text-amber-500")
               }
             >
-              {p?.status ?? "—"}
-              {p?.reason ? ` · ${p.reason}` : ""}
+              {s(p?.status, "—")}
+              {s(p?.reason) ? ` · ${s(p?.reason)}` : ""}
             </span>
           </li>
         ))}
