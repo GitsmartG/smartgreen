@@ -199,7 +199,7 @@ function JogosHojePage() {
         {!state.loading && state.data && !state.data.ok && (
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 text-red-500 text-sm p-4 flex items-start gap-2">
             <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-            <span>{state.data.error ?? "Erro ao carregar."}</span>
+            <span>{typeof state.data.error === "string" ? state.data.error : "Erro ao carregar."}</span>
           </div>
         )}
 
@@ -308,9 +308,9 @@ function formatSpTime(date?: string, time?: string): string | undefined {
   }).format(dt);
 }
 
-function TeamLogo({ id, name, isDark, dim }: { id?: string; name: string; isDark: boolean; dim?: boolean }) {
+function TeamLogo({ id, logo, name, isDark, dim }: { id?: string; logo?: string; name: string; isDark: boolean; dim?: boolean }) {
   const [broken, setBroken] = useState(false);
-  const src = id ? `/api/public/team-image/${id}?type=team` : null;
+  const src = logo || (id ? `/api/public/team-image/${id}?type=team` : null);
   const dimCls = dim ? "opacity-60" : "";
   if (src && !broken) {
     return (
@@ -319,7 +319,7 @@ function TeamLogo({ id, name, isDark, dim }: { id?: string; name: string; isDark
         alt={name}
         loading="lazy"
         onError={() => setBroken(true)}
-        className={`h-7 w-7 rounded-full object-contain bg-white/90 border border-white/10 shrink-0 ${dimCls}`}
+        className={`h-7 w-7 object-contain shrink-0 ${dimCls}`}
       />
     );
   }
@@ -416,6 +416,7 @@ function MatchRow({ match, isDark }: { match: NormalizedMatch; isDark: boolean }
         </span>
         <TeamLogo
           id={match.home.id}
+          logo={match.home.image}
           name={match.home.name}
           isDark={isDark}
           dim={status === "finished"}
@@ -435,6 +436,7 @@ function MatchRow({ match, isDark }: { match: NormalizedMatch; isDark: boolean }
       <div className="flex items-center gap-3 pl-4 min-w-0">
         <TeamLogo
           id={match.away.id}
+          logo={match.away.image}
           name={match.away.name}
           isDark={isDark}
           dim={status === "finished"}
