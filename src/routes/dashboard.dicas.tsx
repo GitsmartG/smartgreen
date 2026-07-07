@@ -81,6 +81,15 @@ function DicasPage() {
   const [esporte, setEsporte] = useState("todos");
   const [tipo, setTipo] = useState("todos");
   const [modalOpen, setModalOpen] = useState(false);
+  const [detailsId, setDetailsId] = useState<string | null>(null);
+  const detailsTicket = detailsId ? tickets.find((t) => t.id === detailsId) ?? null : null;
+
+  const updateStatus = (id: string, status: TipStatus) =>
+    setTickets((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
+  const removeTicket = (id: string) => {
+    setTickets((prev) => prev.filter((t) => t.id !== id));
+    setDetailsId(null);
+  };
 
   const counts = useMemo(() => {
     return {
@@ -226,7 +235,14 @@ function DicasPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((t) => (
-            <TicketCard key={t.id} ticket={t} isDark={isDark} subtle={subtle} muted={muted} />
+            <TicketCard
+              key={t.id}
+              ticket={t}
+              isDark={isDark}
+              subtle={subtle}
+              muted={muted}
+              onOpen={() => setDetailsId(t.id)}
+            />
           ))}
         </div>
       )}
@@ -239,6 +255,16 @@ function DicasPage() {
             addTicket(t);
             setModalOpen(false);
           }}
+        />
+      )}
+
+      {detailsTicket && (
+        <DetailsModal
+          isDark={isDark}
+          ticket={detailsTicket}
+          onClose={() => setDetailsId(null)}
+          onStatus={(s) => updateStatus(detailsTicket.id, s)}
+          onDelete={() => removeTicket(detailsTicket.id)}
         />
       )}
     </div>
@@ -295,11 +321,13 @@ function TicketCard({
   isDark,
   subtle,
   muted,
+  onOpen,
 }: {
   ticket: Ticket;
   isDark: boolean;
   subtle: string;
   muted: string;
+  onOpen: () => void;
 }) {
   const card = isDark
     ? "bg-neutral-900 border-neutral-800"
@@ -376,6 +404,7 @@ function TicketCard({
       </div>
 
       <button
+        onClick={onOpen}
         className={
           "h-9 rounded-md text-sm font-medium inline-flex items-center justify-center gap-2 transition-colors " +
           (isDark
@@ -536,6 +565,8 @@ function NovoTicketModal({
         entradas: 1,
         parceiro: feedResult.parceiro,
         url: url || undefined,
+        createdAtMs: Date.now(),
+        startMs: selected.startMs ?? null,
       });
     } else {
       if (!event.trim() || !palpite.trim() || !odd) return;
@@ -557,6 +588,8 @@ function NovoTicketModal({
         entradas: 1,
         parceiro,
         url: url || undefined,
+        createdAtMs: Date.now(),
+        startMs: null,
       });
     }
   };
@@ -1007,6 +1040,211 @@ function Info({ label, value, muted }: { label: string; value: string; muted: st
     <div>
       <div className={"text-[10px] uppercase tracking-wider " + muted}>{label}</div>
       <div className="text-xs font-medium truncate">{value || "—"}</div>
+    </div>
+  );
+}
+
+function DetailsModal({
+  isDark,
+  ticket,
+  onClose,
+  onStatus,
+  onDelete,
+}: {
+  isDark: boolean;
+  ticket: Ticket;
+  onClose: () => void;
+  onStatus: (s: TipStatus) => void;
+  onDelete: () => void;
+}) {
+  const overlay =
+    "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm";
+  const box =
+    "w-full max-w-xl rounded-2xl border shadow-2xl " +
+    (isDark
+      ? "bg-neutral-900 border-neutral-800 text-neutral-100"
+      : "bg-white border-neutral-200 text-neutral-900");
+  const muted = isDark ? "text-neutral-400" : "text-neutral-500";
+  const inner = isDark ? "bg-neutral-950/50 border-neutral-800" : "bg-neutral-50 border-neutral-200";
+
+  const fmt = (ms?: number | null) =>
+    ms
+      ? new Date(ms).toLocaleString("pt-BR", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "—";
+
+  const parceiroLabel =
+    ticket.parceiro === "seubet" ? "SeuBet" : ticket.parceiro === "h2bet" ? "H2Bet" : "—";
+
+  return (
+    <div className={overlay} onClick={onClose}>
+      <div className={box} onClick={(e) => e.stopPropagation()}>
+        <div className="p-5 flex items-start justify-between border-b border-inherit">
+          <div className="flex items-start gap-3">
+            <div className="h-10 w-10 rounded-lg bg-emerald-500/15 text-emerald-500 flex items-center justify-center">
+              <Eye className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg leading-tight">{ticket.event}</h3>
+              <p className={`text-xs ${muted}`}>
+                {ticket.league} · <span className="font-mono">{ticket.id}</span>
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className={
+              "h-8 w-8 rounded-md inline-flex items-center justify-center " +
+              (isDark ? "hover:bg-neutral-800" : "hover:bg-neutral-100")
+            }
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4 max-h-[65vh] overflow-y-auto">
+          <div className="flex items-center gap-2">
+            <StatusPill status={ticket.status} />
+            <span
+              className={
+                "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium border " +
+                (isDark
+                  ? "border-neutral-700 text-neutral-300 bg-neutral-800/50"
+                  : "border-neutral-200 text-neutral-600 bg-neutral-100")
+              }
+            >
+              {ticket.type}
+            </span>
+            <span className={`text-xs ${muted}`}>{ticket.esporte}</span>
+          </div>
+
+          <div className={`rounded-lg border ${inner} px-3 py-2.5`}>
+            <div className={`text-[10px] uppercase tracking-wider ${muted}`}>Palpite</div>
+            <div className="text-sm font-medium mt-0.5">{ticket.palpite}</div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <div className={`rounded-lg border ${inner} px-3 py-2.5`}>
+              <div className={`text-[10px] uppercase tracking-wider ${muted}`}>Odd</div>
+              <div className="text-sm font-semibold mt-0.5">{ticket.odd.toFixed(2)}</div>
+            </div>
+            <div className={`rounded-lg border ${inner} px-3 py-2.5`}>
+              <div className={`text-[10px] uppercase tracking-wider ${muted}`}>Banca</div>
+              <div className="text-sm font-semibold mt-0.5">{ticket.banca.toFixed(1)}%</div>
+            </div>
+            <div className={`rounded-lg border ${inner} px-3 py-2.5`}>
+              <div className={`text-[10px] uppercase tracking-wider ${muted}`}>Parceiro</div>
+              <div className="text-sm font-semibold mt-0.5">{parceiroLabel}</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className={`rounded-lg border ${inner} px-3 py-2.5`}>
+              <div className={`text-[10px] uppercase tracking-wider ${muted} inline-flex items-center gap-1`}>
+                <Calendar className="h-3 w-3" /> Início do jogo
+              </div>
+              <div className="text-sm font-medium mt-0.5">
+                {ticket.startMs ? fmt(ticket.startMs) : "Não informado"}
+              </div>
+            </div>
+            <div className={`rounded-lg border ${inner} px-3 py-2.5`}>
+              <div className={`text-[10px] uppercase tracking-wider ${muted} inline-flex items-center gap-1`}>
+                <Calendar className="h-3 w-3" /> Ticket criado em
+              </div>
+              <div className="text-sm font-medium mt-0.5">{fmt(ticket.createdAtMs)}</div>
+            </div>
+          </div>
+
+          {ticket.url && (
+            <div>
+              <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1`}>URL da aposta</div>
+              <a
+                href={ticket.url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-emerald-500 hover:underline break-all"
+              >
+                {ticket.url}
+              </a>
+            </div>
+          )}
+
+          <div>
+            <div className={`text-[10px] uppercase tracking-wider ${muted} mb-2`}>Marcar resultado</div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => onStatus("ao_vivo")}
+                className={
+                  "h-9 px-3 rounded-md text-xs font-semibold border inline-flex items-center gap-1.5 " +
+                  (ticket.status === "ao_vivo"
+                    ? "bg-amber-500/15 border-amber-500/40 text-amber-500"
+                    : isDark
+                      ? "border-neutral-800 text-neutral-300 hover:bg-neutral-800"
+                      : "border-neutral-300 text-neutral-700 hover:bg-neutral-50")
+                }
+              >
+                <Radio className="h-3.5 w-3.5" /> Ao vivo
+              </button>
+              <button
+                onClick={() => onStatus("green")}
+                className={
+                  "h-9 px-3 rounded-md text-xs font-semibold border inline-flex items-center gap-1.5 " +
+                  (ticket.status === "green"
+                    ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-500"
+                    : isDark
+                      ? "border-neutral-800 text-neutral-300 hover:bg-neutral-800"
+                      : "border-neutral-300 text-neutral-700 hover:bg-neutral-50")
+                }
+              >
+                <TrendingUp className="h-3.5 w-3.5" /> Green
+              </button>
+              <button
+                onClick={() => onStatus("red")}
+                className={
+                  "h-9 px-3 rounded-md text-xs font-semibold border inline-flex items-center gap-1.5 " +
+                  (ticket.status === "red"
+                    ? "bg-red-500/15 border-red-500/40 text-red-500"
+                    : isDark
+                      ? "border-neutral-800 text-neutral-300 hover:bg-neutral-800"
+                      : "border-neutral-300 text-neutral-700 hover:bg-neutral-50")
+                }
+              >
+                <TrendingUp className="h-3.5 w-3.5 rotate-180" /> Red
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className={
+            "p-4 flex items-center justify-between gap-2 border-t " +
+            (isDark ? "border-neutral-800" : "border-neutral-200")
+          }
+        >
+          <button
+            onClick={onDelete}
+            className="h-10 px-4 rounded-md text-sm font-medium text-red-500 hover:bg-red-500/10"
+          >
+            Excluir ticket
+          </button>
+          <button
+            onClick={onClose}
+            className={
+              "h-10 px-4 rounded-md text-sm font-medium " +
+              (isDark
+                ? "bg-neutral-800 hover:bg-neutral-700 text-neutral-100"
+                : "bg-neutral-100 hover:bg-neutral-200 text-neutral-800")
+            }
+          >
+            Fechar
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
