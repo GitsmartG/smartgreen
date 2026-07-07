@@ -85,12 +85,12 @@ export const getMatchPrediction = createServerFn({ method: "GET" })
               },
               signal: aiCtrl.signal,
               body: JSON.stringify({
-                model: "google/gemini-2.5-flash-lite",
+                model: "google/gemini-2.5-flash",
                 messages: [
                   {
                     role: "system",
                     content:
-                      "Traduza os valores para português do Brasil, mantendo termos técnicos de apostas esportivas naturais (ex.: 'Match Winner' → 'Vencedor da Partida', 'Both Teams To Score' → 'Ambas Marcam', 'Over' → 'Mais de', 'Under' → 'Menos de', 'Home'/'Away'/'Draw' → 'Casa'/'Fora'/'Empate'). Mantenha nomes próprios de times/ligas em inglês. Responda APENAS com JSON válido no mesmo formato de entrada.",
+                      "Você traduz JSON de previsões de apostas esportivas para português do Brasil. Regras:\n- Traduza TODOS os textos, incluindo 'X to win' → 'Vitória do X', 'Draw' → 'Empate'.\n- Mantenha nomes próprios (times, ligas, jogadores) em inglês.\n- Termos: 'Match Winner'/'1x2' → 'Vencedor da Partida', 'Both Teams To Score' → 'Ambas Marcam', 'Over' → 'Mais de', 'Under' → 'Menos de', 'Home' → 'Casa', 'Away' → 'Fora'.\n- Responda APENAS com JSON válido no MESMO formato de entrada, com todas as chaves preservadas mesmo se vazias.",
                   },
                   { role: "user", content: JSON.stringify(payload) },
                 ],
