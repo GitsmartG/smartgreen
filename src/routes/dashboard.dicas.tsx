@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { loadTickets, saveTickets, type Ticket, type TipStatus, type Parceiro as ParceiroT } from "@/lib/tickets-store";
 import { importBetTip, type BetTipsResult } from "@/lib/bet-tips";
-import { getSoccerLivescores } from "@/lib/livescores.functions";
+import { getSoccerLivescores, type LiveMatch } from "@/lib/livescores.functions";
 import { findMatchForTicket, gradePalpite, gradeSinglePalpite } from "@/lib/auto-settle";
 import { getMatchRichData, type RichMatchResponse } from "@/lib/soccer-details.functions";
 import { getCachedRich, setCachedRich } from "@/lib/rich-cache";
