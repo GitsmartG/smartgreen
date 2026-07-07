@@ -4,9 +4,10 @@ export type NormalizedMatch = {
   id: string;
   status: string;
   time?: string;
+  date?: string;
   venue?: string;
-  home: { name: string; goals: number | null };
-  away: { name: string; goals: number | null };
+  home: { name: string; goals: number | null; id?: string };
+  away: { name: string; goals: number | null; id?: string };
   finished: boolean;
   live: boolean;
 };
