@@ -233,7 +233,7 @@ function DicasPage() {
           Nenhum ticket encontrado com esses filtros.
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filtered.map((t) => (
             <TicketCard
               key={t.id}
@@ -246,6 +246,7 @@ function DicasPage() {
           ))}
         </div>
       )}
+
 
       {modalOpen && (
         <NovoTicketModal
@@ -347,11 +348,13 @@ function TicketCard({
         ? { label: "H2Bet", cls: "bg-red-500/15 text-red-500 border-red-500/30" }
         : null;
 
+  const palpites = splitPalpites(ticket.palpite);
+
   return (
     <button
       onClick={onOpen}
       className={
-        `group relative text-left rounded-2xl border ${card} p-4 flex flex-col gap-3 ` +
+        `group relative text-left rounded-2xl border ${card} p-5 flex flex-col gap-4 ` +
         `transition-all hover:-translate-y-0.5 hover:shadow-lg overflow-hidden ` +
         (isDark ? "hover:border-neutral-700" : "hover:border-neutral-300")
       }
@@ -363,7 +366,7 @@ function TicketCard({
 
       {/* Header */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-2 min-w-0 flex-wrap">
           <StatusPill status={ticket.status} />
           <span
             className={
@@ -378,7 +381,7 @@ function TicketCard({
           {parceiroTag && (
             <span
               className={
-                "hidden sm:inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border " +
+                "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border " +
                 parceiroTag.cls
               }
             >
@@ -393,41 +396,50 @@ function TicketCard({
 
       {/* Título / evento */}
       <div className="min-w-0">
-        <div className="font-semibold leading-tight truncate">{ticket.event}</div>
-        <div className={`text-xs mt-0.5 truncate ${muted}`}>{ticket.league}</div>
+        <div className="font-semibold text-base leading-snug break-words">{ticket.event}</div>
+        <div className={`text-xs mt-1 truncate ${muted}`}>{ticket.league}</div>
       </div>
 
-      {/* Palpite */}
-      <div className={`rounded-xl border ${inner} px-3 py-2.5`}>
-        <div className={`text-[10px] uppercase tracking-wider ${subtle}`}>Palpite</div>
-        <div className="text-sm font-medium mt-0.5 line-clamp-2">{ticket.palpite}</div>
+      {/* Palpites (lista) */}
+      <div className={`rounded-xl border ${inner} p-3`}>
+        <div className={`text-[10px] uppercase tracking-wider ${subtle} mb-2`}>
+          {palpites.length > 1 ? `Palpites (${palpites.length})` : "Palpite"}
+        </div>
+        <ul className="flex flex-col gap-1.5">
+          {palpites.map((p, i) => (
+            <li key={i} className="flex items-start gap-2 text-sm">
+              <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+              <span className="font-medium break-words leading-snug">{p}</span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       {/* Odd + Banca em destaque */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-3">
         <div
           className={
-            "rounded-xl border px-3 py-2.5 " +
+            "rounded-xl border px-3 py-3 " +
             (isDark
               ? "bg-emerald-500/5 border-emerald-500/20"
               : "bg-emerald-50 border-emerald-100")
           }
         >
           <div className={`text-[10px] uppercase tracking-wider ${subtle}`}>Odd</div>
-          <div className="text-lg font-bold text-emerald-500 mt-0.5 leading-none">
+          <div className="text-xl font-bold text-emerald-500 mt-1 leading-none">
             {ticket.odd.toFixed(2)}
           </div>
         </div>
-        <div className={`rounded-xl border ${inner} px-3 py-2.5`}>
+        <div className={`rounded-xl border ${inner} px-3 py-3`}>
           <div className={`text-[10px] uppercase tracking-wider ${subtle}`}>Banca</div>
-          <div className="text-lg font-bold mt-0.5 leading-none">
+          <div className="text-xl font-bold mt-1 leading-none">
             {ticket.banca.toFixed(1)}%
           </div>
         </div>
       </div>
 
       {/* Footer meta */}
-      <div className={`flex items-center justify-between text-[11px] pt-2.5 border-t ${divider} ${muted}`}>
+      <div className={`flex items-center justify-between text-[11px] pt-3 border-t ${divider} ${muted}`}>
         <span className="inline-flex items-center gap-1.5 truncate">
           <Calendar className="h-3.5 w-3.5 shrink-0" />
           {ticket.startMs
@@ -439,13 +451,23 @@ function TicketCard({
               })
             : ticket.date}
         </span>
-        <span className="inline-flex items-center gap-1 font-medium text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="inline-flex items-center gap-1 font-medium text-emerald-500 opacity-70 group-hover:opacity-100 transition-opacity">
           Ver detalhes <Eye className="h-3.5 w-3.5" />
         </span>
       </div>
     </button>
   );
 }
+
+function splitPalpites(raw: string): string[] {
+  if (!raw) return ["—"];
+  const parts = raw
+    .split(/\r?\n|;| \+ | \/ | \| /g)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  return parts.length ? parts : [raw.trim()];
+}
+
 
 function Stat({
   label,
