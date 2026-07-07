@@ -5,8 +5,12 @@ export type LiveMatch = {
   status: string;
   team1: string;
   team2: string;
+  team1Logo?: string;
+  team2Logo?: string;
   score1: number | null;
   score2: number | null;
+  minute?: string;
+  live: boolean;
   finished: boolean;
 };
 
