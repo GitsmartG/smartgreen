@@ -65,6 +65,28 @@ function normalizeMatch(raw: StatpalMatch): LiveMatch | null {
     undefined;
   const minute = pickString(raw, "minute", "inj_minute", "elapsed", "time_status") || undefined;
 
+  // Stats ao vivo (escanteios, cartões, chutes). Statpal expõe em vários formatos:
+  // stats.corners.home/away, home_corners/away_corners, ou home.corners/away.corners.
+  const stats = (raw.stats && typeof raw.stats === "object" ? (raw.stats as Record<string, unknown>) : {}) as Record<string, unknown>;
+  const pairFromStats = (key: string): [number | null, number | null] => {
+    const container = stats[key] && typeof stats[key] === "object" ? (stats[key] as Record<string, unknown>) : null;
+    const h = container ? pickString(container, "home", "@home", "localteam", "team1") : "";
+    const a = container ? pickString(container, "away", "@away", "visitorteam", "team2") : "";
+    const hn = Number(h);
+    const an = Number(a);
+    return [Number.isFinite(hn) ? hn : null, Number.isFinite(an) ? an : null];
+  };
+  const pairFromFlat = (h: string, a: string): [number | null, number | null] => {
+    const hv = Number(pickString(raw, h) || pickString(home, h.replace(/^home_/, ""), h) || "");
+    const av = Number(pickString(raw, a) || pickString(away, a.replace(/^away_/, ""), a) || "");
+    return [Number.isFinite(hv) ? hv : null, Number.isFinite(av) ? av : null];
+  };
+  const [corners1a, corners2a] = pairFromStats("corners");
+  const [corners1b, corners2b] = corners1a == null && corners2a == null ? pairFromFlat("home_corners", "away_corners") : [corners1a, corners2a];
+  const [yellow1, yellow2] = pairFromStats("yellow_cards");
+  const [red1, red2] = pairFromStats("red_cards");
+  const [shots1, shots2] = pairFromStats("shots");
+
   return {
     id: id || `${team1}-${team2}`,
     status,
@@ -79,6 +101,14 @@ function normalizeMatch(raw: StatpalMatch): LiveMatch | null {
     minute,
     live,
     finished,
+    corners1: corners1b,
+    corners2: corners2b,
+    yellow1,
+    yellow2,
+    red1,
+    red2,
+    shots1,
+    shots2,
   };
 }
 
