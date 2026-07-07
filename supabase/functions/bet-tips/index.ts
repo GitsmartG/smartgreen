@@ -841,6 +841,15 @@ Deno.serve(async (req) => {
     const tryOrder: Parceiro[] = effectiveParceiro === "seubet"
       ? ["seubet", "h2bet"]
       : ["h2bet", "seubet"];
+
+    // Links compartilhados da H2Bet/SeuBet usam bet_id de "booking". Esse ID
+    // não é um selection_id do Swarm/FeedOdds; a própria casa expõe os dados em
+    // /pt/get-sharing-data. Tenta isso antes do lookup por evento.
+    for (const p of tryOrder) {
+      const shared = await fetchSharedBetData(p, url, parsed.betId);
+      if (shared) return json(shared);
+    }
+
     let swarmSelection: SwarmSelection | null = null;
     let usedParceiro: Parceiro = effectiveParceiro;
     for (const p of tryOrder) {
