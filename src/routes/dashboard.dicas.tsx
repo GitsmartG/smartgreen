@@ -853,7 +853,7 @@ function NovoTicketModal({
   };
 
   const initialStatusForStart = (startMs?: number | null): TipStatus =>
-    startMs && startMs <= Date.now() ? "ao_vivo" : "aguardando";
+    startMs && startMs <= Date.now() && Date.now() - startMs < 3 * 60 * 60 * 1000 ? "ao_vivo" : "aguardando";
 
   const submit = () => {
     if (mode === "auto") {
@@ -919,7 +919,7 @@ function NovoTicketModal({
       if (!event.trim() || !palpite.trim() || !odd) return;
       onCreate({
         id: crypto.randomUUID().slice(0, 8).toUpperCase(),
-        status: "ao_vivo",
+          status: "aguardando",
         type: "Simples",
         league: league || event,
         event,

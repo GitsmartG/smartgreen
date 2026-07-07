@@ -26,33 +26,11 @@ function nameMatch(a: string, b: string): boolean {
   return hits >= Math.min(1, tb.length);
 }
 
-export function findMatchForTicket(t: Ticket, matches: LiveMatch[]): LiveMatch | null {
-  const parts = t.event.split(/\s+(?:vs|x|×|-)\s+/i);
-  const t1 = parts[0] ?? "";
-  const t2 = parts[1] ?? "";
-  for (const m of matches) {
-    const direct = nameMatch(m.team1, t1) && nameMatch(m.team2, t2);
-    const swap = nameMatch(m.team1, t2) && nameMatch(m.team2, t1);
-    if (direct || swap) return m;
-  }
-
-  const haystack = `${t.event} ${t.league} ${t.palpite}`;
-  const partial = matches.filter((m) => nameMatch(m.team1, haystack) || nameMatch(m.team2, haystack));
-  if (partial.length === 1) return partial[0];
-  const finished = partial.filter((m) => m.finished);
-  if (finished.length === 1) return finished[0];
-  return null;
+function isUngradeableMarket(p: string): boolean {
+  return /escanteio|corner|cartao|cartão|amarelo|vermelho|impedimento|lateral|chute|finalizacao|finalização/.test(p);
 }
 
-/**
- * Try to grade a palpite against a finished match.
- * Returns green/red/null (null = couldn't decide).
- */
-export function gradePalpite(
-  palpite: string,
-  match: LiveMatch,
-  ticket: Ticket,
-): TipStatus | null {
+function gradeSinglePalpite(palpite: string, match: LiveMatch, ticket: Ticket): TipStatus | null {
   if (!match.finished || match.score1 == null || match.score2 == null) return null;
 
   const parts = ticket.event.split(/\s+(?:vs|x|×|-)\s+/i);
@@ -64,6 +42,7 @@ export function gradePalpite(
   const total = homeScore + awayScore;
 
   const p = normalize(palpite);
+  if (isUngradeableMarket(p)) return null;
 
   // Empate
   if (/\bempate\b|\bdraw\b/.test(p)) {
@@ -78,7 +57,7 @@ export function gradePalpite(
   }
 
   // Over/Under gols
-  const ou = p.match(/\b(over|mais|acima|under|menos|abaixo)\s*(?:de\s*)?(\d+(?:[.,]\d+)?)/);
+  const ou = p.match(/\b(over|mais|acima|under|menos|abaixo)\s*(?:de\s*)?\(?\s*(\d+(?:[.,]\d+)?)\s*\)?/);
   if (ou) {
     const isOver = /over|mais|acima/.test(ou[1]);
     const line = Number(ou[2].replace(",", "."));
@@ -109,4 +88,42 @@ export function gradePalpite(
   }
 
   return null;
+}
+
+export function findMatchForTicket(t: Ticket, matches: LiveMatch[]): LiveMatch | null {
+  const parts = t.event.split(/\s+(?:vs|x|×|-)\s+/i);
+  const t1 = parts[0] ?? "";
+  const t2 = parts[1] ?? "";
+  for (const m of matches) {
+    const direct = nameMatch(m.team1, t1) && nameMatch(m.team2, t2);
+    const swap = nameMatch(m.team1, t2) && nameMatch(m.team2, t1);
+    if (direct || swap) return m;
+  }
+
+  const haystack = `${t.event} ${t.league} ${t.palpite}`;
+  const partial = matches.filter((m) => nameMatch(m.team1, haystack) || nameMatch(m.team2, haystack));
+  if (partial.length === 1) return partial[0];
+  const finished = partial.filter((m) => m.finished);
+  if (finished.length === 1) return finished[0];
+  return null;
+}
+
+/**
+ * Try to grade a palpite against a finished match.
+ * Returns green/red/null (null = couldn't decide).
+ */
+export function gradePalpite(
+  palpite: string,
+  match: LiveMatch,
+  ticket: Ticket,
+): TipStatus | null {
+  if (!match.finished || match.score1 == null || match.score2 == null) return null;
+  const parts = palpite
+    .split(/\r?\n|;| \+ | \/ | \| /g)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  const picks = parts.length ? parts : [palpite];
+  const graded = picks.map((p) => gradeSinglePalpite(p, match, ticket)).filter((v): v is TipStatus => v === "green" || v === "red");
+  if (!graded.length) return null;
+  return graded.some((g) => g === "red") ? "red" : "green";
 }
