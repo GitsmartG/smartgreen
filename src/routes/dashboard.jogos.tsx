@@ -881,7 +881,7 @@ function LineupsModal({
           {!loading && result && !result.ok && (
             <div className="rounded-md border border-red-500/30 bg-red-500/10 text-red-500 text-sm p-3 flex items-start gap-2">
               <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-              <span>{result.error || "Sem escalação disponível."}</span>
+              <span>{typeof result.error === "string" && result.error ? result.error : "Sem escalação disponível."}</span>
             </div>
           )}
 
