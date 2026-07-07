@@ -40,13 +40,12 @@ export const getTodayMatches = createServerFn({ method: "GET" }).handler(
         cached &&
         Date.now() - new Date(cached.fetchedAt).getTime() < CACHE_TTL_MS;
       if (cached && isFresh) {
-        const live = await refreshDailyMatches().catch(() => null);
         return {
           ok: true,
-          cached: !live,
-          date: live?.date ?? cached.date,
-          fetchedAt: live ? new Date().toISOString() : cached.fetchedAt,
-          payload: live?.payload ?? cached.payload,
+          cached: true,
+          date: cached.date,
+          fetchedAt: cached.fetchedAt,
+          payload: cached.payload,
         };
       }
       // Cache stale ou inexistente → busca agora

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   RefreshCw,
   AlertCircle,
@@ -13,8 +14,8 @@ import {
   Users,
 } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
-import { getTodayMatches, type DailyMatchesResult } from "@/lib/daily-matches.functions";
-import type { NormalizedLeague, NormalizedMatch } from "@/lib/daily-matches.server";
+import { getLiveMatches, getTodayMatches, type DailyMatchesResult } from "@/lib/daily-matches.functions";
+import type { DailyMatchesPayload, NormalizedLeague, NormalizedMatch } from "@/lib/daily-matches.server";
 import { getMatchPrediction, type PredictionResult } from "@/lib/statpal-prediction.functions";
 import {
   getMatchLineups,
@@ -71,6 +72,75 @@ function leaguePriority(lg: NormalizedLeague): number {
   return COUNTRY_PRIORITY[country] ?? 100;
 }
 
+function normalizeKey(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function matchKey(m: NormalizedMatch): string {
+  return `${normalizeKey(m.home.name)}::${normalizeKey(m.away.name)}`;
+}
+
+function mergeMatch(base: NormalizedMatch, live: NormalizedMatch): NormalizedMatch {
+  return {
+    ...base,
+    ...live,
+    home: { ...base.home, ...live.home, image: live.home.image ?? base.home.image, id: live.home.id ?? base.home.id },
+    away: { ...base.away, ...live.away, image: live.away.image ?? base.away.image, id: live.away.id ?? base.away.id },
+  };
+}
+
+function mergeLivePayload(base: DailyMatchesPayload | undefined, live: DailyMatchesPayload): DailyMatchesPayload {
+  if (!base) return live;
+  const leagues = base.leagues.map((lg) => ({ ...lg, matches: [...(lg.matches ?? [])] }));
+  const byId = new Map<string, { leagueIndex: number; matchIndex: number }>();
+  const byTeams = new Map<string, { leagueIndex: number; matchIndex: number }>();
+
+  leagues.forEach((lg, leagueIndex) => {
+    lg.matches.forEach((m, matchIndex) => {
+      byId.set(m.id, { leagueIndex, matchIndex });
+      for (const alt of m.alternateIds ?? []) byId.set(alt, { leagueIndex, matchIndex });
+      byTeams.set(matchKey(m), { leagueIndex, matchIndex });
+    });
+  });
+
+  for (const liveLeague of live.leagues ?? []) {
+    let targetLeagueIndex = leagues.findIndex(
+      (lg) => lg.id === liveLeague.id || normalizeKey(`${lg.name} ${lg.country}`) === normalizeKey(`${liveLeague.name} ${liveLeague.country}`),
+    );
+    if (targetLeagueIndex < 0) {
+      leagues.push({ ...liveLeague, matches: [] });
+      targetLeagueIndex = leagues.length - 1;
+    }
+
+    for (const liveMatch of liveLeague.matches ?? []) {
+      const found =
+        byId.get(liveMatch.id) ||
+        (liveMatch.alternateIds ?? []).map((id) => byId.get(id)).find(Boolean) ||
+        byTeams.get(matchKey(liveMatch));
+      if (found) {
+        leagues[found.leagueIndex].matches[found.matchIndex] = mergeMatch(
+          leagues[found.leagueIndex].matches[found.matchIndex],
+          liveMatch,
+        );
+      } else {
+        leagues[targetLeagueIndex].matches.push(liveMatch);
+      }
+    }
+  }
+
+  return {
+    updated: live.updated ?? base.updated,
+    updatedTs: live.updatedTs ?? base.updatedTs,
+    leagues,
+    totalMatches: leagues.reduce((sum, lg) => sum + (lg.matches?.length ?? 0), 0),
+  };
+}
+
 function formatSpTime(date?: string, time?: string): string | undefined {
   if (!time) return undefined;
   const t = time.match(/^(\d{1,2}):(\d{2})/);
@@ -93,6 +163,8 @@ function formatSpTime(date?: string, time?: string): string | undefined {
 
 function JogosHojePage() {
   const isDark = useIsDark();
+  const fetchTodayMatches = useServerFn(getTodayMatches);
+  const fetchLiveMatches = useServerFn(getLiveMatches);
 
   const panel = isDark
     ? "bg-neutral-900 border-neutral-800"
@@ -114,10 +186,10 @@ function JogosHojePage() {
   const [predictionMatch, setPredictionMatch] = useState<NormalizedMatch | null>(null);
   const [lineupsMatch, setLineupsMatch] = useState<NormalizedMatch | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setState((s) => ({ ...s, loading: true }));
     try {
-      const res = await getTodayMatches();
+      const res = await fetchTodayMatches();
       setState({ loading: false, data: res });
     } catch (e) {
       setState({
@@ -125,22 +197,42 @@ function JogosHojePage() {
         data: { ok: false, cached: false, error: e instanceof Error ? e.message : "Erro" },
       });
     }
-  };
+  }, [fetchTodayMatches]);
+
+  const refreshLive = useCallback(async () => {
+    try {
+      const live = await fetchLiveMatches();
+      if (!live.ok || !live.payload) return;
+      setState((cur) => ({
+        loading: false,
+        data: {
+          ok: true,
+          cached: false,
+          date: cur.data?.date,
+          fetchedAt: live.fetchedAt ?? new Date().toISOString(),
+          payload: mergeLivePayload(cur.data?.payload, live.payload),
+        },
+      }));
+    } catch {
+      // mantém o último snapshot bom
+    }
+  }, [fetchLiveMatches]);
+
   useEffect(() => {
     void load();
     const id = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
-      void load();
-    }, 30_000);
+      void refreshLive();
+    }, 15_000);
     const onVis = () => {
-      if (!document.hidden) void load();
+      if (!document.hidden) void refreshLive();
     };
     document.addEventListener("visibilitychange", onVis);
     return () => {
       clearInterval(id);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, []);
+  }, [load, refreshLive]);
 
   const filteredLeagues = useMemo<NormalizedLeague[]>(() => {
     const leagues = state.data?.payload?.leagues ?? [];
