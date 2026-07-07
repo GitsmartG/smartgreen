@@ -416,6 +416,7 @@ function MatchRow({ match, isDark }: { match: NormalizedMatch; isDark: boolean }
         </span>
         <TeamLogo
           id={match.home.id}
+          logo={match.home.image}
           name={match.home.name}
           isDark={isDark}
           dim={status === "finished"}
