@@ -1344,7 +1344,13 @@ function TeamBadge({
     <div
       className={`flex-1 min-w-0 flex items-center gap-2 ${align === "right" ? "flex-row-reverse text-right" : ""}`}
     >
-      {safeLogo && !brokenLogo ? (
+      {flag ? (
+        <div
+          className={`h-10 w-10 rounded-full border flex items-center justify-center shrink-0 ${fallback}`}
+        >
+          <span className="text-2xl leading-none">{flag}</span>
+        </div>
+      ) : safeLogo && !brokenLogo ? (
         <img
           src={safeLogo}
           alt={name}
@@ -1362,7 +1368,7 @@ function TeamBadge({
         <div
           className={`h-10 w-10 rounded-full border flex items-center justify-center text-[11px] font-bold shrink-0 ${fallback}`}
         >
-          {flag ? <span className="text-2xl leading-none">{flag}</span> : initials}
+          {initials}
         </div>
       )}
       <div className="min-w-0">
