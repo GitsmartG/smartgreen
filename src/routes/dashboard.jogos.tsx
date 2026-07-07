@@ -826,13 +826,13 @@ function PredictionModal({
 
           {!loading && result?.ok && (
             <>
-              {result.prediction?.choice && (
+              {s(result.prediction?.choice) && (
                 <div className={`rounded-md border p-3 ${inner}`}>
                   <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1`}>
                     Escolha do modelo
                   </div>
                   <div className={`text-base font-semibold ${strong}`}>
-                    {result.prediction.choice}
+                    {s(result.prediction?.choice)}
                   </div>
                 </div>
               )}
@@ -865,13 +865,13 @@ function PredictionModal({
                 </div>
               )}
 
-              {result.prediction?.reasoning && (
+              {s(result.prediction?.reasoning) && (
                 <div className={`rounded-md border p-3 ${inner}`}>
                   <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1.5`}>
                     Justificativa
                   </div>
                   <p className={`text-sm leading-relaxed ${isDark ? "text-neutral-300" : "text-neutral-700"}`}>
-                    {result.prediction.reasoning}
+                    {s(result.prediction?.reasoning)}
                   </p>
                 </div>
               )}
