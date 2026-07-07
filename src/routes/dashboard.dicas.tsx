@@ -405,24 +405,11 @@ function StatusTab({
 }: {
   active: boolean;
   onClick: () => void;
-  color: "amber" | "emerald" | "red";
+  color: "amber" | "emerald" | "red" | "sky";
   isDark: boolean;
   children: React.ReactNode;
 }) {
-  const palette = {
-    amber: {
-      base: "text-amber-500 border-amber-500/40 bg-amber-500/10",
-      activeRing: "ring-2 ring-amber-500/50",
-    },
-    emerald: {
-      base: "text-emerald-500 border-emerald-500/40 bg-emerald-500/10",
-      activeRing: "ring-2 ring-emerald-500/50",
-    },
-    red: {
-      base: "text-red-500 border-red-500/40 bg-red-500/10",
-      activeRing: "ring-2 ring-red-500/50",
-    },
-  }[color];
+  const palette = LIVE_PALETTE[color];
 
   return (
     <button
