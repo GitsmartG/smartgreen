@@ -105,20 +105,43 @@ function extractMatches(payload: unknown): LiveMatch[] {
   return out;
 }
 
-export const getSoccerLivescores = createServerFn({ method: "GET" }).handler(async () => {
+async function fetchStatpal(path: string): Promise<LiveMatch[]> {
   const key = process.env.STATPAL_API_KEY;
-  if (!key) return { ok: false as const, error: "STATPAL_API_KEY não configurada", matches: [] };
+  if (!key) throw new Error("STATPAL_API_KEY não configurada");
+  const res = await fetch(
+    `https://statpal.io/api/v2/soccer/${path}?access_key=${encodeURIComponent(key)}`,
+    { headers: { accept: "application/json" } },
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json().catch(() => null);
+  return extractMatches(data);
+}
+
+// Live + results (finished today) — combinado para o poller acompanhar até o encerramento.
+export const getSoccerLivescores = createServerFn({ method: "GET" }).handler(async () => {
   try {
-    const res = await fetch(
-      `https://statpal.io/api/v2/soccer/matches/live?access_key=${encodeURIComponent(key)}`,
-      { headers: { accept: "application/json" } },
-    );
-    if (!res.ok) {
-      return { ok: false as const, error: `HTTP ${res.status}`, matches: [] };
+    const [liveRes, resultsRes] = await Promise.allSettled([
+      fetchStatpal("matches/live"),
+      fetchStatpal("matches/results"),
+    ]);
+    const live = liveRes.status === "fulfilled" ? liveRes.value : [];
+    const done = resultsRes.status === "fulfilled"
+      ? resultsRes.value.map((m) => ({ ...m, live: false, finished: true }))
+      : [];
+    if (!live.length && !done.length && liveRes.status === "rejected") {
+      const err = liveRes.reason instanceof Error ? liveRes.reason.message : "Falha na API";
+      return { ok: false as const, error: err, matches: [] };
     }
-    const data = await res.json().catch(() => null);
-    const matches = extractMatches(data);
-    return { ok: true as const, matches };
+    // Live first — se o mesmo jogo aparecer nos dois, o ao vivo prevalece
+    const seen = new Set<string>();
+    const merged: LiveMatch[] = [];
+    for (const m of [...live, ...done]) {
+      const key = `${m.team1}|${m.team2}`.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(m);
+    }
+    return { ok: true as const, matches: merged };
   } catch (e) {
     return { ok: false as const, error: e instanceof Error ? e.message : "Falha na API", matches: [] };
   }
