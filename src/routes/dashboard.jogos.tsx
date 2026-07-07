@@ -966,22 +966,23 @@ function PlayerGroup({
   muted: string;
   strong: string;
 }) {
-  if (!players || players.length === 0) return null;
+  const list = Array.isArray(players) ? players : [];
+  if (list.length === 0) return null;
   return (
     <div>
       <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1.5`}>
-        {title} ({players.length})
+        {title} ({list.length})
       </div>
       <ul className="space-y-1 text-xs">
-        {players.map((p, i) => (
-          <li key={p.id ?? `${title}-${i}`} className="flex items-center gap-2">
+        {list.map((p, i) => (
+          <li key={p?.id ?? `${title}-${i}`} className="flex items-center gap-2">
             <span
               className={`inline-flex items-center justify-center w-6 h-5 rounded text-[10px] font-bold tabular-nums border ${muted}`}
             >
-              {p.number ?? "—"}
+              {p?.number ?? "—"}
             </span>
-            <span className={`flex-1 truncate ${strong}`}>{p.name ?? "—"}</span>
-            <span className={`text-[10px] uppercase ${muted}`}>{p.position ?? ""}</span>
+            <span className={`flex-1 truncate ${strong}`}>{p?.name ?? "—"}</span>
+            <span className={`text-[10px] uppercase ${muted}`}>{p?.position ?? ""}</span>
           </li>
         ))}
       </ul>
@@ -998,7 +999,8 @@ function SidelinedGroup({
   muted: string;
   strong: string;
 }) {
-  if (!players || players.length === 0) return null;
+  const list = Array.isArray(players) ? players : [];
+  if (list.length === 0) return null;
   return (
     <div>
       <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1.5`}>
