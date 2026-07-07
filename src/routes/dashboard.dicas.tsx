@@ -1261,7 +1261,7 @@ function safeStr(v: unknown): string | undefined {
 }
 
 function normalizedMatchToLiveMatch(match: MatchLogoSource): LiveMatch {
-  const status = safeStr(match.status);
+  const status = safeStr(match.status) ?? "";
   return {
     id: match.id,
     status,
