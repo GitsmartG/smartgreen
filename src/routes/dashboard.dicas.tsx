@@ -1156,7 +1156,8 @@ function findMatchForLeg(legText: string, matches: LiveMatch[], game?: MultiGame
   return best ? { match: best.match, swapped: best.swapped } : null;
 }
 
-function normalizedText(s: string): string {
+function normalizedText(input: unknown): string {
+  const s = typeof input === "string" ? input : input == null ? "" : String(input);
   const base = s
     .toLowerCase()
     .normalize("NFD")
