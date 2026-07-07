@@ -1247,11 +1247,12 @@ function TeamBadge({
     ? "bg-neutral-800 text-neutral-300 border-neutral-700"
     : "bg-neutral-100 text-neutral-600 border-neutral-200";
   const flag = FLAG_LOGOS[normalizedText(name)];
+  const shouldUseFlagFallback = Boolean(flag && (!safeLogo || safeLogo.startsWith("/api/public/team-image/")));
   return (
     <div
       className={`flex-1 min-w-0 flex items-center gap-2 ${align === "right" ? "flex-row-reverse text-right" : ""}`}
     >
-      {safeLogo && !brokenLogo ? (
+      {safeLogo && !brokenLogo && !shouldUseFlagFallback ? (
         <img
           src={safeLogo}
           alt={name}
