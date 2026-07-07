@@ -1136,9 +1136,9 @@ function SidelinedGroup({
             <span
               className={`inline-flex items-center justify-center w-6 h-5 rounded text-[10px] font-bold tabular-nums border ${muted}`}
             >
-              {p?.number ?? "—"}
+              {s(p?.number, "—")}
             </span>
-            <span className={`flex-1 truncate ${strong}`}>{p?.name ?? "—"}</span>
+            <span className={`flex-1 truncate ${strong}`}>{s(p?.name, "—")}</span>
             <span
               className={
                 "text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded border " +
@@ -1147,8 +1147,8 @@ function SidelinedGroup({
                   : "border-amber-500/40 bg-amber-500/10 text-amber-500")
               }
             >
-              {p?.status ?? "—"}
-              {p?.reason ? ` · ${p.reason}` : ""}
+              {s(p?.status, "—")}
+              {s(p?.reason) ? ` · ${s(p?.reason)}` : ""}
             </span>
           </li>
         ))}
