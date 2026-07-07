@@ -51,6 +51,15 @@ function isLive(status: string): boolean {
   return /^(HT|1H|2H|ET|BREAK|LIVE|INPLAY)$/.test(s) || /^\d{1,3}(?:\+\d+)?'?$/.test(s);
 }
 
+function cacheShapeIsStale(payload: DailyMatchesPayload): boolean {
+  return (payload?.leagues ?? []).some((lg) =>
+    (lg.matches ?? []).some((m) => {
+      const status = String(m.status ?? "");
+      return !!m.live && /^\d{1,2}:\d{2}$/.test(status);
+    }),
+  );
+}
+
 function toNum(v: unknown): number | null {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
@@ -290,6 +299,8 @@ export async function readCachedDaily(date?: string): Promise<{
   // Invalida cache antigo que ainda não tem logo/id dos times
   const first = payload?.leagues?.[0]?.matches?.[0];
   if (first && !first.home?.image && !first.home?.id) return null;
+  // Invalida cache antigo que marcava horário (ex: "23:00") como jogo ao vivo.
+  if (cacheShapeIsStale(payload)) return null;
   return {
     date: String(data.match_date),
     payload,
