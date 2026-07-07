@@ -142,6 +142,8 @@ function DicasPage() {
           minute: m.minute,
           team1Logo: swapped ? m.team2Logo : m.team1Logo,
           team2Logo: swapped ? m.team1Logo : m.team2Logo,
+          team1Id: swapped ? m.team2Id : m.team1Id,
+          team2Id: swapped ? m.team1Id : m.team2Id,
           swapped,
         };
       }
