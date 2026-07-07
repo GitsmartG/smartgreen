@@ -520,7 +520,7 @@ function LeagueSection({
       </header>
 
       <div className={`divide-y ${divider}`}>
-        {league.matches.map((m, matchIndex) => (
+        {(league.matches ?? []).map((m, matchIndex) => (
           <MatchRow
             key={`${m.id || "match"}-${matchIndex}-${m.home.name}-${m.away.name}`}
             match={m}
