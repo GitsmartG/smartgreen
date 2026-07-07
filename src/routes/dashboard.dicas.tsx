@@ -66,6 +66,8 @@ type LiveState = {
   minute?: string;
   team1Logo?: string;
   team2Logo?: string;
+  team1Id?: string;
+  team2Id?: string;
   swapped: boolean;
 };
 
