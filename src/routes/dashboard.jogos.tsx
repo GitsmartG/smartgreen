@@ -619,7 +619,7 @@ function MatchRow({
 
   const statusLabel =
     status === "live"
-      ? match.status || "AO VIVO"
+      ? s(match.status, "AO VIVO") || "AO VIVO"
       : status === "finished"
         ? "ENCERRADO"
         : spTime ?? "AGENDADO";
