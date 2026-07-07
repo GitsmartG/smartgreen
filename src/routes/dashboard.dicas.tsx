@@ -332,89 +332,118 @@ function TicketCard({
   const card = isDark
     ? "bg-neutral-900 border-neutral-800"
     : "bg-white border-neutral-200";
-  const inner = isDark ? "bg-neutral-950/50" : "bg-neutral-50";
+  const inner = isDark ? "bg-neutral-950/60 border-neutral-800" : "bg-neutral-50 border-neutral-200";
+  const divider = isDark ? "border-neutral-800" : "border-neutral-200";
+  const accent =
+    ticket.status === "green"
+      ? "from-emerald-500/80 to-emerald-500/0"
+      : ticket.status === "red"
+        ? "from-red-500/80 to-red-500/0"
+        : "from-amber-500/80 to-amber-500/0";
+  const parceiroTag =
+    ticket.parceiro === "seubet"
+      ? { label: "SeuBet", cls: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" }
+      : ticket.parceiro === "h2bet"
+        ? { label: "H2Bet", cls: "bg-red-500/15 text-red-500 border-red-500/30" }
+        : null;
 
   return (
-    <div className={`rounded-xl border ${card} p-4 flex flex-col gap-3`}>
-      <div className="flex items-start justify-between">
-        <div className={`text-[11px] font-mono tracking-wider ${subtle}`}>
-          {ticket.id}
-        </div>
-        <button
-          className={
-            "h-7 w-7 rounded-md inline-flex items-center justify-center " +
-            (isDark
-              ? "hover:bg-neutral-800 text-neutral-400"
-              : "hover:bg-neutral-100 text-neutral-500")
-          }
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </button>
-      </div>
-
-      <div className="flex items-center gap-2 -mt-1">
-        <StatusPill status={ticket.status} />
-        <span
-          className={
-            "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium border " +
-            (isDark
-              ? "border-neutral-700 text-neutral-300 bg-neutral-800/50"
-              : "border-neutral-200 text-neutral-600 bg-neutral-100")
-          }
-        >
-          {ticket.type}
-        </span>
-      </div>
-
-      <div>
-        <div className="font-semibold leading-tight">{ticket.league}</div>
-        <div className={`text-xs ${muted}`}>{ticket.event}</div>
-      </div>
-
-      <div className={`rounded-lg ${inner} px-3 py-2.5`}>
-        <div className={`text-[10px] uppercase tracking-wider ${subtle}`}>
-          Palpite
-        </div>
-        <div className="text-sm font-medium mt-0.5">{ticket.palpite}</div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-2 text-sm">
-        <Stat label="ODD" value={ticket.odd.toFixed(2)} muted={subtle} />
-        <Stat label="BANCA" value={`${ticket.banca.toFixed(1)}%`} muted={subtle} />
-        <div>
-          <div className={`text-[10px] uppercase tracking-wider ${subtle}`}>
-            Esporte
-          </div>
-          <div className="text-sm font-semibold mt-0.5">{ticket.esporte}</div>
-        </div>
-      </div>
-
+    <button
+      onClick={onOpen}
+      className={
+        `group relative text-left rounded-2xl border ${card} p-4 flex flex-col gap-3 ` +
+        `transition-all hover:-translate-y-0.5 hover:shadow-lg overflow-hidden ` +
+        (isDark ? "hover:border-neutral-700" : "hover:border-neutral-300")
+      }
+    >
       <div
-        className={
-          "flex items-center justify-between text-xs pt-2 border-t " +
-          (isDark ? "border-neutral-800" : "border-neutral-200")
-        }
-      >
-        <span className={`inline-flex items-center gap-1.5 ${muted}`}>
-          <Calendar className="h-3.5 w-3.5" /> {ticket.date}
-        </span>
-        <span className={muted}>
-          {ticket.entradas} entrada{ticket.entradas !== 1 && "s"}
-        </span>
+        aria-hidden
+        className={`absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r ${accent}`}
+      />
+
+      {/* Header */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <StatusPill status={ticket.status} />
+          <span
+            className={
+              "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border " +
+              (isDark
+                ? "border-neutral-700 text-neutral-300 bg-neutral-800/50"
+                : "border-neutral-200 text-neutral-600 bg-neutral-100")
+            }
+          >
+            {ticket.type}
+          </span>
+          {parceiroTag && (
+            <span
+              className={
+                "hidden sm:inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border " +
+                parceiroTag.cls
+              }
+            >
+              {parceiroTag.label}
+            </span>
+          )}
+        </div>
+        <div className={`text-[10px] font-mono tracking-wider shrink-0 ${subtle}`}>
+          #{ticket.id}
+        </div>
       </div>
 
-      <button
-        onClick={onOpen}
-        className={
-          "h-9 rounded-md text-sm font-medium inline-flex items-center justify-center gap-2 transition-colors " +
-          (isDark
-            ? "bg-neutral-800 hover:bg-neutral-700 text-neutral-100"
-            : "bg-neutral-100 hover:bg-neutral-200 text-neutral-800")
-        }
-      >
-        <Eye className="h-4 w-4" /> Ver Detalhes
-      </button>
-    </div>
+      {/* Título / evento */}
+      <div className="min-w-0">
+        <div className="font-semibold leading-tight truncate">{ticket.event}</div>
+        <div className={`text-xs mt-0.5 truncate ${muted}`}>{ticket.league}</div>
+      </div>
+
+      {/* Palpite */}
+      <div className={`rounded-xl border ${inner} px-3 py-2.5`}>
+        <div className={`text-[10px] uppercase tracking-wider ${subtle}`}>Palpite</div>
+        <div className="text-sm font-medium mt-0.5 line-clamp-2">{ticket.palpite}</div>
+      </div>
+
+      {/* Odd + Banca em destaque */}
+      <div className="grid grid-cols-2 gap-2">
+        <div
+          className={
+            "rounded-xl border px-3 py-2.5 " +
+            (isDark
+              ? "bg-emerald-500/5 border-emerald-500/20"
+              : "bg-emerald-50 border-emerald-100")
+          }
+        >
+          <div className={`text-[10px] uppercase tracking-wider ${subtle}`}>Odd</div>
+          <div className="text-lg font-bold text-emerald-500 mt-0.5 leading-none">
+            {ticket.odd.toFixed(2)}
+          </div>
+        </div>
+        <div className={`rounded-xl border ${inner} px-3 py-2.5`}>
+          <div className={`text-[10px] uppercase tracking-wider ${subtle}`}>Banca</div>
+          <div className="text-lg font-bold mt-0.5 leading-none">
+            {ticket.banca.toFixed(1)}%
+          </div>
+        </div>
+      </div>
+
+      {/* Footer meta */}
+      <div className={`flex items-center justify-between text-[11px] pt-2.5 border-t ${divider} ${muted}`}>
+        <span className="inline-flex items-center gap-1.5 truncate">
+          <Calendar className="h-3.5 w-3.5 shrink-0" />
+          {ticket.startMs
+            ? new Date(ticket.startMs).toLocaleString("pt-BR", {
+                day: "2-digit",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : ticket.date}
+        </span>
+        <span className="inline-flex items-center gap-1 font-medium text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity">
+          Ver detalhes <Eye className="h-3.5 w-3.5" />
+        </span>
+      </div>
+    </button>
   );
 }
 
