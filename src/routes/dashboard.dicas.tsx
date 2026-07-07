@@ -631,6 +631,13 @@ function Stat({
 }
 
 function StatusPill({ status }: { status: TipStatus }) {
+  if (status === "aguardando") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold bg-sky-500/15 text-sky-500 border border-sky-500/30">
+        <Calendar className="h-3 w-3" /> Em Aguardo
+      </span>
+    );
+  }
   if (status === "ao_vivo") {
     return (
       <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold bg-amber-500/15 text-amber-500 border border-amber-500/30">
@@ -649,6 +656,54 @@ function StatusPill({ status }: { status: TipStatus }) {
     <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold bg-red-500/15 text-red-500 border border-red-500/30">
       <TrendingUp className="h-3 w-3 rotate-180" /> Red
     </span>
+  );
+}
+
+function TeamBadge({
+  name,
+  logo,
+  isDark,
+  align,
+}: {
+  name: string;
+  logo?: string;
+  isDark: boolean;
+  align: "left" | "right";
+}) {
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("") || "?";
+  const fallback = isDark
+    ? "bg-neutral-800 text-neutral-300 border-neutral-700"
+    : "bg-neutral-100 text-neutral-600 border-neutral-200";
+  return (
+    <div
+      className={`flex-1 min-w-0 flex items-center gap-2 ${align === "right" ? "flex-row-reverse text-right" : ""}`}
+    >
+      {logo ? (
+        <img
+          src={logo}
+          alt={name}
+          className="h-10 w-10 rounded-full object-contain bg-white/90 border border-neutral-200 shrink-0"
+          loading="lazy"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = "none";
+          }}
+        />
+      ) : (
+        <div
+          className={`h-10 w-10 rounded-full border flex items-center justify-center text-[11px] font-bold shrink-0 ${fallback}`}
+        >
+          {initials}
+        </div>
+      )}
+      <div className="min-w-0">
+        <div className="text-sm font-semibold leading-tight truncate">{name}</div>
+      </div>
+    </div>
   );
 }
 
