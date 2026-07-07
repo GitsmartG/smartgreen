@@ -4,7 +4,9 @@ import { loadTickets, saveTickets, type Ticket, type TipStatus, type Parceiro as
 import { importBetTip, type BetTipsResult } from "@/lib/bet-tips";
 import { getSoccerLivescores } from "@/lib/livescores.functions";
 import { findMatchForTicket, gradePalpite } from "@/lib/auto-settle";
-import { Loader2, AlertCircle } from "lucide-react";
+import { getMatchRichData, type RichMatchResponse } from "@/lib/soccer-details.functions";
+import { Loader2, AlertCircle, Activity, ShieldAlert, Zap, PieChart } from "lucide-react";
+
 import {
   Search,
   RefreshCw,
@@ -1196,8 +1198,8 @@ function DetailsModal({
           </button>
         </div>
 
-        <div className="p-5 space-y-4 max-h-[65vh] overflow-y-auto">
-          <div className="flex items-center gap-2">
+        <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+          <div className="flex items-center gap-2 flex-wrap">
             <StatusPill status={ticket.status} />
             <span
               className={
@@ -1211,6 +1213,11 @@ function DetailsModal({
             </span>
             <span className={`text-xs ${muted}`}>{ticket.esporte}</span>
           </div>
+
+          {/* Rich data ao vivo do Statpal (só futebol) */}
+          {(ticket.esporte || "").toLowerCase().includes("fute") && (
+            <RichMatchPanel ticket={ticket} isDark={isDark} muted={muted} inner={inner} />
+          )}
 
           <div className={`rounded-lg border ${inner} px-3 py-2.5`}>
             <div className={`text-[10px] uppercase tracking-wider ${muted}`}>Palpite</div>
@@ -1262,6 +1269,7 @@ function DetailsModal({
               </a>
             </div>
           )}
+
 
           <div>
             <div className={`text-[10px] uppercase tracking-wider ${muted} mb-2`}>Marcar resultado</div>
@@ -1334,6 +1342,234 @@ function DetailsModal({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ---------- Rich Match Panel (ao vivo, futebol) ----------
+
+function eventLabel(type: string): { label: string; icon: string; color: string } {
+  const t = type.toLowerCase();
+  if (t.includes("goal")) return { label: "Gol", icon: "⚽", color: "text-emerald-500" };
+  if (t.includes("yellowred") || (t.includes("red") && !t.includes("card"))) return { label: "2º amarelo → vermelho", icon: "🟨🟥", color: "text-red-500" };
+  if (t.includes("redcard") || t === "red") return { label: "Cartão vermelho", icon: "🟥", color: "text-red-500" };
+  if (t.includes("yellow")) return { label: "Cartão amarelo", icon: "🟨", color: "text-amber-500" };
+  if (t.includes("sub")) return { label: "Substituição", icon: "🔁", color: "text-sky-500" };
+  if (t.includes("pen")) return { label: "Pênalti", icon: "🎯", color: "text-emerald-500" };
+  if (t.includes("var")) return { label: "VAR", icon: "📺", color: "text-neutral-400" };
+  return { label: type || "Evento", icon: "•", color: "text-neutral-400" };
+}
+
+function cashOutHint(entryOdd: number, liveOdd: number | null): {
+  label: string;
+  tone: "green" | "red" | "neutral";
+} | null {
+  if (!liveOdd || !Number.isFinite(liveOdd)) return null;
+  const ratio = liveOdd / entryOdd;
+  if (ratio <= 0.5) return { label: "Cash-out AGORA — probabilidade favorável", tone: "green" };
+  if (ratio <= 0.75) return { label: "Considerar cash-out parcial", tone: "green" };
+  if (ratio >= 1.5) return { label: "Segurar — a aposta se valorizou muito", tone: "red" };
+  return { label: "Situação neutra — sem urgência", tone: "neutral" };
+}
+
+function RichMatchPanel({
+  ticket,
+  isDark,
+  muted,
+  inner,
+}: {
+  ticket: Ticket;
+  isDark: boolean;
+  muted: string;
+  inner: string;
+}) {
+  const [state, setState] = useState<{
+    loading: boolean;
+    data: RichMatchResponse | null;
+  }>({ loading: true, data: null });
+
+  useEffect(() => {
+    let cancelled = false;
+    const parts = ticket.event.split(/\s+(?:vs|x|×|-)\s+/i);
+    const t1 = (parts[0] ?? "").trim();
+    const t2 = (parts[1] ?? "").trim();
+    if (!t1 || !t2) {
+      setState({ loading: false, data: { ok: false, error: "Não consegui extrair times do evento." } });
+      return;
+    }
+    const load = async () => {
+      try {
+        const res = await getMatchRichData({ data: { team1: t1, team2: t2 } });
+        if (!cancelled) setState({ loading: false, data: res });
+      } catch (e) {
+        if (!cancelled)
+          setState({
+            loading: false,
+            data: { ok: false, error: e instanceof Error ? e.message : "Erro" },
+          });
+      }
+    };
+    load();
+    const id = setInterval(load, 45_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [ticket.event]);
+
+  if (state.loading) {
+    return (
+      <div className={`rounded-lg border ${inner} px-3 py-4 flex items-center gap-2 text-sm ${muted}`}>
+        <Loader2 className="h-4 w-4 animate-spin" /> Buscando dados ao vivo…
+      </div>
+    );
+  }
+  const res = state.data;
+  if (!res || !res.ok || !res.match) {
+    return (
+      <div className={`rounded-lg border ${inner} px-3 py-3 text-xs ${muted} flex items-start gap-2`}>
+        <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+        <span>Sem dados ao vivo: {res?.error ?? "jogo não encontrado"}.</span>
+      </div>
+    );
+  }
+
+  const m = res.match;
+  const scoreTxt = `${m.home.goals ?? 0} - ${m.away.goals ?? 0}`;
+  const statusBadge = m.finished
+    ? { label: `Encerrado (${m.status})`, cls: "bg-neutral-500/15 text-neutral-400 border-neutral-500/30" }
+    : { label: `Ao vivo · ${m.status}${m.minute ? ` ${m.minute}'` : ""}`, cls: "bg-red-500/15 text-red-500 border-red-500/30 animate-pulse" };
+
+  const pred = res.prediction;
+  const odds = res.odds;
+
+  // Try to guess relevant live odd for cash-out (1X2 based on palpite)
+  const p = ticket.palpite.toLowerCase();
+  let relevantOdd: number | null = null;
+  if (odds && odds.length) {
+    const find = (needles: string[]) =>
+      odds.find((o) => needles.some((n) => o.selection.toLowerCase().includes(n)))?.odd ?? null;
+    if (/empate|draw/.test(p)) relevantOdd = find(["draw", "empate", "x"]);
+    else if (/casa|home|mandante/.test(p)) relevantOdd = find(["home", "1", "casa"]);
+    else if (/fora|away|visitante/.test(p)) relevantOdd = find(["away", "2", "fora"]);
+  }
+  const cash = cashOutHint(ticket.odd, relevantOdd);
+
+  return (
+    <div className={`rounded-xl border ${inner} p-4 space-y-4`}>
+      {/* Placar + status */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-3">
+          <div className="text-2xl font-bold tabular-nums">{scoreTxt}</div>
+          <div className="text-xs">
+            <div className="font-medium">{m.home.name} vs {m.away.name}</div>
+            {m.league && <div className={muted}>{m.league}</div>}
+          </div>
+        </div>
+        <span className={`text-[11px] font-semibold px-2 py-1 rounded-full border ${statusBadge.cls}`}>
+          {statusBadge.label}
+        </span>
+      </div>
+
+      {/* Predição / probabilidade */}
+      {pred && (pred.homeWin != null || pred.draw != null || pred.awayWin != null) && (
+        <div>
+          <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1.5 inline-flex items-center gap-1`}>
+            <PieChart className="h-3 w-3" /> Probabilidade
+          </div>
+          <div className="flex h-6 rounded-md overflow-hidden text-[10px] font-bold text-white">
+            {pred.homeWin != null && (
+              <div className="bg-emerald-600 flex items-center justify-center" style={{ width: `${(pred.homeWin * 100).toFixed(0)}%` }}>
+                {(pred.homeWin * 100).toFixed(0)}%
+              </div>
+            )}
+            {pred.draw != null && (
+              <div className="bg-neutral-500 flex items-center justify-center" style={{ width: `${(pred.draw * 100).toFixed(0)}%` }}>
+                {(pred.draw * 100).toFixed(0)}%
+              </div>
+            )}
+            {pred.awayWin != null && (
+              <div className="bg-red-600 flex items-center justify-center" style={{ width: `${(pred.awayWin * 100).toFixed(0)}%` }}>
+                {(pred.awayWin * 100).toFixed(0)}%
+              </div>
+            )}
+          </div>
+          <div className={`flex justify-between text-[10px] mt-1 ${muted}`}>
+            <span>Casa</span><span>Empate</span><span>Fora</span>
+          </div>
+          {pred.advice && <div className="text-xs mt-2 italic">💡 {pred.advice}</div>}
+        </div>
+      )}
+
+      {/* Cash-out */}
+      {cash && (
+        <div
+          className={
+            "rounded-lg border px-3 py-2 text-xs font-medium inline-flex items-center gap-2 " +
+            (cash.tone === "green"
+              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500"
+              : cash.tone === "red"
+                ? "bg-red-500/10 border-red-500/30 text-red-500"
+                : "bg-amber-500/10 border-amber-500/30 text-amber-500")
+          }
+        >
+          <Zap className="h-3.5 w-3.5" /> {cash.label}
+          {relevantOdd && (
+            <span className={muted}>
+              (odd entrada {ticket.odd.toFixed(2)} → ao vivo {relevantOdd.toFixed(2)})
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Eventos */}
+      {m.events.length > 0 && (
+        <div>
+          <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1.5 inline-flex items-center gap-1`}>
+            <Activity className="h-3 w-3" /> Eventos ({m.events.length})
+          </div>
+          <ul className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+            {m.events.map((ev) => {
+              const meta = eventLabel(ev.type);
+              const teamName = ev.team === "home" ? m.home.name : ev.team === "away" ? m.away.name : ev.team;
+              return (
+                <li key={ev.id} className="flex items-start gap-2 text-xs">
+                  <span className="tabular-nums font-mono text-[10px] w-8 shrink-0 pt-0.5">
+                    {ev.minute}{ev.extraMin ? `+${ev.extraMin}` : ""}'
+                  </span>
+                  <span className="shrink-0">{meta.icon}</span>
+                  <span className="flex-1 min-w-0">
+                    <span className={`font-semibold ${meta.color}`}>{meta.label}</span>{" "}
+                    — <span className="font-medium">{ev.player || "?"}</span>
+                    <span className={muted}> · {teamName}</span>
+                    {ev.result && <span className={muted}> {ev.result}</span>}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+      {/* Odds ao vivo (top 6) */}
+      {odds && odds.length > 0 && (
+        <div>
+          <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1.5 inline-flex items-center gap-1`}>
+            <ShieldAlert className="h-3 w-3" /> Odds ao vivo
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+            {odds.slice(0, 9).map((o, i) => (
+              <div key={i} className={`rounded-md border ${isDark ? "border-neutral-800" : "border-neutral-200"} px-2 py-1.5`}>
+                <div className={`text-[9px] uppercase ${muted} truncate`}>{o.market}</div>
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-xs truncate">{o.selection}</span>
+                  <span className="text-xs font-bold text-emerald-500 tabular-nums">{o.odd.toFixed(2)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
