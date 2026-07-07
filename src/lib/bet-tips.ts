@@ -32,6 +32,16 @@ export type BetTipsResult =
       parceiro: Parceiro;
       error: string;
       triedIds: string[];
+      sharedMeta?: {
+        betId: string;
+        fixedType: string | null;
+        odd: number | null;
+        amount: number | null;
+        possibleWin: number | null;
+        dateMs: number | null;
+        isLive: boolean | null;
+        outcome: number | null;
+      };
     };
 
 export async function importBetTip(
