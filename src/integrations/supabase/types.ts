@@ -14,7 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      daily_matches: {
+        Row: {
+          fetched_at: string
+          match_date: string
+          payload: Json
+          source: string
+        }
+        Insert: {
+          fetched_at?: string
+          match_date: string
+          payload: Json
+          source?: string
+        }
+        Update: {
+          fetched_at?: string
+          match_date?: string
+          payload?: Json
+          source?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
