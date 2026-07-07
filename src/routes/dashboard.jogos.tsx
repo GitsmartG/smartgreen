@@ -141,6 +141,18 @@ function mergeLivePayload(base: DailyMatchesPayload | undefined, live: DailyMatc
   };
 }
 
+function s(v: unknown, fb = ""): string {
+  if (v == null) return fb;
+  if (typeof v === "string") return v;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  return fb;
+}
+function sNum(v: unknown, fb = 0): number {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v))) return Number(v);
+  return fb;
+}
+
 function formatSpTime(date?: string, time?: string): string | undefined {
   if (!time) return undefined;
   const t = time.match(/^(\d{1,2}):(\d{2})/);
