@@ -506,7 +506,11 @@ function TicketCard({
   const team1 = (parts[0] ?? ticket.event).trim();
   const team2 = (parts[1] ?? "").trim();
   const isLive = live?.live && !live.finished;
-  const showScore = isLive && (live?.score1 != null || live?.score2 != null);
+  const score1 = live?.score1 ?? ticket.score1;
+  const score2 = live?.score2 ?? ticket.score2;
+  const team1Logo = live?.team1Logo ?? ticket.team1Logo;
+  const team2Logo = live?.team2Logo ?? ticket.team2Logo;
+  const showScore = score1 != null || score2 != null;
 
   return (
     <button
@@ -555,13 +559,13 @@ function TicketCard({
       {/* Matchup: escudos + placar */}
       <div className={`rounded-xl border ${inner} px-3 py-3`}>
         <div className="flex items-center justify-between gap-3">
-          <TeamBadge name={team1} logo={live?.team1Logo} isDark={isDark} align="left" />
+          <TeamBadge name={team1} logo={team1Logo} isDark={isDark} align="left" />
           <div className="flex flex-col items-center min-w-[60px]">
             {showScore ? (
               <div className="text-xl font-bold leading-none tabular-nums">
-                <span className="text-emerald-500">{live!.score1 ?? 0}</span>
+                <span className="text-emerald-500">{score1 ?? 0}</span>
                 <span className={`mx-1 ${muted}`}>-</span>
-                <span className="text-emerald-500">{live!.score2 ?? 0}</span>
+                <span className="text-emerald-500">{score2 ?? 0}</span>
               </div>
             ) : (
               <div className={`text-xs font-semibold ${muted}`}>VS</div>
@@ -576,7 +580,7 @@ function TicketCard({
               </div>
             )}
           </div>
-          <TeamBadge name={team2 || "—"} logo={live?.team2Logo} isDark={isDark} align="right" />
+            <TeamBadge name={team2 || "—"} logo={team2Logo} isDark={isDark} align="right" />
         </div>
         <div className={`text-[11px] mt-2 text-center truncate ${muted}`}>{ticket.league}</div>
       </div>
@@ -647,6 +651,26 @@ function splitPalpites(raw: string): string[] {
     .map((p) => p.trim())
     .filter(Boolean);
   return parts.length ? parts : [raw.trim()];
+}
+
+function normalizedText(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isSwappedMatch(ticket: Ticket, feedHome: string, feedAway: string): boolean {
+  const parts = ticket.event.split(/\s+(?:vs|x|×|-)\s+/i);
+  const tHome = normalizedText(parts[0] ?? "");
+  const tAway = normalizedText(parts[1] ?? "");
+  const home = normalizedText(feedHome);
+  const away = normalizedText(feedAway);
+  if (!tHome || !tAway) return false;
+  return away.includes(tHome) || tAway.includes(home);
 }
 
 
