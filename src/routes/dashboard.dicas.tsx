@@ -162,6 +162,20 @@ function DicasPage() {
             if (team1Logo && t.team1Logo !== team1Logo) patch.team1Logo = team1Logo;
             if (team2Logo && t.team2Logo !== team2Logo) patch.team2Logo = team2Logo;
 
+            // status por perna (só faz sentido se tiver placar)
+            const legs = splitPalpites(t.palpite);
+            if (legs.length > 0 && (score1 != null || score2 != null)) {
+              const statuses: TipStatus[] = legs.map((leg) => {
+                const g = gradeSinglePalpite(leg, m, t);
+                if (g) return g;
+                return m.live ? "ao_vivo" : "aguardando";
+              });
+              const prev = t.legStatuses ?? [];
+              const same =
+                prev.length === statuses.length && prev.every((s, i) => s === statuses[i]);
+              if (!same) patch.legStatuses = statuses;
+            }
+
             if (t.status === "green" || t.status === "red") {
               if (Object.keys(patch).length > 1) changed = true;
               return Object.keys(patch).length > 1 ? { ...t, ...patch } : t;
