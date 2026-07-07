@@ -8,8 +8,9 @@ const MAX_ENTRIES = 500;
 type Entry = { url: string; ts: number };
 type Store = Record<string, Entry>;
 
-function normalize(name: string): string {
-  return name
+function normalize(name: unknown): string {
+  const s = typeof name === "string" ? name : name == null ? "" : String(name);
+  return s
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
