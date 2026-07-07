@@ -171,17 +171,25 @@ function DicasPage() {
       ? "bg-neutral-950 border-neutral-800 text-neutral-100 focus:border-emerald-600"
       : "bg-white border-neutral-300 text-neutral-900 focus:border-emerald-700");
 
-  const [tickets, setTickets] = useState<Ticket[]>(() => loadTickets());
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [hydrated, setHydrated] = useState(false);
   const ticketsRef = useRef<Ticket[]>(tickets);
   const ticketList = Array.isArray(tickets) ? tickets : [];
+
+  // Carrega tickets do storage só no client (evita SSR mismatch e hooks count divergente).
+  useEffect(() => {
+    setTickets(loadTickets());
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
     ticketsRef.current = ticketList;
   }, [ticketList]);
 
   useEffect(() => {
+    if (!hydrated) return;
     saveTickets(ticketList);
-  }, [ticketList]);
+  }, [ticketList, hydrated]);
 
   const [liveMap, setLiveMap] = useState<Record<string, LiveState>>({});
   const [refreshing, setRefreshing] = useState(false);
