@@ -15,6 +15,14 @@ export type LiveMatch = {
   minute?: string;
   live: boolean;
   finished: boolean;
+  corners1?: number | null;
+  corners2?: number | null;
+  yellow1?: number | null;
+  yellow2?: number | null;
+  red1?: number | null;
+  red2?: number | null;
+  shots1?: number | null;
+  shots2?: number | null;
 };
 
 export const getSoccerLivescores = createServerFn({ method: "GET" }).handler(async () => {
