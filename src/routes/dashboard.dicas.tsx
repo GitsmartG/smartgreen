@@ -362,6 +362,7 @@ function DicasPage() {
             <TicketCard
               key={t.id}
               ticket={t}
+              live={liveMap[t.id]}
               isDark={isDark}
               subtle={subtle}
               muted={muted}
