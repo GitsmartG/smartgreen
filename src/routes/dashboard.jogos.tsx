@@ -11,6 +11,49 @@ export const Route = createFileRoute("/dashboard/jogos")({
 
 type FilterKey = "todos" | "ao_vivo" | "encerrados" | "agendados";
 
+// Ordem de prioridade das ligas / países mais importantes.
+// Menor número = mais no topo.
+const LEAGUE_PRIORITY: { test: RegExp; rank: number }[] = [
+  { test: /(uefa\s+)?champions\s+league|liga\s+dos\s+campeoes/i, rank: 0 },
+  { test: /copa\s+libertadores|libertadores/i, rank: 1 },
+  { test: /copa\s+sul[- ]?americana|sudamericana/i, rank: 2 },
+  { test: /uefa\s+europa\s+league|europa\s+league/i, rank: 3 },
+  { test: /uefa\s+nations\s+league|nations\s+league/i, rank: 4 },
+  { test: /world\s+cup|copa\s+do\s+mundo|fifa/i, rank: 5 },
+  { test: /brasileirao|brasileir[aã]o|serie\s+a\s+brasil|brazil.*serie\s+a/i, rank: 10 },
+  { test: /copa\s+do\s+brasil/i, rank: 11 },
+  { test: /premier\s+league|england.*premier/i, rank: 20 },
+  { test: /la\s*liga|spain.*primera|primera\s+division/i, rank: 21 },
+  { test: /serie\s+a(?!.*brasil)|italy.*serie\s+a/i, rank: 22 },
+  { test: /bundesliga/i, rank: 23 },
+  { test: /ligue\s*1/i, rank: 24 },
+  { test: /copa\s+america|eurocopa|euro\s+championship/i, rank: 25 },
+  { test: /serie\s+b.*brasil|brazil.*serie\s+b/i, rank: 30 },
+];
+
+const COUNTRY_PRIORITY: Record<string, number> = {
+  brazil: 40,
+  brasil: 40,
+  england: 45,
+  spain: 46,
+  italy: 47,
+  germany: 48,
+  france: 49,
+  argentina: 50,
+  portugal: 55,
+  netherlands: 56,
+  usa: 60,
+};
+
+function leaguePriority(lg: NormalizedLeague): number {
+  const name = lg.name || "";
+  for (const { test, rank } of LEAGUE_PRIORITY) {
+    if (test.test(name)) return rank;
+  }
+  const country = (lg.country || "").toLowerCase();
+  return COUNTRY_PRIORITY[country] ?? 100;
+}
+
 function JogosHojePage() {
   const isDark = useIsDark();
   const [state, setState] = useState<{
@@ -53,7 +96,13 @@ function JogosHojePage() {
         });
         return { ...lg, matches };
       })
-      .filter((lg) => lg.matches.length > 0);
+      .filter((lg) => lg.matches.length > 0)
+      .sort((a, b) => {
+        const pa = leaguePriority(a);
+        const pb = leaguePriority(b);
+        if (pa !== pb) return pa - pb;
+        return a.name.localeCompare(b.name);
+      });
   }, [state.data, query, filter]);
 
   const totalCount = state.data?.payload?.totalMatches ?? 0;
