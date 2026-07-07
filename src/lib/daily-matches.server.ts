@@ -6,8 +6,8 @@ export type NormalizedMatch = {
   time?: string;
   date?: string;
   venue?: string;
-  home: { name: string; goals: number | null; id?: string };
-  away: { name: string; goals: number | null; id?: string };
+  home: { name: string; goals: number | null; id?: string; image?: string };
+  away: { name: string; goals: number | null; id?: string; image?: string };
   finished: boolean;
   live: boolean;
 };
