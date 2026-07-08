@@ -36,9 +36,13 @@ export type NormalizedLeague = {
 export type DailyMatchesPayload = {
   updated?: string;
   updatedTs?: number;
+  timeZone?: string;
   leagues: NormalizedLeague[];
   totalMatches: number;
 };
+
+const BR_TIME_ZONE = "America/Sao_Paulo";
+const MATCH_FINISHED_AFTER_MS = 2 * 60 * 60 * 1000;
 
 function isFinished(status: string): boolean {
   const s = status.toUpperCase();
@@ -68,6 +72,70 @@ function isoFromStatpalDate(value?: string): string | null {
   const iso = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
   return null;
+}
+
+function addDaysISO(value: string, days: number): string {
+  const [year = 1970, month = 1, day = 1] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return date.toISOString().slice(0, 10);
+}
+
+function saoPauloDateParts(date: Date): { dateISO: string; time: string } {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: BR_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const pick = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return {
+    dateISO: `${pick("year")}-${pick("month")}-${pick("day")}`,
+    time: `${pick("hour")}:${pick("minute")}`,
+  };
+}
+
+function parseStatpalUtcDateTime(date?: string, time?: string): Date | null {
+  const iso = isoFromStatpalDate(date);
+  const t = (time ?? "").match(/^(\d{1,2}):(\d{2})/);
+  if (!iso || !t) return null;
+  const [year = 1970, month = 1, day = 1] = iso.split("-").map(Number);
+  const hour = Number(t[1]);
+  const minute = Number(t[2]);
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return new Date(Date.UTC(year, month - 1, day, hour, minute));
+}
+
+function localMatchDateISO(date?: string, time?: string): string | undefined {
+  const parsed = parseStatpalUtcDateTime(date, time);
+  return parsed ? saoPauloDateParts(parsed).dateISO : isoFromStatpalDate(date) ?? undefined;
+}
+
+function localMatchTime(date?: string, time?: string): string | undefined {
+  const parsed = parseStatpalUtcDateTime(date, time);
+  if (parsed) return saoPauloDateParts(parsed).time;
+  const t = (time ?? "").match(/^(\d{1,2}):(\d{2})/);
+  return t ? `${t[1].padStart(2, "0")}:${t[2]}` : time;
+}
+
+function deriveLifecycle(status: string, date?: string, time?: string): {
+  status: string;
+  finished: boolean;
+  live: boolean;
+} {
+  if (isFinished(status)) return { status, finished: true, live: false };
+  if (isLive(status)) return { status, finished: false, live: true };
+
+  const kickoff = parseStatpalUtcDateTime(date, time);
+  if (kickoff) {
+    const elapsed = Date.now() - kickoff.getTime();
+    if (elapsed >= MATCH_FINISHED_AFTER_MS) return { status: "FINISHED", finished: true, live: false };
+    if (elapsed >= 0) return { status: "LIVE", finished: false, live: true };
+  }
+
+  return { status, finished: false, live: false };
 }
 
 function statpalDateFromISO(value: string): string {
@@ -103,10 +171,10 @@ function extractStatpalRoot(raw: unknown): Record<string, unknown> {
 }
 
 function filterPayloadByDate(payload: DailyMatchesPayload, dateISO: string): DailyMatchesPayload {
-  const leagues = (payload.leagues ?? [])
+  const leagues = (Array.isArray(payload.leagues) ? payload.leagues : [])
     .map((lg) => ({
       ...lg,
-      matches: (lg.matches ?? []).filter((m) => isoFromStatpalDate(m.date) === dateISO),
+      matches: (Array.isArray(lg.matches) ? lg.matches : []).filter((m) => isoFromStatpalDate(m.date) === dateISO),
     }))
     .filter((lg) => lg.matches.length > 0);
   return {
@@ -117,8 +185,8 @@ function filterPayloadByDate(payload: DailyMatchesPayload, dateISO: string): Dai
 }
 
 function payloadHasOnlyDate(payload: DailyMatchesPayload, dateISO: string): boolean {
-  for (const lg of payload.leagues ?? []) {
-    for (const m of lg.matches ?? []) {
+  for (const lg of Array.isArray(payload.leagues) ? payload.leagues : []) {
+    for (const m of Array.isArray(lg.matches) ? lg.matches : []) {
       if (isoFromStatpalDate(m.date) !== dateISO) return false;
     }
   }
@@ -194,6 +262,14 @@ export function normalizeStatpalLive(raw: unknown, dateISO?: string): DailyMatch
       const home = (m.home as Record<string, unknown>) ?? {};
       const away = (m.away as Record<string, unknown>) ?? {};
       const status = String(m.status ?? "");
+      const rawDate = typeof m.date === "string" ? m.date : undefined;
+      const rawTime =
+        typeof m.time === "string"
+          ? m.time
+          : /^\d{1,2}:\d{2}/.test(status)
+            ? status
+            : undefined;
+      const lifecycle = deriveLifecycle(status, rawDate, rawTime);
       const events = ensureArray((m.events as Record<string, unknown> | undefined)?.event)
         .map(normalizeEvent)
         .filter((event): event is NormalizedMatchEvent => event != null);
@@ -209,9 +285,9 @@ export function normalizeStatpalLive(raw: unknown, dateISO?: string): DailyMatch
         alternateIds: [m.main_id, m.fallback_id_1, m.fallback_id_2, m.fallback_id_3]
           .map((v) => (v == null ? "" : String(v)))
           .filter(Boolean),
-        status,
-        time: typeof m.time === "string" ? m.time : undefined,
-        date: typeof m.date === "string" ? m.date : undefined,
+        status: lifecycle.status,
+        time: localMatchTime(rawDate, rawTime),
+        date: localMatchDateISO(rawDate, rawTime),
         venue: typeof m.venue === "string" ? m.venue : undefined,
         home: {
           name: String(home.name ?? "?"),
@@ -225,8 +301,8 @@ export function normalizeStatpalLive(raw: unknown, dateISO?: string): DailyMatch
           id: pickStr(away, "id", "team_id"),
           image: pickStr(away, "image", "logo", "crest", "badge"),
         },
-        finished: isFinished(status),
-        live: isLive(status),
+        finished: lifecycle.finished,
+        live: lifecycle.live,
         events,
         hasLiveStats: String(m.has_live_stats ?? "").toLowerCase() === "true",
       };
@@ -243,6 +319,7 @@ export function normalizeStatpalLive(raw: unknown, dateISO?: string): DailyMatch
   const payload = {
     updated: typeof root.updated === "string" ? root.updated : undefined,
     updatedTs: toNum(root.updated_ts) ?? undefined,
+    timeZone: BR_TIME_ZONE,
     leagues,
     totalMatches: total,
   };
@@ -273,13 +350,30 @@ async function statpalFetchDaily(offset: number): Promise<unknown> {
 }
 
 async function fetchMatchesPayloadForDate(dateISO: string): Promise<DailyMatchesPayload> {
-  const offset = dateDiffDays(dateISO, utcTodayISO());
+  const utcBase = utcTodayISO();
+  const offsets = Array.from(
+    new Set([
+      dateDiffDays(dateISO, utcBase),
+      // O dia de Brasília entre 21h e 23h59 cai no dia seguinte do calendário UTC da API.
+      dateDiffDays(addDaysISO(dateISO, 1), utcBase),
+    ]),
+  );
 
   // Endpoint /daily traz a agenda completa (agendados + ao vivo + encerrados).
   // O /live só devolve partidas rolando agora. Pra "hoje" (offset 0 UTC) precisamos
   // dos dois: daily como base e live pra atualizar placar/status em tempo real.
-  if (offset >= -7 && offset <= 7) {
-    const daily = normalizeStatpalLive(await statpalFetchDaily(offset), dateISO);
+  const dailyPayloads: DailyMatchesPayload[] = [];
+  for (const offset of offsets) {
+    if (offset >= -7 && offset <= 7) {
+      dailyPayloads.push(normalizeStatpalLive(await statpalFetchDaily(offset), dateISO));
+    }
+  }
+
+  if (dailyPayloads.length > 0) {
+    const daily = dailyPayloads.reduce<DailyMatchesPayload | undefined>(
+      (acc, payload) => mergeLivePayload(acc, payload),
+      undefined,
+    ) ?? { leagues: [], totalMatches: 0 };
     try {
       const live = normalizeStatpalLive(await statpalFetchLive(), dateISO);
       return mergeLivePayload(daily, live);
@@ -300,20 +394,23 @@ export function mergeLivePayload(
   live: DailyMatchesPayload,
 ): DailyMatchesPayload {
   if (!base) return live;
-  const leagues = base.leagues.map((lg) => ({ ...lg, matches: [...(lg.matches ?? [])] }));
+  const leagues = (Array.isArray(base.leagues) ? base.leagues : []).map((lg) => ({
+    ...lg,
+    matches: [...(Array.isArray(lg.matches) ? lg.matches : [])],
+  }));
   const leagueById = new Map(leagues.map((lg) => [lg.id, lg]));
   const matchById = new Map<string, { leagueIndex: number; matchIndex: number }>();
   const matchByTeams = new Map<string, { leagueIndex: number; matchIndex: number }>();
 
   leagues.forEach((lg, leagueIndex) => {
-    lg.matches.forEach((m, matchIndex) => {
+    (Array.isArray(lg.matches) ? lg.matches : []).forEach((m, matchIndex) => {
       matchById.set(m.id, { leagueIndex, matchIndex });
       for (const alt of m.alternateIds ?? []) matchById.set(alt, { leagueIndex, matchIndex });
       matchByTeams.set(matchKey(m.home.name, m.away.name), { leagueIndex, matchIndex });
     });
   });
 
-  for (const liveLeague of live.leagues) {
+  for (const liveLeague of Array.isArray(live.leagues) ? live.leagues : []) {
     let targetLeague = liveLeague.id ? leagueById.get(liveLeague.id) : undefined;
     if (!targetLeague) {
       const byName = leagues.find(
@@ -327,7 +424,7 @@ export function mergeLivePayload(
       if (targetLeague.id) leagueById.set(targetLeague.id, targetLeague);
     }
 
-    for (const liveMatch of liveLeague.matches ?? []) {
+    for (const liveMatch of Array.isArray(liveLeague.matches) ? liveLeague.matches : []) {
       const found =
         matchById.get(liveMatch.id) ||
         (liveMatch.alternateIds ?? []).map((id) => matchById.get(id)).find(Boolean) ||
@@ -349,6 +446,7 @@ export function mergeLivePayload(
   return {
     updated: live.updated ?? base.updated,
     updatedTs: live.updatedTs ?? base.updatedTs,
+    timeZone: BR_TIME_ZONE,
     leagues,
     totalMatches: leagues.reduce((sum, lg) => sum + (lg.matches?.length ?? 0), 0),
   };
@@ -368,16 +466,7 @@ function getAdminClient() {
 
 function todayISO(): string {
   // Data "hoje" no fuso America/Sao_Paulo (UTC-3), pra bater com a percepção do usuário BR.
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Sao_Paulo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-  const y = parts.find((p) => p.type === "year")?.value ?? "1970";
-  const m = parts.find((p) => p.type === "month")?.value ?? "01";
-  const d = parts.find((p) => p.type === "day")?.value ?? "01";
-  return `${y}-${m}-${d}`;
+  return saoPauloDateParts(new Date()).dateISO;
 }
 
 
@@ -400,8 +489,11 @@ export async function readCachedDaily(date?: string): Promise<{
     .maybeSingle();
   if (error || !data) return null;
   const payload = data.payload as DailyMatchesPayload;
+  if (payload?.timeZone !== BR_TIME_ZONE) return null;
   // Invalida cache antigo que ainda não tem logo/id dos times
   const first = payload?.leagues?.[0]?.matches?.[0];
+  // Invalida cache antigo salvo com data/horário crus da API em UTC.
+  if (first?.date && !/^\d{4}-\d{2}-\d{2}$/.test(first.date)) return null;
   if (first && !first.home?.image && !first.home?.id) return null;
   // Invalida cache antigo que marcava horário (ex: "23:00") como jogo ao vivo.
   if (cacheShapeIsStale(payload)) return null;
