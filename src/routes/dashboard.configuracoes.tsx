@@ -409,6 +409,19 @@ function ApiPanel({
     [],
   );
   const [copied, setCopied] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState<string>("");
+  const [apiKeyRevealed, setApiKeyRevealed] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { getInternalApiKey } = await import("@/lib/internal-api-key.functions");
+        const res = await getInternalApiKey();
+        if (res?.key) setApiKey(res.key);
+      } catch { /* usuário não logado ou erro — mantém vazio */ }
+    })();
+  }, []);
+
 
   const copy = async (text: string) => {
     try {
