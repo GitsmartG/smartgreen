@@ -12,6 +12,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { LiveNotificationsPanel } from "@/components/LiveNotificationsPanel";
+import { supabase } from "@/integrations/supabase/client";
 
 const LOGO_URL =
   "https://wffylwohekfpecslflgc.supabase.co/storage/v1/object/public/files/uploads/t7QtTgpHfAeBSDZvo5b7DViqtR73/1783110032648-mkbpm-logo_smartgreen.png";
@@ -43,7 +44,8 @@ function DashboardLayout() {
 
   const isDark = theme === "dark";
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     localStorage.removeItem("sg-auth");
     navigate({ to: "/" });
   };

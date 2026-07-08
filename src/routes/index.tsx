@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { Eye, EyeOff, Loader2, Mail, Lock, Sun, Moon, User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const LOGO_URL =
   "https://wffylwohekfpecslflgc.supabase.co/storage/v1/object/public/files/uploads/t7QtTgpHfAeBSDZvo5b7DViqtR73/1783110032648-mkbpm-logo_smartgreen.png";
@@ -39,7 +40,7 @@ function LoginPage() {
 
   const navigate = useNavigate();
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     if (mode === "signup" && password !== confirmPassword) {
@@ -47,11 +48,33 @@ function LoginPage() {
       return;
     }
     setLoading(true);
-    setTimeout(() => {
+    try {
+      if (mode === "signup") {
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: name },
+            emailRedirectTo: window.location.origin,
+          },
+        });
+        if (signUpError) throw signUpError;
+        if (!data.session) {
+          setError("Conta criada. Confirma seu e-mail e depois entra aqui de novo, beleza?");
+          return;
+        }
+      } else {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) throw signInError;
+      }
+
       setLoading(false);
-      localStorage.setItem("sg-auth", "1");
       navigate({ to: "/dashboard" });
-    }, 900);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível entrar agora");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const isDark = theme === "dark";
