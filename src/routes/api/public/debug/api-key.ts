@@ -1,6 +1,8 @@
 // Diagnóstico: bate nesse endpoint no Vercel pra ver o que o servidor enxerga.
 // GET /api/public/debug/api-key?probe=<sua_chave>
 import { createFileRoute } from "@tanstack/react-router";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import { buildCors } from "@/lib/api-auth";
 
 export const Route = createFileRoute("/api/public/debug/api-key")({
@@ -29,21 +31,29 @@ export const Route = createFileRoute("/api/public/debug/api-key")({
           },
         };
 
-        // Tenta ler api_keys via service role
+        // Tenta validar a chave do mesmo jeito que a API mobile valida: chave pública + RLS.
         try {
-          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          const { data, error } = await supabaseAdmin
-            .from("api_keys")
-            .select("key,active")
-            .eq("active", true);
-          if (error) {
-            out.dbError = error.message;
+          if (!probe) {
+            out.probeRequired = true;
           } else {
-            const keys = (data ?? []).map((r) => r.key as string);
-            out.activeKeysCount = keys.length;
-            out.keyPrefixes = keys.map((k) => k.slice(0, 10) + "...");
-            if (probe) {
-              out.probeMatches = keys.includes(probe);
+            const sb = createClient<Database>(
+              process.env.SUPABASE_URL!,
+              process.env.SUPABASE_PUBLISHABLE_KEY!,
+              {
+                auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+                global: { headers: { "x-api-key": probe } },
+              },
+            );
+            const { data, error } = await sb
+            .from("api_keys")
+              .select("id")
+              .eq("key", probe)
+              .eq("active", true)
+              .maybeSingle();
+            if (error) {
+              out.dbError = error.message;
+            } else {
+              out.probeMatches = Boolean(data);
               out.probePrefix = probe.slice(0, 10) + "...";
               out.probeLen = probe.length;
             }
