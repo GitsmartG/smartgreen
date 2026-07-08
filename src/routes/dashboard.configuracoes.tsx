@@ -628,6 +628,95 @@ function ApiPanel({
   "result": "1-0"           // opcional (gols)
 }`;
 
+  const matchShape = `// GET /api/public/mobile/matches/live → 200
+{
+  "ok": true,
+  "fetchedAt": "2026-07-08T21:47:00.000Z",
+  "count": 1,
+  "matches": [
+    {
+      "id": "9981234",
+      "league": "Brasileirão Série A",
+      "leagueId": "384",
+      "status": "live",            // scheduled | live | finished
+      "minute": "62",
+      "startMs": 1783545000000,
+      "team1": { "id": "1234", "name": "Flamengo", "logo": "/api/public/team-image/1234" },
+      "team2": { "id": "5678", "name": "Palmeiras", "logo": "/api/public/team-image/5678" },
+      "score1": 2,
+      "score2": 1,
+      "events": [
+        { "id": "e1", "type": "goal", "team": "home", "minute": "12", "player": "Pedro", "result": "1-0" },
+        { "id": "e2", "type": "yellowcard", "team": "away", "minute": "34", "player": "Gómez" },
+        { "id": "e3", "type": "goal", "team": "away", "minute": "51", "player": "Endrick", "result": "1-1" },
+        { "id": "e4", "type": "goal", "team": "home", "minute": "58", "player": "Arrascaeta", "result": "2-1" }
+      ]
+    }
+  ]
+}`;
+
+  const errorShape = `// Respostas de erro (todas retornam JSON)
+401 Unauthorized  → { "ok": false, "error": "invalid_api_key" }
+429 Too Many Reqs → { "ok": false, "error": "rate_limited" }
+500 Server Error  → { "ok": false, "error": "mensagem detalhada" }`;
+
+  const curlExample = `# cURL — jogos ao vivo
+curl -H "X-API-Key: ${apiKey || "SUA_CHAVE_AQUI"}" \\
+  ${origin}/api/public/mobile/matches/live
+
+# cURL — só tickets green (últimos 20)
+curl -H "X-API-Key: ${apiKey || "SUA_CHAVE_AQUI"}" \\
+  "${origin}/api/public/mobile/tickets?status=green&limit=20"`;
+
+  const jsExample = `// JavaScript / TypeScript (browser, Node, Vercel)
+const API_BASE = "${origin}";
+const API_KEY  = "${apiKey || "SUA_CHAVE_AQUI"}";
+
+async function apiGet(path, params = {}) {
+  const url = new URL(API_BASE + path);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, String(v)));
+  const res = await fetch(url, { headers: { "X-API-Key": API_KEY } });
+  if (!res.ok) throw new Error(\`\${res.status} \${res.statusText}\`);
+  return res.json();
+}
+
+// Uso
+const { tickets }  = await apiGet("/api/public/mobile/tickets", { status: "ao_vivo", limit: 50 });
+const { matches }  = await apiGet("/api/public/mobile/matches/live");
+const oneTicket    = await apiGet("/api/public/mobile/tickets/A7F3B21C4E88");`;
+
+  const rnExample = `// React Native / Expo — hook com polling
+import { useEffect, useState } from "react";
+
+const API_BASE = "${origin}";
+const API_KEY  = "${apiKey || "SUA_CHAVE_AQUI"}";
+
+export function useLiveMatches(intervalMs = 15000) {
+  const [matches, setMatches] = useState([]);
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      const res = await fetch(\`\${API_BASE}/api/public/mobile/matches/live\`, {
+        headers: { "X-API-Key": API_KEY },
+      });
+      const data = await res.json();
+      if (alive && data.ok) setMatches(data.matches);
+    };
+    load();
+    const t = setInterval(load, intervalMs);
+    return () => { alive = false; clearInterval(t); };
+  }, [intervalMs]);
+  return matches;
+}`;
+
+  const paramsTable: Array<{ param: string; type: string; desc: string; example: string }> = [
+    { param: "status", type: "string", desc: "Filtra por status do ticket.", example: "aguardando | ao_vivo | green | red" },
+    { param: "limit",  type: "number", desc: "Máximo de tickets (default 100, teto 500).", example: "?limit=50" },
+  ];
+
+  const [tab, setTab] = useState<"curl" | "js" | "rn">("js");
+
+
   const box = isDark ? "bg-neutral-950/60 border-neutral-800" : "bg-neutral-50 border-neutral-200";
   const codeCls = "font-mono text-[12px] break-all";
 
