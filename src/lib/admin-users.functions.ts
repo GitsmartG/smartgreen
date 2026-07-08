@@ -65,3 +65,33 @@ export const deleteAppUser = createServerFn({ method: "POST" })
     if (error) return { ok: false, error: error.message };
     return { ok: true };
   });
+
+export const createAppUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { email: string; password: string; name?: string; role: "admin" | "user" }) =>
+    z.object({
+      email: z.string().email(),
+      password: z.string().min(6, "Senha deve ter ao menos 6 caracteres"),
+      name: z.string().trim().optional(),
+      role: z.enum(["admin", "user"]),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<{ ok: boolean; error?: string; userId?: string }> => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) return { ok: false, error: "forbidden" };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+      email: data.email,
+      password: data.password,
+      email_confirm: true,
+      user_metadata: data.name ? { name: data.name } : undefined,
+    });
+    if (error || !created?.user) return { ok: false, error: error?.message ?? "Erro ao criar usuário" };
+    if (data.role === "admin") {
+      await context.supabase.rpc("admin_set_role", { _target: created.user.id, _role: "admin" });
+    }
+    return { ok: true, userId: created.user.id };
+  });
