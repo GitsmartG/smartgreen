@@ -2,18 +2,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { ticketRowToDTO } from "@/lib/tickets-sync.functions";
-
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
+import { buildCors, requireApiKey } from "@/lib/api-auth";
 
 export const Route = createFileRoute("/api/public/mobile/tickets")({
   server: {
     handlers: {
-      OPTIONS: async () => new Response(null, { status: 204, headers: CORS }),
+      OPTIONS: async ({ request }) =>
+        new Response(null, { status: 204, headers: buildCors(request) }),
       GET: async ({ request }) => {
+        const cors = buildCors(request);
+        const unauth = requireApiKey(request);
+        if (unauth) return unauth;
         try {
           const url = new URL(request.url);
           const status = url.searchParams.get("status");
@@ -46,14 +45,14 @@ export const Route = createFileRoute("/api/public/mobile/tickets")({
               headers: {
                 "Content-Type": "application/json",
                 "Cache-Control": "public, max-age=5",
-                ...CORS,
+                ...cors,
               },
             },
           );
         } catch (e) {
           return new Response(
             JSON.stringify({ ok: false, error: e instanceof Error ? e.message : "erro" }),
-            { status: 500, headers: { "Content-Type": "application/json", ...CORS } },
+            { status: 500, headers: { "Content-Type": "application/json", ...cors } },
           );
         }
       },
