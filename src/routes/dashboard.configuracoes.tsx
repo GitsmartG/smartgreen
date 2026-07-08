@@ -414,6 +414,7 @@ function ApiPanel({
   const [regenerating, setRegenerating] = useState(false);
   const [loadingKey, setLoadingKey] = useState(true);
   const [keyError, setKeyError] = useState<string | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
   const getInternalApiKeyFn = useServerFn(getInternalApiKey);
   const regenerateApiKeyFn = useServerFn(regenerateApiKey);
 
@@ -449,13 +450,18 @@ function ApiPanel({
 
     // Espera a sessão do supabase estar disponível antes da primeira chamada.
     supabase.auth.getSession().then(({ data }) => {
-      if (!cancelled && data.session) void load();
+      if (!cancelled && data.session) {
+        setSessionReady(true);
+        void load();
+      }
       if (!cancelled && !data.session) {
+        setSessionReady(false);
         setLoadingKey(false);
-        setKeyError("Entre com seu e-mail e senha novamente para ativar a sessão segura.");
+        setKeyError(null);
       }
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
+      setSessionReady(Boolean(session));
       if (session && !cancelled) void load();
     });
     return () => { cancelled = true; sub.subscription.unsubscribe(); };
@@ -463,6 +469,10 @@ function ApiPanel({
 
   const handleRegenerate = async () => {
     if (regenerating) return;
+    if (!sessionReady) {
+      setKeyError("Sessão segura ainda não carregou. Entre de novo pela tela inicial.");
+      return;
+    }
     if (apiKey && !confirm("Gerar uma nova chave vai INVALIDAR a chave atual. Continuar?")) return;
     setRegenerating(true);
     try {
@@ -679,7 +689,9 @@ function ApiPanel({
                 ? apiKeyRevealed
                   ? apiKey
                   : apiKey.slice(0, 6) + "•".repeat(Math.max(apiKey.length - 10, 8)) + apiKey.slice(-4)
-                : "Nenhuma chave gerada ainda"}
+                : sessionReady
+                  ? "Nenhuma chave gerada ainda"
+                  : "Sessão segura pendente"}
             </div>
             {keyError && <div className="mt-1 text-[11px] text-red-500">{keyError}</div>}
           </div>
@@ -698,7 +710,7 @@ function ApiPanel({
               </button>
             )}
             <button
-              disabled={!apiKey}
+              disabled={!apiKey || !sessionReady}
               onClick={() => apiKey && copy(apiKey)}
               className={
                 "h-8 px-3 rounded-md border text-xs font-medium inline-flex items-center gap-1.5 disabled:opacity-40 " +
@@ -712,7 +724,7 @@ function ApiPanel({
             </button>
             <button
               onClick={handleRegenerate}
-              disabled={regenerating}
+              disabled={regenerating || loadingKey || !sessionReady}
               className={
                 "h-8 px-3 rounded-md border text-xs font-medium inline-flex items-center gap-1.5 disabled:opacity-40 " +
                 "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700"

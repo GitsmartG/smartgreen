@@ -42,6 +42,24 @@ function DashboardLayout() {
     localStorage.setItem("sg-theme", theme);
   }, [theme]);
 
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getUser().then(({ data, error }) => {
+      if (!cancelled && (error || !data.user)) {
+        localStorage.removeItem("sg-auth");
+        navigate({ to: "/" });
+      }
+    });
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!cancelled && event === "SIGNED_OUT") navigate({ to: "/" });
+      if (!cancelled && !session && event !== "INITIAL_SESSION") localStorage.removeItem("sg-auth");
+    });
+    return () => {
+      cancelled = true;
+      data.subscription.unsubscribe();
+    };
+  }, [navigate]);
+
   const isDark = theme === "dark";
 
   const handleLogout = async () => {
