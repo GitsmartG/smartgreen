@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { Building2, Save, Check, Activity, RefreshCw, AlertCircle, Gauge, Cable, Copy, ExternalLink, ToggleLeft } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
 import { getStatpalUsage, type StatpalUsage } from "@/lib/statpal-usage.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { getFeatureFlags, setFeatureFlag, FEATURE_KEYS, type FeatureKey, type FeatureFlags } from "@/lib/feature-flags.functions";
+import { getInternalApiKey, regenerateApiKey } from "@/lib/internal-api-key.functions";
 
 
 
@@ -410,53 +412,80 @@ function ApiPanel({
   const [apiKey, setApiKey] = useState<string>("");
   const [apiKeyRevealed, setApiKeyRevealed] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const [loadingKey, setLoadingKey] = useState(true);
+  const [keyError, setKeyError] = useState<string | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
+  const getInternalApiKeyFn = useServerFn(getInternalApiKey);
+  const regenerateApiKeyFn = useServerFn(regenerateApiKey);
 
   useEffect(() => {
     let cancelled = false;
     const load = async (attempt = 0) => {
       try {
-        const { getInternalApiKey, regenerateApiKey } = await import("@/lib/internal-api-key.functions");
-        const res = await getInternalApiKey();
+        setLoadingKey(true);
+        setKeyError(null);
+        const res = await getInternalApiKeyFn();
         if (cancelled) return;
         if (res?.key) {
           setApiKey(res.key);
           return;
         }
         // Sem chave ainda: gera automaticamente na primeira visita.
-        const created = await regenerateApiKey();
+        const created = await regenerateApiKeyFn();
         if (!cancelled && created?.key) {
           setApiKey(created.key);
           setApiKeyRevealed(true);
         }
-      } catch {
+      } catch (err) {
         // Sessão pode não ter hidratado ainda — tenta de novo.
         if (!cancelled && attempt < 4) {
           setTimeout(() => void load(attempt + 1), 600);
+        } else if (!cancelled) {
+          setKeyError(err instanceof Error ? err.message : "Erro ao carregar chave");
         }
+      } finally {
+        if (!cancelled) setLoadingKey(false);
       }
     };
 
     // Espera a sessão do supabase estar disponível antes da primeira chamada.
-    supabase.auth.getSession().then(() => { if (!cancelled) void load(); });
+    supabase.auth.getSession().then(({ data }) => {
+      if (!cancelled && data.session) {
+        setSessionReady(true);
+        void load();
+      }
+      if (!cancelled && !data.session) {
+        setSessionReady(false);
+        setLoadingKey(false);
+        setKeyError(null);
+      }
+    });
     const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
+      setSessionReady(Boolean(session));
       if (session && !cancelled) void load();
     });
     return () => { cancelled = true; sub.subscription.unsubscribe(); };
-  }, []);
+  }, [getInternalApiKeyFn, regenerateApiKeyFn]);
 
   const handleRegenerate = async () => {
     if (regenerating) return;
+    if (!sessionReady) {
+      setKeyError("Sessão segura ainda não carregou. Entre de novo pela tela inicial.");
+      return;
+    }
     if (apiKey && !confirm("Gerar uma nova chave vai INVALIDAR a chave atual. Continuar?")) return;
     setRegenerating(true);
     try {
-      const { regenerateApiKey } = await import("@/lib/internal-api-key.functions");
-      const res = await regenerateApiKey();
+      setKeyError(null);
+      const res = await regenerateApiKeyFn();
       if (res?.key) {
         setApiKey(res.key);
         setApiKeyRevealed(true);
       }
     } catch (e) {
-      alert("Erro ao gerar chave: " + (e instanceof Error ? e.message : "desconhecido"));
+      const message = e instanceof Error ? e.message : "desconhecido";
+      setKeyError(message);
+      alert("Erro ao gerar chave: " + message);
     } finally {
       setRegenerating(false);
     }
@@ -654,12 +683,17 @@ function ApiPanel({
           <div className="min-w-0 flex-1">
             <div className={`text-[10px] uppercase tracking-wider ${muted}`}>SMARTGREEN_API_KEY</div>
             <div className={codeCls + " text-amber-500 truncate"}>
-              {apiKey
+              {loadingKey
+                ? "Carregando chave..."
+                : apiKey
                 ? apiKeyRevealed
                   ? apiKey
                   : apiKey.slice(0, 6) + "•".repeat(Math.max(apiKey.length - 10, 8)) + apiKey.slice(-4)
-                : "Faça login pra ver a chave"}
+                : sessionReady
+                  ? "Nenhuma chave gerada ainda"
+                  : "Sessão segura pendente"}
             </div>
+            {keyError && <div className="mt-1 text-[11px] text-red-500">{keyError}</div>}
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             {apiKey && (
@@ -676,7 +710,7 @@ function ApiPanel({
               </button>
             )}
             <button
-              disabled={!apiKey}
+              disabled={!apiKey || !sessionReady}
               onClick={() => apiKey && copy(apiKey)}
               className={
                 "h-8 px-3 rounded-md border text-xs font-medium inline-flex items-center gap-1.5 disabled:opacity-40 " +
@@ -690,7 +724,7 @@ function ApiPanel({
             </button>
             <button
               onClick={handleRegenerate}
-              disabled={regenerating}
+              disabled={regenerating || loadingKey || !sessionReady}
               className={
                 "h-8 px-3 rounded-md border text-xs font-medium inline-flex items-center gap-1.5 disabled:opacity-40 " +
                 "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700"
@@ -818,6 +852,7 @@ function FeaturesPanel({
   const [flags, setFlags] = useState<FeatureFlags | null>(null);
   const [saving, setSaving] = useState<FeatureKey | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const setFeatureFlagFn = useServerFn(setFeatureFlag);
 
   useEffect(() => {
     (async () => {
@@ -837,7 +872,7 @@ function FeaturesPanel({
     setSaving(key);
     setError(null);
     try {
-      await setFeatureFlag({ data: { key, enabled: next } });
+      await setFeatureFlagFn({ data: { key, enabled: next } });
     } catch (e) {
       setFlags({ ...flags, [key]: !next });
       setError(e instanceof Error ? e.message : "Erro ao salvar");
