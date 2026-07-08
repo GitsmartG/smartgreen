@@ -21,6 +21,8 @@ import { Route as DashboardConfiguracoesRouteImport } from './routes/dashboard.c
 import { Route as ApiPublicFeaturesRouteImport } from './routes/api/public/features'
 import { Route as ApiPublicTeamImageIdRouteImport } from './routes/api/public/team-image.$id'
 import { Route as ApiPublicMobileTicketsRouteImport } from './routes/api/public/mobile/tickets'
+import { Route as ApiPublicMobileSignupRouteImport } from './routes/api/public/mobile/signup'
+import { Route as ApiPublicMobileLoginRouteImport } from './routes/api/public/mobile/login'
 import { Route as ApiPublicHooksRefreshDailyMatchesRouteImport } from './routes/api/public/hooks/refresh-daily-matches'
 import { Route as ApiPublicDebugApiKeyRouteImport } from './routes/api/public/debug/api-key'
 import { Route as ApiPublicMobileTicketsIdRouteImport } from './routes/api/public/mobile/tickets.$id'
@@ -87,6 +89,16 @@ const ApiPublicMobileTicketsRoute = ApiPublicMobileTicketsRouteImport.update({
   path: '/api/public/mobile/tickets',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicMobileSignupRoute = ApiPublicMobileSignupRouteImport.update({
+  id: '/api/public/mobile/signup',
+  path: '/api/public/mobile/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicMobileLoginRoute = ApiPublicMobileLoginRouteImport.update({
+  id: '/api/public/mobile/login',
+  path: '/api/public/mobile/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksRefreshDailyMatchesRoute =
   ApiPublicHooksRefreshDailyMatchesRouteImport.update({
     id: '/api/public/hooks/refresh-daily-matches',
@@ -130,6 +142,8 @@ export interface FileRoutesByFullPath {
   '/api/public/features': typeof ApiPublicFeaturesRoute
   '/api/public/debug/api-key': typeof ApiPublicDebugApiKeyRoute
   '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
+  '/api/public/mobile/login': typeof ApiPublicMobileLoginRoute
+  '/api/public/mobile/signup': typeof ApiPublicMobileSignupRoute
   '/api/public/mobile/tickets': typeof ApiPublicMobileTicketsRouteWithChildren
   '/api/public/team-image/$id': typeof ApiPublicTeamImageIdRoute
   '/api/public/mobile/matches/live': typeof ApiPublicMobileMatchesLiveRoute
@@ -148,6 +162,8 @@ export interface FileRoutesByTo {
   '/api/public/features': typeof ApiPublicFeaturesRoute
   '/api/public/debug/api-key': typeof ApiPublicDebugApiKeyRoute
   '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
+  '/api/public/mobile/login': typeof ApiPublicMobileLoginRoute
+  '/api/public/mobile/signup': typeof ApiPublicMobileSignupRoute
   '/api/public/mobile/tickets': typeof ApiPublicMobileTicketsRouteWithChildren
   '/api/public/team-image/$id': typeof ApiPublicTeamImageIdRoute
   '/api/public/mobile/matches/live': typeof ApiPublicMobileMatchesLiveRoute
@@ -168,6 +184,8 @@ export interface FileRoutesById {
   '/api/public/features': typeof ApiPublicFeaturesRoute
   '/api/public/debug/api-key': typeof ApiPublicDebugApiKeyRoute
   '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
+  '/api/public/mobile/login': typeof ApiPublicMobileLoginRoute
+  '/api/public/mobile/signup': typeof ApiPublicMobileSignupRoute
   '/api/public/mobile/tickets': typeof ApiPublicMobileTicketsRouteWithChildren
   '/api/public/team-image/$id': typeof ApiPublicTeamImageIdRoute
   '/api/public/mobile/matches/live': typeof ApiPublicMobileMatchesLiveRoute
@@ -189,6 +207,8 @@ export interface FileRouteTypes {
     | '/api/public/features'
     | '/api/public/debug/api-key'
     | '/api/public/hooks/refresh-daily-matches'
+    | '/api/public/mobile/login'
+    | '/api/public/mobile/signup'
     | '/api/public/mobile/tickets'
     | '/api/public/team-image/$id'
     | '/api/public/mobile/matches/live'
@@ -207,6 +227,8 @@ export interface FileRouteTypes {
     | '/api/public/features'
     | '/api/public/debug/api-key'
     | '/api/public/hooks/refresh-daily-matches'
+    | '/api/public/mobile/login'
+    | '/api/public/mobile/signup'
     | '/api/public/mobile/tickets'
     | '/api/public/team-image/$id'
     | '/api/public/mobile/matches/live'
@@ -226,6 +248,8 @@ export interface FileRouteTypes {
     | '/api/public/features'
     | '/api/public/debug/api-key'
     | '/api/public/hooks/refresh-daily-matches'
+    | '/api/public/mobile/login'
+    | '/api/public/mobile/signup'
     | '/api/public/mobile/tickets'
     | '/api/public/team-image/$id'
     | '/api/public/mobile/matches/live'
@@ -240,6 +264,8 @@ export interface RootRouteChildren {
   ApiPublicFeaturesRoute: typeof ApiPublicFeaturesRoute
   ApiPublicDebugApiKeyRoute: typeof ApiPublicDebugApiKeyRoute
   ApiPublicHooksRefreshDailyMatchesRoute: typeof ApiPublicHooksRefreshDailyMatchesRoute
+  ApiPublicMobileLoginRoute: typeof ApiPublicMobileLoginRoute
+  ApiPublicMobileSignupRoute: typeof ApiPublicMobileSignupRoute
   ApiPublicMobileTicketsRoute: typeof ApiPublicMobileTicketsRouteWithChildren
   ApiPublicTeamImageIdRoute: typeof ApiPublicTeamImageIdRoute
   ApiPublicMobileMatchesLiveRoute: typeof ApiPublicMobileMatchesLiveRoute
@@ -332,6 +358,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMobileTicketsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/mobile/signup': {
+      id: '/api/public/mobile/signup'
+      path: '/api/public/mobile/signup'
+      fullPath: '/api/public/mobile/signup'
+      preLoaderRoute: typeof ApiPublicMobileSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/mobile/login': {
+      id: '/api/public/mobile/login'
+      path: '/api/public/mobile/login'
+      fullPath: '/api/public/mobile/login'
+      preLoaderRoute: typeof ApiPublicMobileLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/refresh-daily-matches': {
       id: '/api/public/hooks/refresh-daily-matches'
       path: '/api/public/hooks/refresh-daily-matches'
@@ -414,6 +454,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicDebugApiKeyRoute: ApiPublicDebugApiKeyRoute,
   ApiPublicHooksRefreshDailyMatchesRoute:
     ApiPublicHooksRefreshDailyMatchesRoute,
+  ApiPublicMobileLoginRoute: ApiPublicMobileLoginRoute,
+  ApiPublicMobileSignupRoute: ApiPublicMobileSignupRoute,
   ApiPublicMobileTicketsRoute: ApiPublicMobileTicketsRouteWithChildren,
   ApiPublicTeamImageIdRoute: ApiPublicTeamImageIdRoute,
   ApiPublicMobileMatchesLiveRoute: ApiPublicMobileMatchesLiveRoute,
