@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
@@ -25,6 +26,11 @@ import { Route as ApiPublicMobileTicketsIdRouteImport } from './routes/api/publi
 import { Route as ApiPublicMobileMatchesTodayRouteImport } from './routes/api/public/mobile/matches/today'
 import { Route as ApiPublicMobileMatchesLiveRouteImport } from './routes/api/public/mobile/matches/live'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -108,6 +114,7 @@ const ApiPublicMobileMatchesLiveRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/reset-password': typeof ResetPasswordRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/dicas': typeof DashboardDicasRoute
   '/dashboard/jogos': typeof DashboardJogosRoute
@@ -124,6 +131,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/dicas': typeof DashboardDicasRoute
   '/dashboard/jogos': typeof DashboardJogosRoute
@@ -142,6 +150,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/reset-password': typeof ResetPasswordRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/dicas': typeof DashboardDicasRoute
   '/dashboard/jogos': typeof DashboardJogosRoute
@@ -161,6 +170,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dashboard'
+    | '/reset-password'
     | '/dashboard/configuracoes'
     | '/dashboard/dicas'
     | '/dashboard/jogos'
@@ -177,6 +187,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/reset-password'
     | '/dashboard/configuracoes'
     | '/dashboard/dicas'
     | '/dashboard/jogos'
@@ -194,6 +205,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/dashboard'
+    | '/reset-password'
     | '/dashboard/configuracoes'
     | '/dashboard/dicas'
     | '/dashboard/jogos'
@@ -212,6 +224,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRouteWithChildren
+  ResetPasswordRoute: typeof ResetPasswordRoute
   ApiPublicFeaturesRoute: typeof ApiPublicFeaturesRoute
   ApiPublicHooksRefreshDailyMatchesRoute: typeof ApiPublicHooksRefreshDailyMatchesRoute
   ApiPublicMobileTicketsRoute: typeof ApiPublicMobileTicketsRouteWithChildren
@@ -222,6 +235,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -369,6 +389,7 @@ const ApiPublicMobileTicketsRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRouteWithChildren,
+  ResetPasswordRoute: ResetPasswordRoute,
   ApiPublicFeaturesRoute: ApiPublicFeaturesRoute,
   ApiPublicHooksRefreshDailyMatchesRoute:
     ApiPublicHooksRefreshDailyMatchesRoute,
@@ -380,3 +401,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
