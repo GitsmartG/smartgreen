@@ -2541,7 +2541,7 @@ function RichMatchPanel({
     return (
       <div className={`rounded-lg border ${inner} px-3 py-3 text-xs ${muted} flex items-start gap-2`}>
         <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-        <span>Sem dados ao vivo: {res?.error ?? "jogo não encontrado"}.</span>
+        <span>Sem dados ao vivo: {getErrorMessage(res?.error) || "jogo não encontrado"}.</span>
       </div>
     );
   }
