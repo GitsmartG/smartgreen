@@ -628,10 +628,20 @@ function MatchRow({
       const clean = rawStatus.replace(/'/g, "");
       const [base, extra] = clean.split("+");
       liveLabel = extra ? `${base}'+${extra}` : `${base}'`;
-    } else if (rawStatus === "1H") liveLabel = "1º TEMPO";
-    else if (rawStatus === "2H") liveLabel = "2º TEMPO";
-    else if (rawStatus === "ET") liveLabel = "PRORROG.";
-    else if (rawStatus) liveLabel = rawStatus;
+    } else if (rawStatus === "1H") {
+      const d = deriveMinuteFromKickoff(match.date, match.time, "1H");
+      liveLabel = d ?? "1º TEMPO";
+    } else if (rawStatus === "2H") {
+      const d = deriveMinuteFromKickoff(match.date, match.time, "2H");
+      liveLabel = d ?? "2º TEMPO";
+    } else if (rawStatus === "ET") liveLabel = "PRORROG.";
+    else if (rawStatus && rawStatus !== "LIVE" && rawStatus !== "INPLAY") {
+      liveLabel = rawStatus;
+    } else {
+      // Feed diário não trouxe o minuto — deriva pelo horário de início (SP).
+      const d = deriveMinuteFromKickoff(match.date, match.time);
+      if (d) liveLabel = d;
+    }
   }
 
   const rowHover = isDark ? "hover:bg-neutral-800/40" : "hover:bg-neutral-50";
