@@ -273,9 +273,19 @@ function getAdminClient() {
 }
 
 function todayISO(): string {
-  // usa UTC pra bater com pg_cron sem depender de TZ do server
-  return new Date().toISOString().slice(0, 10);
+  // Data "hoje" no fuso America/Sao_Paulo (UTC-3), pra bater com a percepção do usuário BR.
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const y = parts.find((p) => p.type === "year")?.value ?? "1970";
+  const m = parts.find((p) => p.type === "month")?.value ?? "01";
+  const d = parts.find((p) => p.type === "day")?.value ?? "01";
+  return `${y}-${m}-${d}`;
 }
+
 
 export async function readCachedDaily(date?: string): Promise<{
   date: string;
