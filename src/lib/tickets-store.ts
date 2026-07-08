@@ -63,7 +63,23 @@ export function saveTickets(tickets: Ticket[] | undefined | null) {
   const safeTickets = Array.isArray(tickets) ? tickets.map(normalizeTicket).filter(isTicket) : [];
   localStorage.setItem(STORAGE_KEY, JSON.stringify(safeTickets));
   window.dispatchEvent(new Event(EVENT));
+  // Sincroniza com backend (fire-and-forget). Se falhar (offline / não logado), ignora.
+  void syncTicketsToBackend(safeTickets);
 }
+
+let syncTimer: ReturnType<typeof setTimeout> | null = null;
+async function syncTicketsToBackend(tickets: Ticket[]) {
+  if (syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(async () => {
+    try {
+      const { syncAllTickets } = await import("./tickets-sync.functions");
+      await syncAllTickets({ data: { tickets } });
+    } catch {
+      /* offline ou não logado — próxima chamada tenta de novo */
+    }
+  }, 400);
+}
+
 
 function normalizeTicket(value: unknown): Ticket | null {
   if (!value || typeof value !== "object") return null;

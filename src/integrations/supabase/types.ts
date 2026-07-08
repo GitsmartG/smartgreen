@@ -53,6 +53,87 @@ export type Database = {
         }
         Relationships: []
       }
+      tickets: {
+        Row: {
+          banca: number
+          created_at: string
+          created_at_ms: number | null
+          entradas: number
+          esporte: string
+          event: string
+          id: string
+          league: string
+          leg_results: Json | null
+          leg_statuses: Json | null
+          match_date: string
+          odd: number
+          palpite: string
+          parceiro: string | null
+          result_checked_at_ms: number | null
+          score1: number | null
+          score2: number | null
+          start_ms: number | null
+          status: string
+          team1_logo: string | null
+          team2_logo: string | null
+          type: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          banca?: number
+          created_at?: string
+          created_at_ms?: number | null
+          entradas?: number
+          esporte?: string
+          event?: string
+          id: string
+          league?: string
+          leg_results?: Json | null
+          leg_statuses?: Json | null
+          match_date?: string
+          odd?: number
+          palpite?: string
+          parceiro?: string | null
+          result_checked_at_ms?: number | null
+          score1?: number | null
+          score2?: number | null
+          start_ms?: number | null
+          status?: string
+          team1_logo?: string | null
+          team2_logo?: string | null
+          type?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          banca?: number
+          created_at?: string
+          created_at_ms?: number | null
+          entradas?: number
+          esporte?: string
+          event?: string
+          id?: string
+          league?: string
+          leg_results?: Json | null
+          leg_statuses?: Json | null
+          match_date?: string
+          odd?: number
+          palpite?: string
+          parceiro?: string | null
+          result_checked_at_ms?: number | null
+          score1?: number | null
+          score2?: number | null
+          start_ms?: number | null
+          status?: string
+          team1_logo?: string | null
+          team2_logo?: string | null
+          type?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
