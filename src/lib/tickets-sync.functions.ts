@@ -24,10 +24,11 @@ export type PublicTicketDTO = {
   score2: number | null;
   team1Logo: string | null;
   team2Logo: string | null;
-  legResults: Record<string, unknown> | null;
+  legResults: unknown;
   legStatuses: string[] | null;
   resultCheckedAtMs: number | null;
   updatedAt: string;
+
 };
 
 // Payload aceito no upsert (mesmo formato do Ticket do frontend).
@@ -108,8 +109,9 @@ export function ticketRowToDTO(row: {
     score2: row.score2,
     team1Logo: row.team1_logo,
     team2Logo: row.team2_logo,
-    legResults: (row.leg_results as Record<string, unknown>) ?? null,
+    legResults: (row.leg_results as unknown) ?? null,
     legStatuses: Array.isArray(row.leg_statuses) ? (row.leg_statuses as string[]) : null,
+
     resultCheckedAtMs: num(row.result_checked_at_ms),
     updatedAt: row.updated_at,
   };
@@ -170,7 +172,7 @@ export const syncAllTickets = createServerFn({ method: "POST" })
     }));
 
     if (rows.length) {
-      const { error: upErr } = await context.supabase.from("tickets").upsert(rows);
+      const { error: upErr } = await context.supabase.from("tickets").upsert(rows as never);
       if (upErr) throw upErr;
     }
 
