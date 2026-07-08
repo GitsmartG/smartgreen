@@ -247,6 +247,8 @@ function JogosHojePage() {
           if (filter === "ao_vivo" && !m.live) return false;
           if (filter === "encerrados" && !m.finished) return false;
           if (filter === "agendados" && (m.live || m.finished)) return false;
+          // "todos" esconde encerrados — quem quer ver encerrado usa a aba própria.
+          if (filter === "todos" && m.finished) return false;
           if (q) {
             const hay = `${m.home?.name ?? ""} ${m.away?.name ?? ""} ${lg.name} ${lg.country}`.toLowerCase();
             if (!hay.includes(q)) return false;
