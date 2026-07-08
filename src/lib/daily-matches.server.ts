@@ -41,7 +41,7 @@ export type DailyMatchesPayload = {
 };
 
 const BR_TIME_ZONE = "America/Sao_Paulo";
-const MATCH_FINISHED_AFTER_MS = 2.25 * 60 * 60 * 1000;
+const MATCH_FINISHED_AFTER_MS = 2 * 60 * 60 * 1000;
 
 function isFinished(status: string): boolean {
   const s = status.toUpperCase();
@@ -262,7 +262,12 @@ export function normalizeStatpalLive(raw: unknown, dateISO?: string): DailyMatch
       const away = (m.away as Record<string, unknown>) ?? {};
       const status = String(m.status ?? "");
       const rawDate = typeof m.date === "string" ? m.date : undefined;
-      const rawTime = typeof m.time === "string" ? m.time : undefined;
+      const rawTime =
+        typeof m.time === "string"
+          ? m.time
+          : /^\d{1,2}:\d{2}/.test(status)
+            ? status
+            : undefined;
       const lifecycle = deriveLifecycle(status, rawDate, rawTime);
       const events = ensureArray((m.events as Record<string, unknown> | undefined)?.event)
         .map(normalizeEvent)
