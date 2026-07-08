@@ -175,6 +175,7 @@ function ConfiguracoesPage() {
       )}
 
       {tab === "monitoramento" && <MonitoramentoPanel isDark={isDark} panel={panel} muted={muted} />}
+      {tab === "api" && <ApiPanel isDark={isDark} panel={panel} muted={muted} />}
     </div>
   );
 }
