@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Search, RefreshCw, MoreHorizontal, Shield, ShieldOff, Trash2, Loader2 } from "lucide-react";
+import { Search, RefreshCw, MoreHorizontal, Shield, ShieldOff, Trash2, Loader2, UserPlus, X } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
 import {
   listAdminUsers,
   setUserRole,
   deleteAppUser,
+  createAppUser,
   type AdminUserRow,
 } from "@/lib/admin-users.functions";
 
