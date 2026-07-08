@@ -167,6 +167,25 @@ function formatSpTime(_date?: string, time?: string): string | undefined {
   return `${t[1].padStart(2, "0")}:${t[2]}`;
 }
 
+// Deriva minutagem a partir do horário de início (SP) quando o feed diário
+// não devolve o minuto corrente (só "LIVE"/"1H"/"2H" sem número).
+function deriveMinuteFromKickoff(date?: string, time?: string, half?: "1H" | "2H"): string | undefined {
+  if (!time) return undefined;
+  const t = time.match(/^(\d{1,2}):(\d{2})/);
+  if (!t) return undefined;
+  const now = new Date();
+  const spNow = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  const kickoff = new Date(spNow);
+  kickoff.setHours(Number(t[1]), Number(t[2]), 0, 0);
+  let elapsedMin = Math.floor((spNow.getTime() - kickoff.getTime()) / 60000);
+  if (elapsedMin < 0 || elapsedMin > 140) return undefined;
+  if (half === "2H" && elapsedMin < 45) elapsedMin = 46;
+  if (half === "1H" && elapsedMin > 45) elapsedMin = 45;
+  if (elapsedMin > 45 && elapsedMin < 60) return "INTERVALO";
+  const minute = elapsedMin < 60 ? elapsedMin : Math.min(elapsedMin - 15, 90);
+  return `${Math.max(1, minute)}'`;
+}
+
 function JogosHojePage() {
   const isDark = useIsDark();
   const fetchTodayMatches = useServerFn(getTodayMatches);
@@ -628,10 +647,20 @@ function MatchRow({
       const clean = rawStatus.replace(/'/g, "");
       const [base, extra] = clean.split("+");
       liveLabel = extra ? `${base}'+${extra}` : `${base}'`;
-    } else if (rawStatus === "1H") liveLabel = "1º TEMPO";
-    else if (rawStatus === "2H") liveLabel = "2º TEMPO";
-    else if (rawStatus === "ET") liveLabel = "PRORROG.";
-    else if (rawStatus) liveLabel = rawStatus;
+    } else if (rawStatus === "1H") {
+      const d = deriveMinuteFromKickoff(match.date, match.time, "1H");
+      liveLabel = d ?? "1º TEMPO";
+    } else if (rawStatus === "2H") {
+      const d = deriveMinuteFromKickoff(match.date, match.time, "2H");
+      liveLabel = d ?? "2º TEMPO";
+    } else if (rawStatus === "ET") liveLabel = "PRORROG.";
+    else if (rawStatus && rawStatus !== "LIVE" && rawStatus !== "INPLAY") {
+      liveLabel = rawStatus;
+    } else {
+      // Feed diário não trouxe o minuto — deriva pelo horário de início (SP).
+      const d = deriveMinuteFromKickoff(match.date, match.time);
+      if (d) liveLabel = d;
+    }
   }
 
   const rowHover = isDark ? "hover:bg-neutral-800/40" : "hover:bg-neutral-50";
