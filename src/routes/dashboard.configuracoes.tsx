@@ -667,8 +667,20 @@ function ApiPanel({
               <Copy className="h-3.5 w-3.5" />
               {copied === apiKey ? "Copiado" : "Copiar"}
             </button>
+            <button
+              onClick={handleRegenerate}
+              disabled={regenerating}
+              className={
+                "h-8 px-3 rounded-md border text-xs font-medium inline-flex items-center gap-1.5 disabled:opacity-40 " +
+                "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700"
+              }
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${regenerating ? "animate-spin" : ""}`} />
+              {regenerating ? "Gerando..." : apiKey ? "Nova chave" : "Gerar chave"}
+            </button>
           </div>
         </div>
+
         <div className={`mt-3 rounded-lg border p-3 ${box}`}>
           <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1`}>Exemplo de uso (fetch no Vercel)</div>
           <pre className={`${codeCls} overflow-x-auto whitespace-pre`}>{`await fetch("${origin || "https://smartgreen-phi.vercel.app"}/api/public/mobile/tickets", {
