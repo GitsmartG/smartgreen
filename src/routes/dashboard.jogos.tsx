@@ -257,7 +257,7 @@ function JogosHojePage() {
     }, LIVE_REFRESH_INTERVAL_MS);
     const fullId = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
-      void load();
+      void load({ silent: true });
     }, FULL_REFRESH_INTERVAL_MS);
     const onVis = () => {
       if (!document.hidden) void refreshLive();
