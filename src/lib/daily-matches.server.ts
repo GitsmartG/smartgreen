@@ -36,6 +36,7 @@ export type NormalizedLeague = {
 export type DailyMatchesPayload = {
   updated?: string;
   updatedTs?: number;
+  timeZone?: string;
   leagues: NormalizedLeague[];
   totalMatches: number;
 };
@@ -318,6 +319,7 @@ export function normalizeStatpalLive(raw: unknown, dateISO?: string): DailyMatch
   const payload = {
     updated: typeof root.updated === "string" ? root.updated : undefined,
     updatedTs: toNum(root.updated_ts) ?? undefined,
+    timeZone: BR_TIME_ZONE,
     leagues,
     totalMatches: total,
   };
@@ -444,6 +446,7 @@ export function mergeLivePayload(
   return {
     updated: live.updated ?? base.updated,
     updatedTs: live.updatedTs ?? base.updatedTs,
+    timeZone: BR_TIME_ZONE,
     leagues,
     totalMatches: leagues.reduce((sum, lg) => sum + (lg.matches?.length ?? 0), 0),
   };
@@ -486,6 +489,7 @@ export async function readCachedDaily(date?: string): Promise<{
     .maybeSingle();
   if (error || !data) return null;
   const payload = data.payload as DailyMatchesPayload;
+  if (payload?.timeZone !== BR_TIME_ZONE) return null;
   // Invalida cache antigo que ainda não tem logo/id dos times
   const first = payload?.leagues?.[0]?.matches?.[0];
   // Invalida cache antigo salvo com data/horário crus da API em UTC.
