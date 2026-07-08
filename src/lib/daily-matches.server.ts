@@ -275,10 +275,17 @@ async function statpalFetchDaily(offset: number): Promise<unknown> {
 async function fetchMatchesPayloadForDate(dateISO: string): Promise<DailyMatchesPayload> {
   const offset = dateDiffDays(dateISO, utcTodayISO());
 
-  if (offset !== 0 && offset >= -7 && offset <= 7) {
+  // Endpoint /daily traz a agenda completa (agendados + ao vivo + encerrados).
+  // O /live só devolve partidas rolando agora. Pra "hoje" (offset 0 UTC) precisamos
+  // dos dois: daily como base e live pra atualizar placar/status em tempo real.
+  if (offset >= -7 && offset <= 7) {
     const daily = normalizeStatpalLive(await statpalFetchDaily(offset), dateISO);
-    const live = normalizeStatpalLive(await statpalFetchLive(), dateISO);
-    return mergeLivePayload(daily, live);
+    try {
+      const live = normalizeStatpalLive(await statpalFetchLive(), dateISO);
+      return mergeLivePayload(daily, live);
+    } catch {
+      return daily;
+    }
   }
 
   return normalizeStatpalLive(await statpalFetchLive(), dateISO);
