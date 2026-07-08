@@ -825,16 +825,46 @@ export function useLiveMatches(intervalMs = 15000) {
           </div>
         </div>
 
-        <div className={`mt-3 rounded-lg border p-3 ${box}`}>
-          <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1`}>Exemplo de uso (fetch no Vercel)</div>
-          <pre className={`${codeCls} overflow-x-auto whitespace-pre`}>{`await fetch("${origin || "https://smartgreen-phi.vercel.app"}/api/public/mobile/tickets", {
-  headers: { "X-API-Key": "${apiKey || "SUA_CHAVE_AQUI"}" }
-}).then(r => r.json());`}</pre>
+        <div className={`mt-3 rounded-lg border ${box}`}>
+          <div className="flex items-center gap-1 border-b border-inherit p-1.5">
+            {([
+              { id: "js" as const, label: "JavaScript / TS" },
+              { id: "rn" as const, label: "React Native" },
+              { id: "curl" as const, label: "cURL" },
+            ]).map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={
+                  "h-7 px-3 rounded text-[11px] font-medium transition-colors " +
+                  (tab === t.id
+                    ? "bg-emerald-500/15 text-emerald-500"
+                    : (isDark ? "text-neutral-400 hover:text-neutral-200" : "text-neutral-500 hover:text-neutral-800"))
+                }
+              >
+                {t.label}
+              </button>
+            ))}
+            <button
+              onClick={() => copy(tab === "curl" ? curlExample : tab === "rn" ? rnExample : jsExample)}
+              className={
+                "ml-auto h-7 px-2.5 rounded text-[11px] font-medium inline-flex items-center gap-1 " +
+                (isDark ? "text-neutral-400 hover:text-neutral-200" : "text-neutral-500 hover:text-neutral-800")
+              }
+            >
+              <Copy className="h-3 w-3" />
+              Copiar
+            </button>
+          </div>
+          <pre className={`${codeCls} overflow-x-auto whitespace-pre p-3 max-h-[360px]`}>
+{tab === "curl" ? curlExample : tab === "rn" ? rnExample : jsExample}
+          </pre>
         </div>
         <p className={`text-[11px] ${muted} mt-2`}>
-          Origens liberadas via CORS: <code className="font-mono">smartgreen-phi.vercel.app</code>, qualquer <code className="font-mono">*.vercel.app</code> e <code className="font-mono">localhost</code>.
+          Origens liberadas via CORS: <code className="font-mono">smartgreen-phi.vercel.app</code>, qualquer <code className="font-mono">*.vercel.app</code> e <code className="font-mono">localhost</code>. Cache do servidor: 5s (tickets), 15s (matches/live), 60s (matches/today).
         </p>
       </div>
+
 
 
       {endpoints.map((ep) => {
