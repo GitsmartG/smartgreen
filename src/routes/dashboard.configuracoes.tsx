@@ -852,6 +852,7 @@ function FeaturesPanel({
   const [flags, setFlags] = useState<FeatureFlags | null>(null);
   const [saving, setSaving] = useState<FeatureKey | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const setFeatureFlagFn = useServerFn(setFeatureFlag);
 
   useEffect(() => {
     (async () => {
@@ -871,7 +872,7 @@ function FeaturesPanel({
     setSaving(key);
     setError(null);
     try {
-      await setFeatureFlag({ data: { key, enabled: next } });
+      await setFeatureFlagFn({ data: { key, enabled: next } });
     } catch (e) {
       setFlags({ ...flags, [key]: !next });
       setError(e instanceof Error ? e.message : "Erro ao salvar");
