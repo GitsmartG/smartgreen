@@ -160,7 +160,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      validate_mobile_api_key: { Args: { _key: string }; Returns: boolean }
+      request_mobile_api_key: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never
