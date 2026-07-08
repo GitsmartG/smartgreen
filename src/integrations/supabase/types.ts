@@ -74,6 +74,84 @@ export type Database = {
         }
         Relationships: []
       }
+      live_notifications: {
+        Row: {
+          fetched_at: string
+          finished: boolean
+          first_seen_at: string
+          id: string
+          kind: string
+          last_seen_at: string
+          league: string
+          league_id: string
+          live: boolean
+          match_id: string
+          minute: string | null
+          player: string | null
+          raw_status: string
+          result: string | null
+          score1: number | null
+          score2: number | null
+          status: string
+          team: string | null
+          team1: Json
+          team2: Json
+          text: string
+          title: string
+          type: string
+        }
+        Insert: {
+          fetched_at?: string
+          finished?: boolean
+          first_seen_at?: string
+          id: string
+          kind: string
+          last_seen_at?: string
+          league?: string
+          league_id?: string
+          live?: boolean
+          match_id: string
+          minute?: string | null
+          player?: string | null
+          raw_status?: string
+          result?: string | null
+          score1?: number | null
+          score2?: number | null
+          status?: string
+          team?: string | null
+          team1?: Json
+          team2?: Json
+          text: string
+          title: string
+          type: string
+        }
+        Update: {
+          fetched_at?: string
+          finished?: boolean
+          first_seen_at?: string
+          id?: string
+          kind?: string
+          last_seen_at?: string
+          league?: string
+          league_id?: string
+          live?: boolean
+          match_id?: string
+          minute?: string | null
+          player?: string | null
+          raw_status?: string
+          result?: string | null
+          score1?: number | null
+          score2?: number | null
+          status?: string
+          team?: string | null
+          team1?: Json
+          team2?: Json
+          text?: string
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

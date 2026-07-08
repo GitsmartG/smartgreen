@@ -27,8 +27,11 @@ export const Route = createFileRoute("/api/public/mobile/matches/today")({
                   throw err;
                 }
               })();
+          const { flattenMobileMatches } = await import("@/lib/mobile-matches");
+          const origin = new URL(request.url).origin;
+          const matches = flattenMobileMatches(result.payload, origin);
           return new Response(
-            JSON.stringify({ ok: true, ...result }),
+            JSON.stringify({ ok: true, count: matches.length, matches, ...result }),
             { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=30", ...cors } },
           );
         } catch (e) {
