@@ -412,15 +412,36 @@ function ApiPanel({
   const [regenerating, setRegenerating] = useState(false);
 
   useEffect(() => {
-    (async () => {
+    let cancelled = false;
+    const load = async (attempt = 0) => {
       try {
-        const { data } = await supabase.auth.getSession();
-        if (!data.session) return;
-        const { getInternalApiKey } = await import("@/lib/internal-api-key.functions");
+        const { getInternalApiKey, regenerateApiKey } = await import("@/lib/internal-api-key.functions");
         const res = await getInternalApiKey();
-        if (res?.key) setApiKey(res.key);
-      } catch { /* noop */ }
-    })();
+        if (cancelled) return;
+        if (res?.key) {
+          setApiKey(res.key);
+          return;
+        }
+        // Sem chave ainda: gera automaticamente na primeira visita.
+        const created = await regenerateApiKey();
+        if (!cancelled && created?.key) {
+          setApiKey(created.key);
+          setApiKeyRevealed(true);
+        }
+      } catch {
+        // Sessão pode não ter hidratado ainda — tenta de novo.
+        if (!cancelled && attempt < 4) {
+          setTimeout(() => void load(attempt + 1), 600);
+        }
+      }
+    };
+
+    // Espera a sessão do supabase estar disponível antes da primeira chamada.
+    supabase.auth.getSession().then(() => { if (!cancelled) void load(); });
+    const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
+      if (session && !cancelled) void load();
+    });
+    return () => { cancelled = true; sub.subscription.unsubscribe(); };
   }, []);
 
   const handleRegenerate = async () => {
@@ -428,11 +449,6 @@ function ApiPanel({
     if (apiKey && !confirm("Gerar uma nova chave vai INVALIDAR a chave atual. Continuar?")) return;
     setRegenerating(true);
     try {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        alert("Sua sessão expirou. Faça login novamente para gerar uma nova chave.");
-        return;
-      }
       const { regenerateApiKey } = await import("@/lib/internal-api-key.functions");
       const res = await regenerateApiKey();
       if (res?.key) {
