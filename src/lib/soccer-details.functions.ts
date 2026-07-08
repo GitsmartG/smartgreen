@@ -111,7 +111,13 @@ async function statpalGet(path: string, params: Record<string, string> = {}) {
     return { ok: false as const, status: res.status, error: "resposta não-JSON", data: null };
   }
   if (!res.ok || (json && typeof json === "object" && "error" in (json as object))) {
-    const err = (json as { error?: string })?.error || `HTTP ${res.status}`;
+    const rawErr = (json as { error?: unknown })?.error;
+    let err: string;
+    if (typeof rawErr === "string" && rawErr.trim()) err = rawErr;
+    else if (rawErr && typeof rawErr === "object") {
+      const msg = (rawErr as { message?: unknown }).message;
+      err = typeof msg === "string" && msg.trim() ? msg : `HTTP ${res.status}`;
+    } else err = `HTTP ${res.status}`;
     return { ok: false as const, status: res.status, error: err, data: json };
   }
   return { ok: true as const, status: res.status, data: json };
