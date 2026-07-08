@@ -14,6 +14,14 @@ type Settings = {
   timezone: string;
   language: string;
   currency: string;
+  feedoddsH2betKey: string;
+  feedoddsH2betBrandId: string;
+  feedoddsSeubetKey: string;
+  feedoddsSeubetBrandId: string;
+  proxyHost: string;
+  proxyPort: string;
+  proxyUser: string;
+  proxyPass: string;
 };
 
 const DEFAULTS: Settings = {
@@ -22,7 +30,16 @@ const DEFAULTS: Settings = {
   timezone: "America/Sao_Paulo",
   language: "pt-BR",
   currency: "BRL",
+  feedoddsH2betKey: "",
+  feedoddsH2betBrandId: "",
+  feedoddsSeubetKey: "",
+  feedoddsSeubetBrandId: "",
+  proxyHost: "",
+  proxyPort: "",
+  proxyUser: "",
+  proxyPass: "",
 };
+
 
 const STORAGE_KEY = "sg-settings";
 
