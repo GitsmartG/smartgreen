@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_keys: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          key: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          key: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          key?: string
+        }
+        Relationships: []
+      }
       daily_matches: {
         Row: {
           fetched_at: string
