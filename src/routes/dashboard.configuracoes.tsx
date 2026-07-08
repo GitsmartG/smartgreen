@@ -390,7 +390,7 @@ function Field({
 }
 
 type EndpointDoc = {
-  method: "GET";
+  method: "GET" | "POST";
   path: string;
   title: string;
   desc: string;
