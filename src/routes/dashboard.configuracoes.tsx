@@ -191,73 +191,7 @@ function ConfiguracoesPage() {
             </div>
           </div>
 
-          <div className={`rounded-xl border p-5 ${panel}`}>
-            <div className="mb-4">
-              <h3 className="font-semibold">Integrações públicas</h3>
-              <p className={`text-xs ${muted} mt-0.5`}>
-                Dados de FeedOdds e proxy usados por você e seus alunos. Não são secrets — pode
-                editar e compartilhar.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <Field label="FeedOdds H2Bet — Brand ID" muted={muted}>
-                <input
-                  value={settings.feedoddsH2betBrandId}
-                  onChange={(e) => update("feedoddsH2betBrandId", e.target.value)}
-                  className={fieldCls}
-                />
-              </Field>
-              <Field label="FeedOdds H2Bet — Key" muted={muted}>
-                <input
-                  value={settings.feedoddsH2betKey}
-                  onChange={(e) => update("feedoddsH2betKey", e.target.value)}
-                  className={fieldCls}
-                />
-              </Field>
-              <Field label="FeedOdds SeuBet — Brand ID" muted={muted}>
-                <input
-                  value={settings.feedoddsSeubetBrandId}
-                  onChange={(e) => update("feedoddsSeubetBrandId", e.target.value)}
-                  className={fieldCls}
-                />
-              </Field>
-              <Field label="FeedOdds SeuBet — Key" muted={muted}>
-                <input
-                  value={settings.feedoddsSeubetKey}
-                  onChange={(e) => update("feedoddsSeubetKey", e.target.value)}
-                  className={fieldCls}
-                />
-              </Field>
-              <Field label="Proxy Host" muted={muted}>
-                <input
-                  value={settings.proxyHost}
-                  onChange={(e) => update("proxyHost", e.target.value)}
-                  className={fieldCls}
-                />
-              </Field>
-              <Field label="Proxy Port" muted={muted}>
-                <input
-                  value={settings.proxyPort}
-                  onChange={(e) => update("proxyPort", e.target.value)}
-                  className={fieldCls}
-                />
-              </Field>
-              <Field label="Proxy User" muted={muted}>
-                <input
-                  value={settings.proxyUser}
-                  onChange={(e) => update("proxyUser", e.target.value)}
-                  className={fieldCls}
-                />
-              </Field>
-              <Field label="Proxy Pass" muted={muted}>
-                <input
-                  value={settings.proxyPass}
-                  onChange={(e) => update("proxyPass", e.target.value)}
-                  className={fieldCls}
-                />
-              </Field>
-            </div>
-          </div>
+
 
           <div className={`rounded-xl border p-3 flex items-center justify-between ${panel}`}>
 
