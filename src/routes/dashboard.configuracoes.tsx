@@ -445,7 +445,92 @@ function ApiPanel({
       desc: "Proxy de imagem do escudo do time (usa o team.id retornado nos endpoints de matches). Retorna PNG/JPG ou SVG fallback.",
       notes: ["Cacheável por 24h. Use direto em <Image source={{ uri: ... }} />."],
     },
+    {
+      method: "GET",
+      path: "/api/public/mobile/tickets",
+      title: "Dicas / Tickets",
+      desc: "Lista todos os tickets (tips) publicados no admin. Cada ticket já vem com status, odd, banca, times, placar, logo, link do bilhete e resultado por perna quando é múltipla.",
+      notes: [
+        "Filtro opcional: ?status=aguardando|ao_vivo|green|red",
+        "Filtro opcional: ?limit=100 (máx 500)",
+        "Ordenação: mais recentes primeiro (updated_at desc)",
+        "Botão 'Apostar' no app: use ticket.url (abre no navegador ou WebView).",
+      ],
+    },
+    {
+      method: "GET",
+      path: "/api/public/mobile/tickets/{id}",
+      title: "Ticket individual",
+      desc: "Detalhe completo de um ticket específico. Útil pra tela de detalhes com placar ao vivo por perna.",
+    },
+    {
+      method: "GET",
+      path: "/api/public/features",
+      title: "Feature flags",
+      desc: "Retorna quais áreas do app estão ativas (jogos, ligas, banca, parceiros, indique). Use pra esconder abas desabilitadas.",
+    },
   ];
+
+  const ticketShape = `// GET /api/public/mobile/tickets → 200
+{
+  "ok": true,
+  "fetchedAt": "2026-07-08T14:33:00.000Z",
+  "count": 2,
+  "tickets": [
+    {
+      "id": "A7F3B21C4E88",
+      "status": "ao_vivo",            // aguardando | ao_vivo | green | red
+      "type": "Simples",              // Simples | Múltipla
+      "league": "Brasileirão Série A",
+      "event": "Flamengo x Palmeiras",
+      "palpite": "Ambas marcam - Sim",
+      "odd": 1.85,
+      "banca": 100,                   // valor apostado (unidades ou R$)
+      "esporte": "Futebol",
+      "date": "2026-07-08T21:30:00Z",
+      "entradas": 1,                  // >1 = múltipla
+      "parceiro": "seubet",           // seubet | h2bet | null
+      "url": "https://seubet.com/...", // link do bilhete → botão APOSTAR
+      "startMs": 1783545000000,
+      "score1": 1,
+      "score2": 0,
+      "team1Logo": "/api/public/team-image/1234",
+      "team2Logo": "/api/public/team-image/5678",
+      "createdAtMs": 1783538000000,
+      "updatedAt": "2026-07-08T21:47:12.000Z",
+      "legResults": null,             // preenchido em múltiplas
+      "legStatuses": null,
+      "resultCheckedAtMs": 1783545420000
+    },
+    {
+      "id": "B9E1D67A2200",
+      "status": "green",
+      "type": "Múltipla",
+      "league": "Múltipla — 3 jogos",
+      "event": "Real x Barça + City x Arsenal + Bayern x Dortmund",
+      "palpite": "Vitórias mandantes",
+      "odd": 5.42,
+      "banca": 50,
+      "esporte": "Futebol",
+      "date": "2026-07-07T20:00:00Z",
+      "entradas": 3,
+      "parceiro": "h2bet",
+      "url": "https://h2.bet.br/...",
+      "startMs": 1783458000000,
+      "score1": null,
+      "score2": null,
+      "team1Logo": null,
+      "team2Logo": null,
+      "legStatuses": ["green", "green", "green"],
+      "legResults": {
+        "0": { "team1": "Real", "team2": "Barça", "score1": 2, "score2": 1, "status": "green", "finished": true },
+        "1": { "team1": "City",  "team2": "Arsenal","score1": 3, "score2": 0, "status": "green", "finished": true },
+        "2": { "team1": "Bayern","team2": "Dortmund","score1": 4, "score2": 2, "status": "green", "finished": true }
+      }
+    }
+  ]
+}`;
+
 
   const notifShape = `// Formato do evento (dentro de match.events[])
 {
