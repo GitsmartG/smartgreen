@@ -26,7 +26,7 @@ const DEFAULTS: Settings = {
 
 const STORAGE_KEY = "sg-settings";
 
-type TabKey = "geral" | "monitoramento";
+type TabKey = "geral" | "monitoramento" | "api";
 
 function ConfiguracoesPage() {
   const isDark = useIsDark();
