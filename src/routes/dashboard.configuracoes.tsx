@@ -341,3 +341,186 @@ function Field({
     </label>
   );
 }
+
+type EndpointDoc = {
+  method: "GET";
+  path: string;
+  title: string;
+  desc: string;
+  notes?: string[];
+};
+
+function ApiPanel({
+  isDark,
+  panel,
+  muted,
+}: {
+  isDark: boolean;
+  panel: string;
+  muted: string;
+}) {
+  const origin = useMemo(
+    () => (typeof window === "undefined" ? "" : window.location.origin),
+    [],
+  );
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const copy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(text);
+      setTimeout(() => setCopied(null), 1500);
+    } catch {
+      /* noop */
+    }
+  };
+
+  const endpoints: EndpointDoc[] = [
+    {
+      method: "GET",
+      path: "/api/public/mobile/matches/live",
+      title: "Jogos ao vivo",
+      desc: "Lista de partidas AO VIVO no momento, com placar, minuto, status e array de eventos (gols, cartões, substituições).",
+      notes: [
+        "Recomendado polling a cada 15s no app mobile.",
+        "Cada match traz events[] — compare com o snapshot anterior pra emitir push (gol, cartão, início, fim).",
+      ],
+    },
+    {
+      method: "GET",
+      path: "/api/public/mobile/matches/today",
+      title: "Jogos do dia",
+      desc: "Toda a agenda do dia (agendados, ao vivo e encerrados), agrupada por liga.",
+      notes: ["Cache de 60s no servidor. Ideal pra tela de agenda/lista."],
+    },
+    {
+      method: "GET",
+      path: "/api/public/team-image/{id}",
+      title: "Logo do time",
+      desc: "Proxy de imagem do escudo do time (usa o team.id retornado nos endpoints de matches). Retorna PNG/JPG ou SVG fallback.",
+      notes: ["Cacheável por 24h. Use direto em <Image source={{ uri: ... }} />."],
+    },
+  ];
+
+  const notifShape = `// Formato do evento (dentro de match.events[])
+{
+  "id": "string",           // id único do evento
+  "type": "goal" | "yellowcard" | "redcard" | "subst" | ...,
+  "team": "home" | "away",
+  "minute": "45",
+  "extraMin": "2",          // opcional
+  "player": "string",       // opcional
+  "assist": "string",       // opcional
+  "result": "1-0"           // opcional (gols)
+}`;
+
+  const box = isDark ? "bg-neutral-950/60 border-neutral-800" : "bg-neutral-50 border-neutral-200";
+  const codeCls = "font-mono text-[12px] break-all";
+
+  return (
+    <div className="space-y-4">
+      <div className={`rounded-xl border p-5 ${panel}`}>
+        <div className="flex items-start gap-3 mb-4">
+          <div className="h-10 w-10 rounded-lg bg-emerald-500/15 text-emerald-500 flex items-center justify-center">
+            <Cable className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="font-semibold">API pública pro app mobile</h3>
+            <p className={`text-xs ${muted} mt-0.5`}>
+              Endpoints REST que o app iOS/Android consome. Sem autenticação, CORS aberto, JSON puro.
+            </p>
+          </div>
+        </div>
+        <div className={`rounded-lg border p-3 ${box} flex items-center justify-between gap-2`}>
+          <div className="min-w-0">
+            <div className={`text-[10px] uppercase tracking-wider ${muted}`}>Base URL</div>
+            <div className={codeCls + " text-emerald-500 truncate"}>{origin || "https://seu-dominio.com"}</div>
+          </div>
+          <button
+            onClick={() => copy(origin)}
+            className={
+              "shrink-0 h-8 px-3 rounded-md border text-xs font-medium inline-flex items-center gap-1.5 " +
+              (isDark
+                ? "border-neutral-800 bg-neutral-900 text-neutral-200 hover:bg-neutral-800"
+                : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50")
+            }
+          >
+            <Copy className="h-3.5 w-3.5" />
+            {copied === origin ? "Copiado" : "Copiar"}
+          </button>
+        </div>
+      </div>
+
+      {endpoints.map((ep) => {
+        const full = origin + ep.path.replace("{id}", "123");
+        return (
+          <div key={ep.path} className={`rounded-xl border p-5 ${panel}`}>
+            <div className="flex items-start justify-between gap-3 mb-2">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-500">
+                    {ep.method}
+                  </span>
+                  <h4 className="font-semibold">{ep.title}</h4>
+                </div>
+                <p className={`text-xs ${muted}`}>{ep.desc}</p>
+              </div>
+            </div>
+
+            <div className={`rounded-lg border p-3 ${box} flex items-center justify-between gap-2 mt-3`}>
+              <div className={codeCls + " text-emerald-500 truncate"}>{ep.path}</div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => copy(full)}
+                  className={
+                    "h-8 px-3 rounded-md border text-xs font-medium inline-flex items-center gap-1.5 " +
+                    (isDark
+                      ? "border-neutral-800 bg-neutral-900 text-neutral-200 hover:bg-neutral-800"
+                      : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50")
+                  }
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  {copied === full ? "Copiado" : "Copiar"}
+                </button>
+                {!ep.path.includes("{") && origin && (
+                  <a
+                    href={full}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={
+                      "h-8 px-3 rounded-md border text-xs font-medium inline-flex items-center gap-1.5 " +
+                      (isDark
+                        ? "border-neutral-800 bg-neutral-900 text-neutral-200 hover:bg-neutral-800"
+                        : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50")
+                    }
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Testar
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {ep.notes && ep.notes.length > 0 && (
+              <ul className={`mt-3 text-xs ${muted} list-disc pl-5 space-y-1`}>
+                {ep.notes.map((n) => (
+                  <li key={n}>{n}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        );
+      })}
+
+      <div className={`rounded-xl border p-5 ${panel}`}>
+        <h4 className="font-semibold mb-1">Notificações ao vivo (gols, cartões, início/fim)</h4>
+        <p className={`text-xs ${muted} mb-3`}>
+          Não existe endpoint separado de "notificações". O app faz polling em <code className="font-mono">/matches/live</code> a cada 15s
+          e compara o placar e o array <code className="font-mono">events</code> com o snapshot anterior. Cada diff vira uma push local.
+        </p>
+        <pre className={`rounded-lg border p-3 ${box} ${codeCls} overflow-x-auto whitespace-pre`}>{notifShape}</pre>
+      </div>
+    </div>
+  );
+}
+
