@@ -14,7 +14,7 @@ function timeAgo(ts: number): string {
 function iconFor(kind: LiveNotification["kind"]) {
   if (kind === "goal") return <Trophy className="h-3.5 w-3.5 text-emerald-400" />;
   if (kind === "start") return <Play className="h-3.5 w-3.5 text-sky-400" />;
-  if (kind === "card") return <BadgeAlert className="h-3.5 w-3.5 text-amber-400" />;
+  if (kind === "card") return <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />;
   if (kind === "event") return <Activity className="h-3.5 w-3.5 text-sky-400" />;
   return <Flag className="h-3.5 w-3.5 text-neutral-400" />;
 }
