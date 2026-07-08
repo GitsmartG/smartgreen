@@ -17,6 +17,7 @@ import { Route as DashboardNotificacoesRouteImport } from './routes/dashboard.no
 import { Route as DashboardJogosRouteImport } from './routes/dashboard.jogos'
 import { Route as DashboardDicasRouteImport } from './routes/dashboard.dicas'
 import { Route as DashboardConfiguracoesRouteImport } from './routes/dashboard.configuracoes'
+import { Route as ApiPublicFeaturesRouteImport } from './routes/api/public/features'
 import { Route as ApiPublicTeamImageIdRouteImport } from './routes/api/public/team-image.$id'
 import { Route as ApiPublicHooksRefreshDailyMatchesRouteImport } from './routes/api/public/hooks/refresh-daily-matches'
 import { Route as ApiPublicMobileMatchesTodayRouteImport } from './routes/api/public/mobile/matches/today'
@@ -62,6 +63,11 @@ const DashboardConfiguracoesRoute = DashboardConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => DashboardRoute,
 } as any)
+const ApiPublicFeaturesRoute = ApiPublicFeaturesRouteImport.update({
+  id: '/api/public/features',
+  path: '/api/public/features',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicTeamImageIdRoute = ApiPublicTeamImageIdRouteImport.update({
   id: '/api/public/team-image/$id',
   path: '/api/public/team-image/$id',
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/notificacoes': typeof DashboardNotificacoesRoute
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/api/public/features': typeof ApiPublicFeaturesRoute
   '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
   '/api/public/team-image/$id': typeof ApiPublicTeamImageIdRoute
   '/api/public/mobile/matches/live': typeof ApiPublicMobileMatchesLiveRoute
@@ -108,6 +115,7 @@ export interface FileRoutesByTo {
   '/dashboard/notificacoes': typeof DashboardNotificacoesRoute
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/api/public/features': typeof ApiPublicFeaturesRoute
   '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
   '/api/public/team-image/$id': typeof ApiPublicTeamImageIdRoute
   '/api/public/mobile/matches/live': typeof ApiPublicMobileMatchesLiveRoute
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   '/dashboard/notificacoes': typeof DashboardNotificacoesRoute
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/api/public/features': typeof ApiPublicFeaturesRoute
   '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
   '/api/public/team-image/$id': typeof ApiPublicTeamImageIdRoute
   '/api/public/mobile/matches/live': typeof ApiPublicMobileMatchesLiveRoute
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
     | '/dashboard/notificacoes'
     | '/dashboard/usuarios'
     | '/dashboard/'
+    | '/api/public/features'
     | '/api/public/hooks/refresh-daily-matches'
     | '/api/public/team-image/$id'
     | '/api/public/mobile/matches/live'
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/dashboard/notificacoes'
     | '/dashboard/usuarios'
     | '/dashboard'
+    | '/api/public/features'
     | '/api/public/hooks/refresh-daily-matches'
     | '/api/public/team-image/$id'
     | '/api/public/mobile/matches/live'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/dashboard/notificacoes'
     | '/dashboard/usuarios'
     | '/dashboard/'
+    | '/api/public/features'
     | '/api/public/hooks/refresh-daily-matches'
     | '/api/public/team-image/$id'
     | '/api/public/mobile/matches/live'
@@ -175,6 +187,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRouteWithChildren
+  ApiPublicFeaturesRoute: typeof ApiPublicFeaturesRoute
   ApiPublicHooksRefreshDailyMatchesRoute: typeof ApiPublicHooksRefreshDailyMatchesRoute
   ApiPublicTeamImageIdRoute: typeof ApiPublicTeamImageIdRoute
   ApiPublicMobileMatchesLiveRoute: typeof ApiPublicMobileMatchesLiveRoute
@@ -239,6 +252,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardConfiguracoesRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/api/public/features': {
+      id: '/api/public/features'
+      path: '/api/public/features'
+      fullPath: '/api/public/features'
+      preLoaderRoute: typeof ApiPublicFeaturesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/team-image/$id': {
       id: '/api/public/team-image/$id'
       path: '/api/public/team-image/$id'
@@ -295,6 +315,7 @@ const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRouteWithChildren,
+  ApiPublicFeaturesRoute: ApiPublicFeaturesRoute,
   ApiPublicHooksRefreshDailyMatchesRoute:
     ApiPublicHooksRefreshDailyMatchesRoute,
   ApiPublicTeamImageIdRoute: ApiPublicTeamImageIdRoute,
