@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Building2, Save, Check, Activity, RefreshCw, AlertCircle, Gauge, Cable, Copy, ExternalLink } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
 import { getStatpalUsage, type StatpalUsage } from "@/lib/statpal-usage.functions";
+import { supabase } from "@/integrations/supabase/client";
+
 
 export const Route = createFileRoute("/dashboard/configuracoes")({
   component: ConfiguracoesPage,
@@ -53,14 +55,28 @@ function ConfiguracoesPage() {
 
   useEffect(() => {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
+    const stored: Partial<Settings> = raw ? (() => { try { return JSON.parse(raw); } catch { return {}; } })() : {};
+    setSettings({ ...DEFAULTS, ...stored });
+
+    // Puxa valores do backend (edge fn public-config) e faz merge só nos campos vazios,
+    // pra não sobrescrever edições locais.
+    (async () => {
       try {
-        setSettings({ ...DEFAULTS, ...JSON.parse(raw) });
-      } catch {
-        /* noop */
-      }
-    }
+        const { data } = await supabase.functions.invoke("public-config");
+        if (!data || typeof data !== "object") return;
+        setSettings((s) => {
+          const next = { ...s };
+          for (const [k, v] of Object.entries(data as Record<string, string>)) {
+            if (k in next && !next[k as keyof Settings] && typeof v === "string") {
+              (next as Record<string, string>)[k] = v;
+            }
+          }
+          return next;
+        });
+      } catch { /* noop */ }
+    })();
   }, []);
+
 
   const panel = isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200";
   const muted = isDark ? "text-neutral-400" : "text-neutral-500";
