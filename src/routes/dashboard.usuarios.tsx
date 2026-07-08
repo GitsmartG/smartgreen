@@ -258,3 +258,90 @@ function RoleBadge({ role }: { role: Role }) {
   }
   return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-neutral-500/15 text-neutral-400 border border-neutral-500/30">Usuário</span>;
 }
+
+type CreatePayload = { email: string; password: string; name?: string; role: Role };
+
+function CreateUserModal({
+  isDark,
+  onClose,
+  onCreate,
+}: {
+  isDark: boolean;
+  onClose: () => void;
+  onCreate: (p: CreatePayload) => Promise<string | null>;
+}) {
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<Role>("user");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const panel = isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200";
+  const input =
+    "h-10 w-full rounded-md border px-3 text-sm outline-none " +
+    (isDark
+      ? "bg-neutral-950 border-neutral-800 text-neutral-100 focus:border-emerald-600"
+      : "bg-white border-neutral-300 text-neutral-900 focus:border-emerald-700");
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    setBusy(true);
+    const error = await onCreate({ email: email.trim(), password, name: name.trim() || undefined, role });
+    setBusy(false);
+    if (error) { setErr(error); return; }
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      <form
+        onSubmit={submit}
+        onClick={(e) => e.stopPropagation()}
+        className={`w-full max-w-md rounded-xl border shadow-xl p-6 space-y-4 ${panel}`}
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Novo usuário</h3>
+          <button type="button" onClick={onClose} className="p-1 rounded hover:bg-neutral-500/10">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-medium block mb-1">E-mail *</label>
+            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={input} />
+          </div>
+          <div>
+            <label className="text-xs font-medium block mb-1">Nome</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} className={input} />
+          </div>
+          <div>
+            <label className="text-xs font-medium block mb-1">Senha *</label>
+            <input type="text" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} className={input} placeholder="mínimo 6 caracteres" />
+          </div>
+          <div>
+            <label className="text-xs font-medium block mb-1">Função</label>
+            <select value={role} onChange={(e) => setRole(e.target.value as Role)} className={input}>
+              <option value="user">Usuário</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
+        </div>
+
+        {err && <div className="rounded-md border border-red-500/30 bg-red-500/10 text-red-500 text-sm p-2">{err}</div>}
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="h-10 px-4 rounded-md border border-neutral-500/30 text-sm hover:bg-neutral-500/10">
+            Cancelar
+          </button>
+          <button type="submit" disabled={busy} className="h-10 px-4 rounded-md bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-500 inline-flex items-center gap-2 disabled:opacity-60">
+            {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+            Criar usuário
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
