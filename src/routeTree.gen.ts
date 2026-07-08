@@ -19,6 +19,8 @@ import { Route as DashboardDicasRouteImport } from './routes/dashboard.dicas'
 import { Route as DashboardConfiguracoesRouteImport } from './routes/dashboard.configuracoes'
 import { Route as ApiPublicTeamImageIdRouteImport } from './routes/api/public/team-image.$id'
 import { Route as ApiPublicHooksRefreshDailyMatchesRouteImport } from './routes/api/public/hooks/refresh-daily-matches'
+import { Route as ApiPublicMobileMatchesTodayRouteImport } from './routes/api/public/mobile/matches/today'
+import { Route as ApiPublicMobileMatchesLiveRouteImport } from './routes/api/public/mobile/matches/live'
 
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
@@ -71,6 +73,18 @@ const ApiPublicHooksRefreshDailyMatchesRoute =
     path: '/api/public/hooks/refresh-daily-matches',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicMobileMatchesTodayRoute =
+  ApiPublicMobileMatchesTodayRouteImport.update({
+    id: '/api/public/mobile/matches/today',
+    path: '/api/public/mobile/matches/today',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicMobileMatchesLiveRoute =
+  ApiPublicMobileMatchesLiveRouteImport.update({
+    id: '/api/public/mobile/matches/live',
+    path: '/api/public/mobile/matches/live',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -83,6 +97,8 @@ export interface FileRoutesByFullPath {
   '/dashboard/': typeof DashboardIndexRoute
   '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
   '/api/public/team-image/$id': typeof ApiPublicTeamImageIdRoute
+  '/api/public/mobile/matches/live': typeof ApiPublicMobileMatchesLiveRoute
+  '/api/public/mobile/matches/today': typeof ApiPublicMobileMatchesTodayRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -94,6 +110,8 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardIndexRoute
   '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
   '/api/public/team-image/$id': typeof ApiPublicTeamImageIdRoute
+  '/api/public/mobile/matches/live': typeof ApiPublicMobileMatchesLiveRoute
+  '/api/public/mobile/matches/today': typeof ApiPublicMobileMatchesTodayRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -107,6 +125,8 @@ export interface FileRoutesById {
   '/dashboard/': typeof DashboardIndexRoute
   '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
   '/api/public/team-image/$id': typeof ApiPublicTeamImageIdRoute
+  '/api/public/mobile/matches/live': typeof ApiPublicMobileMatchesLiveRoute
+  '/api/public/mobile/matches/today': typeof ApiPublicMobileMatchesTodayRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -121,6 +141,8 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/api/public/hooks/refresh-daily-matches'
     | '/api/public/team-image/$id'
+    | '/api/public/mobile/matches/live'
+    | '/api/public/mobile/matches/today'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -132,6 +154,8 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/api/public/hooks/refresh-daily-matches'
     | '/api/public/team-image/$id'
+    | '/api/public/mobile/matches/live'
+    | '/api/public/mobile/matches/today'
   id:
     | '__root__'
     | '/'
@@ -144,6 +168,8 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/api/public/hooks/refresh-daily-matches'
     | '/api/public/team-image/$id'
+    | '/api/public/mobile/matches/live'
+    | '/api/public/mobile/matches/today'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -151,6 +177,8 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRouteWithChildren
   ApiPublicHooksRefreshDailyMatchesRoute: typeof ApiPublicHooksRefreshDailyMatchesRoute
   ApiPublicTeamImageIdRoute: typeof ApiPublicTeamImageIdRoute
+  ApiPublicMobileMatchesLiveRoute: typeof ApiPublicMobileMatchesLiveRoute
+  ApiPublicMobileMatchesTodayRoute: typeof ApiPublicMobileMatchesTodayRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -225,6 +253,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksRefreshDailyMatchesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/mobile/matches/today': {
+      id: '/api/public/mobile/matches/today'
+      path: '/api/public/mobile/matches/today'
+      fullPath: '/api/public/mobile/matches/today'
+      preLoaderRoute: typeof ApiPublicMobileMatchesTodayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/mobile/matches/live': {
+      id: '/api/public/mobile/matches/live'
+      path: '/api/public/mobile/matches/live'
+      fullPath: '/api/public/mobile/matches/live'
+      preLoaderRoute: typeof ApiPublicMobileMatchesLiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -256,6 +298,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksRefreshDailyMatchesRoute:
     ApiPublicHooksRefreshDailyMatchesRoute,
   ApiPublicTeamImageIdRoute: ApiPublicTeamImageIdRoute,
+  ApiPublicMobileMatchesLiveRoute: ApiPublicMobileMatchesLiveRoute,
+  ApiPublicMobileMatchesTodayRoute: ApiPublicMobileMatchesTodayRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
