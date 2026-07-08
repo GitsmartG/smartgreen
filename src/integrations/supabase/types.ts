@@ -160,7 +160,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      request_mobile_api_key: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never
