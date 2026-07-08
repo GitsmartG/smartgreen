@@ -50,7 +50,7 @@ function UsuariosPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchUsers();
+      const res = await fetchUsers({});
       if (!res.ok) throw new Error(res.error ?? "Erro");
       setUsers(res.users ?? []);
     } catch (e) {
