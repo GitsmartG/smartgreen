@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { setResponseHeader } from "@tanstack/react-start/server";
 import type { DailyMatchesPayload } from "./daily-matches.server";
 
 export type DailyMatchesResult = {
@@ -10,25 +11,28 @@ export type DailyMatchesResult = {
   payload?: DailyMatchesPayload;
 };
 
-export const getLiveMatches = createServerFn({ method: "GET" }).handler(
-  async (): Promise<DailyMatchesResult> => {
-    const { fetchLiveMatchesPayload } = await import("./daily-matches.server");
-    try {
-      return {
-        ok: true,
-        cached: false,
-        fetchedAt: new Date().toISOString(),
-        payload: await fetchLiveMatchesPayload(),
-      };
-    } catch (e) {
-      return {
-        ok: false,
-        cached: false,
-        error: e instanceof Error ? e.message : "Erro ao buscar jogos ao vivo",
-      };
-    }
-  },
-);
+export const getLiveMatches = createServerFn({ method: "POST" })
+  .inputValidator((input: { nonce?: number } | undefined) => input ?? {})
+  .handler(
+    async (): Promise<DailyMatchesResult> => {
+      const { fetchLiveMatchesPayload } = await import("./daily-matches.server");
+      try {
+        setResponseHeader("Cache-Control", "no-store, max-age=0");
+        return {
+          ok: true,
+          cached: false,
+          fetchedAt: new Date().toISOString(),
+          payload: await fetchLiveMatchesPayload(),
+        };
+      } catch (e) {
+        return {
+          ok: false,
+          cached: false,
+          error: e instanceof Error ? e.message : "Erro ao buscar jogos ao vivo",
+        };
+      }
+    },
+  );
 
 export const getTodayMatches = createServerFn({ method: "GET" }).handler(
   async (): Promise<DailyMatchesResult> => {
