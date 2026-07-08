@@ -945,9 +945,51 @@ export function useLiveMatches(intervalMs = 15000) {
         </p>
         <pre className={`rounded-lg border p-3 ${box} ${codeCls} overflow-x-auto whitespace-pre max-h-[480px]`}>{ticketShape}</pre>
       </div>
+
+      <div className={`rounded-xl border p-5 ${panel}`}>
+        <h4 className="font-semibold mb-1">Query params — /mobile/tickets</h4>
+        <p className={`text-xs ${muted} mb-3`}>Filtros opcionais aceitos na URL. Combine à vontade.</p>
+        <div className={`rounded-lg border ${box} overflow-hidden`}>
+          <table className="w-full text-xs">
+            <thead>
+              <tr className={isDark ? "bg-neutral-900/60" : "bg-neutral-100"}>
+                <th className="text-left px-3 py-2 font-semibold">Param</th>
+                <th className="text-left px-3 py-2 font-semibold">Tipo</th>
+                <th className="text-left px-3 py-2 font-semibold">Descrição</th>
+                <th className="text-left px-3 py-2 font-semibold">Exemplo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paramsTable.map((p) => (
+                <tr key={p.param} className="border-t border-inherit">
+                  <td className="px-3 py-2 font-mono text-emerald-500">{p.param}</td>
+                  <td className={`px-3 py-2 ${muted}`}>{p.type}</td>
+                  <td className="px-3 py-2">{p.desc}</td>
+                  <td className="px-3 py-2 font-mono text-[11px]">{p.example}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className={`rounded-xl border p-5 ${panel}`}>
+        <h4 className="font-semibold mb-1">Exemplo de payload — Matches (ao vivo)</h4>
+        <p className={`text-xs ${muted} mb-3`}>
+          Formato do <code className="font-mono">/mobile/matches/live</code>. Cada match traz <code className="font-mono">events[]</code>: use pra gerar push (compare com o snapshot anterior).
+        </p>
+        <pre className={`rounded-lg border p-3 ${box} ${codeCls} overflow-x-auto whitespace-pre max-h-[480px]`}>{matchShape}</pre>
+      </div>
+
+      <div className={`rounded-xl border p-5 ${panel}`}>
+        <h4 className="font-semibold mb-1">Respostas de erro</h4>
+        <p className={`text-xs ${muted} mb-3`}>Toda resposta de erro é JSON com <code className="font-mono">ok: false</code>.</p>
+        <pre className={`rounded-lg border p-3 ${box} ${codeCls} overflow-x-auto whitespace-pre`}>{errorShape}</pre>
+      </div>
     </div>
   );
 }
+
 
 
 
