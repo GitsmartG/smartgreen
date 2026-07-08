@@ -102,20 +102,41 @@ function UsuariosPage() {
             {users.length} usuário{users.length !== 1 && "s"} cadastrado{users.length !== 1 && "s"}
           </p>
         </div>
-        <button
-          onClick={() => void load()}
-          disabled={loading}
-          className={
-            "h-10 px-4 rounded-md border text-sm font-medium inline-flex items-center gap-2 transition-colors disabled:opacity-60 " +
-            (isDark
-              ? "border-neutral-800 bg-neutral-900 text-neutral-200 hover:bg-neutral-800"
-              : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50")
-          }
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          {loading ? "Atualizando..." : "Atualizar"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowCreate(true)}
+            className="h-10 px-4 rounded-md text-sm font-medium inline-flex items-center gap-2 bg-emerald-600 text-white hover:bg-emerald-500 transition-colors"
+          >
+            <UserPlus className="h-4 w-4" /> Novo usuário
+          </button>
+          <button
+            onClick={() => void load()}
+            disabled={loading}
+            className={
+              "h-10 px-4 rounded-md border text-sm font-medium inline-flex items-center gap-2 transition-colors disabled:opacity-60 " +
+              (isDark
+                ? "border-neutral-800 bg-neutral-900 text-neutral-200 hover:bg-neutral-800"
+                : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50")
+            }
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            {loading ? "Atualizando..." : "Atualizar"}
+          </button>
+        </div>
       </div>
+
+      {showCreate && (
+        <CreateUserModal
+          isDark={isDark}
+          onClose={() => setShowCreate(false)}
+          onCreate={async (payload) => {
+            const res = await createUser({ data: payload });
+            if (!res.ok) return res.error ?? "Erro ao criar usuário";
+            await load();
+            return null;
+          }}
+        />
+      )}
 
       <div className={`rounded-xl border p-4 ${panel}`}>
         <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
