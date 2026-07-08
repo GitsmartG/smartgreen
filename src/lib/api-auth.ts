@@ -48,23 +48,33 @@ function extractKey(request: Request): string | null {
   return null;
 }
 
-// Cache em memória: 30s
-let cache: { keys: Set<string>; expiresAt: number } | null = null;
+// Cache em memória por chave: 30s
+const cache = new Map<string, number>();
 
-async function loadActiveKeys(): Promise<Set<string>> {
-  if (cache && cache.expiresAt > Date.now()) return cache.keys;
+async function isActiveKey(provided: string): Promise<boolean> {
+  const cachedUntil = cache.get(provided);
+  if (cachedUntil && cachedUntil > Date.now()) return true;
+
   const sb = createClient<Database>(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
+    {
+      auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+      global: { headers: { "x-api-key": provided } },
+    },
   );
-  // policy só libera pra authenticated → usar service role
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const client = supabaseAdmin ?? sb;
-  const { data } = await client.from("api_keys").select("key").eq("active", true);
-  const keys = new Set<string>((data ?? []).map((r) => r.key));
-  cache = { keys, expiresAt: Date.now() + 30_000 };
-  return keys;
+
+  const { data, error } = await sb
+    .from("api_keys")
+    .select("id")
+    .eq("key", provided)
+    .eq("active", true)
+    .maybeSingle();
+
+  if (error) throw error;
+  const ok = Boolean(data);
+  if (ok) cache.set(provided, Date.now() + 30_000);
+  return ok;
 }
 
 /** Retorna Response 401/500 se a chave não bater; null se ok. */
@@ -78,8 +88,8 @@ export async function requireApiKey(request: Request): Promise<Response | null> 
     );
   }
   try {
-    const keys = await loadActiveKeys();
-    if (!keys.has(provided)) {
+    const valid = await isActiveKey(provided);
+    if (!valid) {
       return new Response(
         JSON.stringify({ ok: false, error: "API key inválida." }),
         { status: 401, headers: { "Content-Type": "application/json", ...cors } },
@@ -96,5 +106,5 @@ export async function requireApiKey(request: Request): Promise<Response | null> 
 
 /** Invalida o cache — chamar após gerar/rotacionar chave. */
 export function invalidateApiKeyCache() {
-  cache = null;
+  cache.clear();
 }
