@@ -570,7 +570,7 @@ function ApiPanel({
           <div>
             <h3 className="font-semibold">API pública pro app mobile</h3>
             <p className={`text-xs ${muted} mt-0.5`}>
-              Endpoints REST que o app iOS/Android consome. Sem autenticação, CORS aberto, JSON puro.
+              Endpoints REST que o app iOS/Android e o site do Vercel consomem. Protegidos por X-API-Key, CORS liberado pros domínios do projeto.
             </p>
           </div>
         </div>
