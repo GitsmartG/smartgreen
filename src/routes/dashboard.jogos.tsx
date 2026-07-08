@@ -49,6 +49,9 @@ const LEAGUE_PRIORITY: { test: RegExp; rank: number }[] = [
   { test: /serie\s+b.*brasil|brazil.*serie\s+b/i, rank: 30 },
 ];
 
+const LIVE_REFRESH_INTERVAL_MS = 10_000;
+const FULL_REFRESH_INTERVAL_MS = 60_000;
+
 const COUNTRY_PRIORITY: Record<string, number> = {
   brazil: 40,
   brasil: 40,
@@ -184,6 +187,7 @@ function JogosHojePage() {
     loading: boolean;
     data: DailyMatchesResult | null;
   }>({ loading: true, data: null });
+  const [liveRefreshing, setLiveRefreshing] = useState(false);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterKey>("todos");
   const [predictionMatch, setPredictionMatch] = useState<NormalizedMatch | null>(null);
@@ -203,8 +207,9 @@ function JogosHojePage() {
   }, [fetchTodayMatches]);
 
   const refreshLive = useCallback(async () => {
+    setLiveRefreshing(true);
     try {
-      const live = await fetchLiveMatches();
+      const live = await fetchLiveMatches({ data: { nonce: Date.now() } });
       if (!live.ok || !live.payload) return;
       const livePayload = live.payload;
       setState((cur) => ({
@@ -219,21 +224,28 @@ function JogosHojePage() {
       }));
     } catch {
       // mantém o último snapshot bom
+    } finally {
+      setLiveRefreshing(false);
     }
   }, [fetchLiveMatches]);
 
   useEffect(() => {
     void load();
-    const id = setInterval(() => {
+    const liveId = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
       void refreshLive();
-    }, 15_000);
+    }, LIVE_REFRESH_INTERVAL_MS);
+    const fullId = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      void load();
+    }, FULL_REFRESH_INTERVAL_MS);
     const onVis = () => {
       if (!document.hidden) void refreshLive();
     };
     document.addEventListener("visibilitychange", onVis);
     return () => {
-      clearInterval(id);
+      clearInterval(liveId);
+      clearInterval(fullId);
       document.removeEventListener("visibilitychange", onVis);
     };
   }, [load, refreshLive]);
@@ -275,6 +287,7 @@ function JogosHojePage() {
     ? new Date(state.data.fetchedAt).toLocaleTimeString("pt-BR", {
         hour: "2-digit",
         minute: "2-digit",
+        second: "2-digit",
         timeZone: "America/Sao_Paulo",
       })
     : "--:--";
@@ -293,6 +306,11 @@ function JogosHojePage() {
             </span>
             <span>·</span>
             <span>Atualizado {updatedTime}</span>
+            {liveRefreshing ? (
+              <span className="inline-flex items-center gap-1 text-emerald-500">
+                <RefreshCw className="h-3 w-3 animate-spin" /> ao vivo
+              </span>
+            ) : null}
             {state.data?.cached ? (
               <span className={subtle}>(cache)</span>
             ) : null}

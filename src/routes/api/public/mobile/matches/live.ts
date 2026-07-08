@@ -15,7 +15,15 @@ export const Route = createFileRoute("/api/public/mobile/matches/live")({
           const payload = await fetchLiveMatchesPayload();
           return new Response(
             JSON.stringify({ ok: true, fetchedAt: new Date().toISOString(), ...payload }),
-            { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=10", ...cors } },
+            {
+              status: 200,
+              headers: {
+                "Content-Type": "application/json",
+                "Cache-Control": "no-store, max-age=0",
+                Pragma: "no-cache",
+                ...cors,
+              },
+            },
           );
         } catch (e) {
           return new Response(

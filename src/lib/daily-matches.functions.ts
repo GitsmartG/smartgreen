@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+import { createServerFn, setResponseHeader } from "@tanstack/react-start";
 import type { DailyMatchesPayload } from "./daily-matches.server";
 
 export type DailyMatchesResult = {
@@ -10,10 +10,13 @@ export type DailyMatchesResult = {
   payload?: DailyMatchesPayload;
 };
 
-export const getLiveMatches = createServerFn({ method: "GET" }).handler(
+export const getLiveMatches = createServerFn({ method: "POST" })
+  .inputValidator((input: { nonce?: number } | undefined) => input ?? {})
+  .handler(
   async (): Promise<DailyMatchesResult> => {
     const { fetchLiveMatchesPayload } = await import("./daily-matches.server");
     try {
+      setResponseHeader("Cache-Control", "no-store, max-age=0");
       return {
         ok: true,
         cached: false,
