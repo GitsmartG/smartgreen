@@ -212,12 +212,13 @@ function JogosHojePage() {
   const [predictionMatch, setPredictionMatch] = useState<NormalizedMatch | null>(null);
   const [lineupsMatch, setLineupsMatch] = useState<NormalizedMatch | null>(null);
 
-  const load = useCallback(async () => {
-    setState((s) => ({ ...s, loading: true }));
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setState((s) => ({ ...s, loading: true }));
     try {
       const res = await fetchTodayMatches();
       setState({ loading: false, data: res });
     } catch (e) {
+      if (opts?.silent) return; // mantém snapshot atual em refresh de fundo
       setState({
         loading: false,
         data: { ok: false, cached: false, error: e instanceof Error ? e.message : "Erro" },
