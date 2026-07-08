@@ -390,7 +390,7 @@ function Field({
 }
 
 type EndpointDoc = {
-  method: "GET";
+  method: "GET" | "POST";
   path: string;
   title: string;
   desc: string;
@@ -505,6 +505,28 @@ function ApiPanel({
   };
 
   const endpoints: EndpointDoc[] = [
+    {
+      method: "POST",
+      path: "/api/public/mobile/signup",
+      title: "Cadastro (signup)",
+      desc: "Cria uma conta nova no app. Body JSON: { email, password, name? }. NÃO exige X-API-Key. Retorna access_token, refresh_token e user { id, email, role }.",
+      notes: [
+        "password: mínimo 6, máximo 128 caracteres.",
+        "Se needs_email_confirmation=true, peça pro user confirmar o email antes de logar.",
+        "Guarde os tokens em storage seguro (Keychain/EncryptedSharedPreferences/expo-secure-store).",
+      ],
+    },
+    {
+      method: "POST",
+      path: "/api/public/mobile/login",
+      title: "Login (email + senha)",
+      desc: "Autentica um usuário existente. Body JSON: { email, password }. NÃO exige X-API-Key (a auth é pela senha). Retorna access_token, refresh_token, expires_in e user { id, email, role }.",
+      notes: [
+        "401 = email ou senha incorretos.",
+        "role pode ser 'admin' ou 'user' — use pra liberar áreas restritas no app.",
+        "access_token expira em ~1h; use refresh_token pra renovar sem pedir senha de novo.",
+      ],
+    },
     {
       method: "GET",
       path: "/api/public/mobile/matches/live",
