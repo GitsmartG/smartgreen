@@ -404,25 +404,43 @@ function ApiPanel({
   panel: string;
   muted: string;
 }) {
-  const origin = useMemo(
-    () => (typeof window === "undefined" ? "" : window.location.origin),
-    [],
-  );
+  // Base URL fixa do site do Vercel — é dele que o app mobile / front consomem a API.
+  const origin = "https://smartgreen-phi.vercel.app";
   const [copied, setCopied] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState<string>("");
   const [apiKeyRevealed, setApiKeyRevealed] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
         const { data } = await supabase.auth.getSession();
-        if (!data.session) return; // sem sessão → não chama server fn protegida
+        if (!data.session) return;
         const { getInternalApiKey } = await import("@/lib/internal-api-key.functions");
         const res = await getInternalApiKey();
         if (res?.key) setApiKey(res.key);
-      } catch { /* silencia — apenas não mostra a chave */ }
+      } catch { /* noop */ }
     })();
   }, []);
+
+  const handleRegenerate = async () => {
+    if (regenerating) return;
+    if (apiKey && !confirm("Gerar uma nova chave vai INVALIDAR a chave atual. Continuar?")) return;
+    setRegenerating(true);
+    try {
+      const { regenerateApiKey } = await import("@/lib/internal-api-key.functions");
+      const res = await regenerateApiKey();
+      if (res?.key) {
+        setApiKey(res.key);
+        setApiKeyRevealed(true);
+      }
+    } catch (e) {
+      alert("Erro ao gerar chave: " + (e instanceof Error ? e.message : "desconhecido"));
+    } finally {
+      setRegenerating(false);
+    }
+  };
+
 
 
 
@@ -649,8 +667,20 @@ function ApiPanel({
               <Copy className="h-3.5 w-3.5" />
               {copied === apiKey ? "Copiado" : "Copiar"}
             </button>
+            <button
+              onClick={handleRegenerate}
+              disabled={regenerating}
+              className={
+                "h-8 px-3 rounded-md border text-xs font-medium inline-flex items-center gap-1.5 disabled:opacity-40 " +
+                "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700"
+              }
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${regenerating ? "animate-spin" : ""}`} />
+              {regenerating ? "Gerando..." : apiKey ? "Nova chave" : "Gerar chave"}
+            </button>
           </div>
         </div>
+
         <div className={`mt-3 rounded-lg border p-3 ${box}`}>
           <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1`}>Exemplo de uso (fetch no Vercel)</div>
           <pre className={`${codeCls} overflow-x-auto whitespace-pre`}>{`await fetch("${origin || "https://smartgreen-phi.vercel.app"}/api/public/mobile/tickets", {

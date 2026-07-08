@@ -8,7 +8,7 @@ export const Route = createFileRoute("/api/public/mobile/matches/today")({
         new Response(null, { status: 204, headers: buildCors(request) }),
       GET: async ({ request }) => {
         const cors = buildCors(request);
-        const unauth = requireApiKey(request);
+        const unauth = await requireApiKey(request);
         if (unauth) return unauth;
         try {
           const { readCachedDaily, refreshDailyMatches } = await import("@/lib/daily-matches.server");
