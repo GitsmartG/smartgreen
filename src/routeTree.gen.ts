@@ -22,6 +22,7 @@ import { Route as ApiPublicFeaturesRouteImport } from './routes/api/public/featu
 import { Route as ApiPublicTeamImageIdRouteImport } from './routes/api/public/team-image.$id'
 import { Route as ApiPublicMobileTicketsRouteImport } from './routes/api/public/mobile/tickets'
 import { Route as ApiPublicHooksRefreshDailyMatchesRouteImport } from './routes/api/public/hooks/refresh-daily-matches'
+import { Route as ApiPublicDebugApiKeyRouteImport } from './routes/api/public/debug/api-key'
 import { Route as ApiPublicMobileTicketsIdRouteImport } from './routes/api/public/mobile/tickets.$id'
 import { Route as ApiPublicMobileMatchesTodayRouteImport } from './routes/api/public/mobile/matches/today'
 import { Route as ApiPublicMobileMatchesLiveRouteImport } from './routes/api/public/mobile/matches/live'
@@ -92,6 +93,11 @@ const ApiPublicHooksRefreshDailyMatchesRoute =
     path: '/api/public/hooks/refresh-daily-matches',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicDebugApiKeyRoute = ApiPublicDebugApiKeyRouteImport.update({
+  id: '/api/public/debug/api-key',
+  path: '/api/public/debug/api-key',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicMobileTicketsIdRoute =
   ApiPublicMobileTicketsIdRouteImport.update({
     id: '/$id',
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/public/features': typeof ApiPublicFeaturesRoute
+  '/api/public/debug/api-key': typeof ApiPublicDebugApiKeyRoute
   '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
   '/api/public/mobile/tickets': typeof ApiPublicMobileTicketsRouteWithChildren
   '/api/public/team-image/$id': typeof ApiPublicTeamImageIdRoute
@@ -139,6 +146,7 @@ export interface FileRoutesByTo {
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard': typeof DashboardIndexRoute
   '/api/public/features': typeof ApiPublicFeaturesRoute
+  '/api/public/debug/api-key': typeof ApiPublicDebugApiKeyRoute
   '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
   '/api/public/mobile/tickets': typeof ApiPublicMobileTicketsRouteWithChildren
   '/api/public/team-image/$id': typeof ApiPublicTeamImageIdRoute
@@ -158,6 +166,7 @@ export interface FileRoutesById {
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/api/public/features': typeof ApiPublicFeaturesRoute
+  '/api/public/debug/api-key': typeof ApiPublicDebugApiKeyRoute
   '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
   '/api/public/mobile/tickets': typeof ApiPublicMobileTicketsRouteWithChildren
   '/api/public/team-image/$id': typeof ApiPublicTeamImageIdRoute
@@ -178,6 +187,7 @@ export interface FileRouteTypes {
     | '/dashboard/usuarios'
     | '/dashboard/'
     | '/api/public/features'
+    | '/api/public/debug/api-key'
     | '/api/public/hooks/refresh-daily-matches'
     | '/api/public/mobile/tickets'
     | '/api/public/team-image/$id'
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
     | '/dashboard/usuarios'
     | '/dashboard'
     | '/api/public/features'
+    | '/api/public/debug/api-key'
     | '/api/public/hooks/refresh-daily-matches'
     | '/api/public/mobile/tickets'
     | '/api/public/team-image/$id'
@@ -213,6 +224,7 @@ export interface FileRouteTypes {
     | '/dashboard/usuarios'
     | '/dashboard/'
     | '/api/public/features'
+    | '/api/public/debug/api-key'
     | '/api/public/hooks/refresh-daily-matches'
     | '/api/public/mobile/tickets'
     | '/api/public/team-image/$id'
@@ -226,6 +238,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiPublicFeaturesRoute: typeof ApiPublicFeaturesRoute
+  ApiPublicDebugApiKeyRoute: typeof ApiPublicDebugApiKeyRoute
   ApiPublicHooksRefreshDailyMatchesRoute: typeof ApiPublicHooksRefreshDailyMatchesRoute
   ApiPublicMobileTicketsRoute: typeof ApiPublicMobileTicketsRouteWithChildren
   ApiPublicTeamImageIdRoute: typeof ApiPublicTeamImageIdRoute
@@ -326,6 +339,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksRefreshDailyMatchesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/debug/api-key': {
+      id: '/api/public/debug/api-key'
+      path: '/api/public/debug/api-key'
+      fullPath: '/api/public/debug/api-key'
+      preLoaderRoute: typeof ApiPublicDebugApiKeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/mobile/tickets/$id': {
       id: '/api/public/mobile/tickets/$id'
       path: '/$id'
@@ -391,6 +411,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiPublicFeaturesRoute: ApiPublicFeaturesRoute,
+  ApiPublicDebugApiKeyRoute: ApiPublicDebugApiKeyRoute,
   ApiPublicHooksRefreshDailyMatchesRoute:
     ApiPublicHooksRefreshDailyMatchesRoute,
   ApiPublicMobileTicketsRoute: ApiPublicMobileTicketsRouteWithChildren,
@@ -401,13 +422,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
