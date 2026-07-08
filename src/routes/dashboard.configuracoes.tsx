@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Building2, Save, Check, Activity, RefreshCw, AlertCircle, Gauge, Cable, Copy, ExternalLink } from "lucide-react";
+import { Building2, Save, Check, Activity, RefreshCw, AlertCircle, Gauge, Cable, Copy, ExternalLink, ToggleLeft } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
 import { getStatpalUsage, type StatpalUsage } from "@/lib/statpal-usage.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { getFeatureFlags, setFeatureFlag, FEATURE_KEYS, type FeatureKey, type FeatureFlags } from "@/lib/feature-flags.functions";
+
 
 
 export const Route = createFileRoute("/dashboard/configuracoes")({
@@ -45,7 +47,7 @@ const DEFAULTS: Settings = {
 
 const STORAGE_KEY = "sg-settings";
 
-type TabKey = "geral" | "monitoramento" | "api";
+type TabKey = "geral" | "funcionalidades" | "monitoramento" | "api";
 
 function ConfiguracoesPage() {
   const isDark = useIsDark();
@@ -112,10 +114,15 @@ function ConfiguracoesPage() {
           <Building2 className="h-4 w-4" />
           Geral
         </button>
+        <button className={navBtn(tab === "funcionalidades")} onClick={() => setTab("funcionalidades")}>
+          <ToggleLeft className="h-4 w-4" />
+          Funcionalidades
+        </button>
         <button className={navBtn(tab === "monitoramento")} onClick={() => setTab("monitoramento")}>
           <Activity className="h-4 w-4" />
           Monitoramento
         </button>
+
         <button className={navBtn(tab === "api")} onClick={() => setTab("api")}>
           <Cable className="h-4 w-4" />
           API Mobile
