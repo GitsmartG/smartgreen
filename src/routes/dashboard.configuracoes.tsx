@@ -650,9 +650,19 @@ function ApiPanel({
         </p>
         <pre className={`rounded-lg border p-3 ${box} ${codeCls} overflow-x-auto whitespace-pre`}>{notifShape}</pre>
       </div>
+
+      <div className={`rounded-xl border p-5 ${panel}`}>
+        <h4 className="font-semibold mb-1">Exemplo de payload — Tickets / Dicas</h4>
+        <p className={`text-xs ${muted} mb-3`}>
+          Formato completo que <code className="font-mono">/mobile/tickets</code> devolve. Já tem tudo pra montar o card da dica:
+          liga, evento, palpite, odd, valor, status, placar ao vivo, logos e o link do bilhete pro botão APOSTAR.
+        </p>
+        <pre className={`rounded-lg border p-3 ${box} ${codeCls} overflow-x-auto whitespace-pre max-h-[480px]`}>{ticketShape}</pre>
+      </div>
     </div>
   );
 }
+
 
 
 const FEATURE_LABELS: Record<FeatureKey, { label: string; desc: string }> = {
