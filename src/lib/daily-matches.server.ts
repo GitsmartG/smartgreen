@@ -60,6 +60,71 @@ function cacheShapeIsStale(payload: DailyMatchesPayload): boolean {
   );
 }
 
+function isoFromStatpalDate(value?: string): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  const dmy = trimmed.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+  if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`;
+  const iso = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  return null;
+}
+
+function statpalDateFromISO(value: string): string {
+  const [year = "1970", month = "01", day = "01"] = value.split("-");
+  return `${day.padStart(2, "0")}.${month.padStart(2, "0")}.${year}`;
+}
+
+function dateDiffDays(aISO: string, bISO: string): number {
+  const [ay, am, ad] = aISO.split("-").map(Number);
+  const [by, bm, bd] = bISO.split("-").map(Number);
+  const a = Date.UTC(ay, (am || 1) - 1, ad || 1);
+  const b = Date.UTC(by, (bm || 1) - 1, bd || 1);
+  return Math.round((a - b) / 86_400_000);
+}
+
+function utcTodayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function extractStatpalRoot(raw: unknown): Record<string, unknown> {
+  if (!raw || typeof raw !== "object") return {};
+  const obj = raw as Record<string, unknown>;
+  if (obj.live_matches && typeof obj.live_matches === "object") {
+    return obj.live_matches as Record<string, unknown>;
+  }
+  for (const [key, value] of Object.entries(obj)) {
+    if (/^matches_\d{2}_\d{2}_\d{4}$/.test(key) && value && typeof value === "object") {
+      return value as Record<string, unknown>;
+    }
+  }
+  if ("league" in obj) return obj;
+  return {};
+}
+
+function filterPayloadByDate(payload: DailyMatchesPayload, dateISO: string): DailyMatchesPayload {
+  const leagues = (payload.leagues ?? [])
+    .map((lg) => ({
+      ...lg,
+      matches: (lg.matches ?? []).filter((m) => isoFromStatpalDate(m.date) === dateISO),
+    }))
+    .filter((lg) => lg.matches.length > 0);
+  return {
+    ...payload,
+    leagues,
+    totalMatches: leagues.reduce((sum, lg) => sum + lg.matches.length, 0),
+  };
+}
+
+function payloadHasOnlyDate(payload: DailyMatchesPayload, dateISO: string): boolean {
+  for (const lg of payload.leagues ?? []) {
+    for (const m of lg.matches ?? []) {
+      if (isoFromStatpalDate(m.date) !== dateISO) return false;
+    }
+  }
+  return true;
+}
+
 function toNum(v: unknown): number | null {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
@@ -117,11 +182,8 @@ function mergeMatch(base: NormalizedMatch, live: NormalizedMatch): NormalizedMat
   };
 }
 
-export function normalizeStatpalLive(raw: unknown): DailyMatchesPayload {
-  const root =
-    raw && typeof raw === "object" && "live_matches" in raw
-      ? (raw as { live_matches?: Record<string, unknown> }).live_matches ?? {}
-      : {};
+export function normalizeStatpalLive(raw: unknown, dateISO?: string): DailyMatchesPayload {
+  const root = extractStatpalRoot(raw);
   const leaguesRaw = ensureArray<Record<string, unknown>>(root.league);
   const leagues: NormalizedLeague[] = [];
   let total = 0;
@@ -178,12 +240,14 @@ export function normalizeStatpalLive(raw: unknown): DailyMatchesPayload {
     });
   }
 
-  return {
+  const payload = {
     updated: typeof root.updated === "string" ? root.updated : undefined,
     updatedTs: toNum(root.updated_ts) ?? undefined,
     leagues,
     totalMatches: total,
   };
+
+  return dateISO ? filterPayloadByDate(payload, dateISO) : payload;
 }
 
 async function statpalFetchLive(): Promise<unknown> {
@@ -197,8 +261,31 @@ async function statpalFetchLive(): Promise<unknown> {
   return await res.json();
 }
 
-export async function fetchLiveMatchesPayload(): Promise<DailyMatchesPayload> {
-  return normalizeStatpalLive(await statpalFetchLive());
+async function statpalFetchDaily(offset: number): Promise<unknown> {
+  const key = process.env.STATPAL_API_KEY;
+  if (!key) throw new Error("STATPAL_API_KEY não configurada");
+  const res = await fetch(
+    `https://statpal.io/api/v2/soccer/matches/daily?access_key=${encodeURIComponent(key)}&offset=${offset}`,
+    { headers: { Accept: "application/json" } },
+  );
+  if (!res.ok) throw new Error(`Statpal daily HTTP ${res.status}`);
+  return await res.json();
+}
+
+async function fetchMatchesPayloadForDate(dateISO: string): Promise<DailyMatchesPayload> {
+  const offset = dateDiffDays(dateISO, utcTodayISO());
+
+  if (offset !== 0 && offset >= -7 && offset <= 7) {
+    const daily = normalizeStatpalLive(await statpalFetchDaily(offset), dateISO);
+    const live = normalizeStatpalLive(await statpalFetchLive(), dateISO);
+    return mergeLivePayload(daily, live);
+  }
+
+  return normalizeStatpalLive(await statpalFetchLive(), dateISO);
+}
+
+export async function fetchLiveMatchesPayload(date?: string): Promise<DailyMatchesPayload> {
+  return normalizeStatpalLive(await statpalFetchLive(), date ?? todayISO());
 }
 
 export function mergeLivePayload(
@@ -311,6 +398,8 @@ export async function readCachedDaily(date?: string): Promise<{
   if (first && !first.home?.image && !first.home?.id) return null;
   // Invalida cache antigo que marcava horário (ex: "23:00") como jogo ao vivo.
   if (cacheShapeIsStale(payload)) return null;
+  // Invalida cache antigo vindo do endpoint live sem filtro, que misturava ontem/amanhã.
+  if (!payloadHasOnlyDate(payload, String(data.match_date))) return null;
   return {
     date: String(data.match_date),
     payload,
@@ -323,14 +412,17 @@ export async function refreshDailyMatches(date?: string): Promise<{
   payload: DailyMatchesPayload;
 }> {
   const d = date ?? todayISO();
-  const payload = await fetchLiveMatchesPayload();
-  const client = getAdminClient();
-  const { error } = await client
-    .from("daily_matches")
-    .upsert(
-      { match_date: d, payload, fetched_at: new Date().toISOString(), source: "statpal" },
-      { onConflict: "match_date" },
-    );
-  if (error) throw new Error(`Supabase upsert falhou: ${error.message}`);
+  const payload = await fetchMatchesPayloadForDate(d);
+  try {
+    const client = getAdminClient();
+    await client
+      .from("daily_matches")
+      .upsert(
+        { match_date: d, payload, fetched_at: new Date().toISOString(), source: "statpal" },
+        { onConflict: "match_date" },
+      );
+  } catch {
+    // A listagem não deve quebrar só porque a gravação de cache falhou.
+  }
   return { date: d, payload };
 }
