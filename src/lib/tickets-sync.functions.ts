@@ -125,17 +125,6 @@ function publicClient() {
   );
 }
 
-// Server fn público — devolve DTOs (o mesmo shape do endpoint HTTP).
-export const listPublicTickets = createServerFn({ method: "GET" }).handler(async () => {
-  const sb = publicClient();
-  const { data, error } = await sb
-    .from("tickets")
-    .select("*")
-    .order("updated_at", { ascending: false })
-    .limit(200);
-  if (error) return [] as PublicTicketDTO[];
-  return (data ?? []).map((r) => ticketRowToDTO(r as never));
-});
 
 // Sincroniza a lista inteira do frontend (localStorage) para o banco.
 // Faz upsert de tudo e apaga o que não estiver mais na lista, tudo em uma chamada.
