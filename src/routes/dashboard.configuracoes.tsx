@@ -594,6 +594,72 @@ function ApiPanel({
         </div>
       </div>
 
+      <div className={`rounded-xl border p-5 ${panel}`}>
+        <div className="flex items-start gap-3 mb-3">
+          <div className="h-10 w-10 rounded-lg bg-amber-500/15 text-amber-500 flex items-center justify-center">
+            <Cable className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold">Chave da API (X-API-Key)</h3>
+            <p className={`text-xs ${muted} mt-0.5`}>
+              Envie essa chave no header <code className="font-mono">X-API-Key</code> em toda requisição pros endpoints
+              <code className="font-mono"> /mobile/tickets </code> e <code className="font-mono">/mobile/matches/*</code>.
+              Sem ela, o servidor devolve <code className="font-mono">401</code>. Também aceita <code className="font-mono">Authorization: Bearer &lt;chave&gt;</code> ou <code className="font-mono">?api_key=...</code> na URL.
+            </p>
+          </div>
+        </div>
+        <div className={`rounded-lg border p-3 ${box} flex items-center justify-between gap-2`}>
+          <div className="min-w-0 flex-1">
+            <div className={`text-[10px] uppercase tracking-wider ${muted}`}>SMARTGREEN_API_KEY</div>
+            <div className={codeCls + " text-amber-500 truncate"}>
+              {apiKey
+                ? apiKeyRevealed
+                  ? apiKey
+                  : apiKey.slice(0, 6) + "•".repeat(Math.max(apiKey.length - 10, 8)) + apiKey.slice(-4)
+                : "Faça login pra ver a chave"}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {apiKey && (
+              <button
+                onClick={() => setApiKeyRevealed((v) => !v)}
+                className={
+                  "h-8 px-3 rounded-md border text-xs font-medium " +
+                  (isDark
+                    ? "border-neutral-800 bg-neutral-900 text-neutral-200 hover:bg-neutral-800"
+                    : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50")
+                }
+              >
+                {apiKeyRevealed ? "Ocultar" : "Ver"}
+              </button>
+            )}
+            <button
+              disabled={!apiKey}
+              onClick={() => apiKey && copy(apiKey)}
+              className={
+                "h-8 px-3 rounded-md border text-xs font-medium inline-flex items-center gap-1.5 disabled:opacity-40 " +
+                (isDark
+                  ? "border-neutral-800 bg-neutral-900 text-neutral-200 hover:bg-neutral-800"
+                  : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50")
+              }
+            >
+              <Copy className="h-3.5 w-3.5" />
+              {copied === apiKey ? "Copiado" : "Copiar"}
+            </button>
+          </div>
+        </div>
+        <div className={`mt-3 rounded-lg border p-3 ${box}`}>
+          <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1`}>Exemplo de uso (fetch no Vercel)</div>
+          <pre className={`${codeCls} overflow-x-auto whitespace-pre`}>{`await fetch("${origin || "https://smartgreen-phi.vercel.app"}/api/public/mobile/tickets", {
+  headers: { "X-API-Key": "${apiKey || "SUA_CHAVE_AQUI"}" }
+}).then(r => r.json());`}</pre>
+        </div>
+        <p className={`text-[11px] ${muted} mt-2`}>
+          Origens liberadas via CORS: <code className="font-mono">smartgreen-phi.vercel.app</code>, qualquer <code className="font-mono">*.vercel.app</code> e <code className="font-mono">localhost</code>.
+        </p>
+      </div>
+
+
       {endpoints.map((ep) => {
         const full = origin + ep.path.replace("{id}", "123");
         return (
