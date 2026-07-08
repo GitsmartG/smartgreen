@@ -24,8 +24,10 @@ import { Route as ApiPublicMobileTicketsRouteImport } from './routes/api/public/
 import { Route as ApiPublicMobileSignupRouteImport } from './routes/api/public/mobile/signup'
 import { Route as ApiPublicMobileLoginRouteImport } from './routes/api/public/mobile/login'
 import { Route as ApiPublicHooksRefreshDailyMatchesRouteImport } from './routes/api/public/hooks/refresh-daily-matches'
+import { Route as ApiPublicHooksPollLiveNotificationsRouteImport } from './routes/api/public/hooks/poll-live-notifications'
 import { Route as ApiPublicDebugApiKeyRouteImport } from './routes/api/public/debug/api-key'
 import { Route as ApiPublicMobileTicketsIdRouteImport } from './routes/api/public/mobile/tickets.$id'
+import { Route as ApiPublicMobileNotificationsLiveRouteImport } from './routes/api/public/mobile/notifications/live'
 import { Route as ApiPublicMobileMatchesTodayRouteImport } from './routes/api/public/mobile/matches/today'
 import { Route as ApiPublicMobileMatchesLiveRouteImport } from './routes/api/public/mobile/matches/live'
 
@@ -105,6 +107,12 @@ const ApiPublicHooksRefreshDailyMatchesRoute =
     path: '/api/public/hooks/refresh-daily-matches',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksPollLiveNotificationsRoute =
+  ApiPublicHooksPollLiveNotificationsRouteImport.update({
+    id: '/api/public/hooks/poll-live-notifications',
+    path: '/api/public/hooks/poll-live-notifications',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicDebugApiKeyRoute = ApiPublicDebugApiKeyRouteImport.update({
   id: '/api/public/debug/api-key',
   path: '/api/public/debug/api-key',
@@ -115,6 +123,12 @@ const ApiPublicMobileTicketsIdRoute =
     id: '/$id',
     path: '/$id',
     getParentRoute: () => ApiPublicMobileTicketsRoute,
+  } as any)
+const ApiPublicMobileNotificationsLiveRoute =
+  ApiPublicMobileNotificationsLiveRouteImport.update({
+    id: '/api/public/mobile/notifications/live',
+    path: '/api/public/mobile/notifications/live',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicMobileMatchesTodayRoute =
   ApiPublicMobileMatchesTodayRouteImport.update({
@@ -141,6 +155,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/': typeof DashboardIndexRoute
   '/api/public/features': typeof ApiPublicFeaturesRoute
   '/api/public/debug/api-key': typeof ApiPublicDebugApiKeyRoute
+  '/api/public/hooks/poll-live-notifications': typeof ApiPublicHooksPollLiveNotificationsRoute
   '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
   '/api/public/mobile/login': typeof ApiPublicMobileLoginRoute
   '/api/public/mobile/signup': typeof ApiPublicMobileSignupRoute
@@ -148,6 +163,7 @@ export interface FileRoutesByFullPath {
   '/api/public/team-image/$id': typeof ApiPublicTeamImageIdRoute
   '/api/public/mobile/matches/live': typeof ApiPublicMobileMatchesLiveRoute
   '/api/public/mobile/matches/today': typeof ApiPublicMobileMatchesTodayRoute
+  '/api/public/mobile/notifications/live': typeof ApiPublicMobileNotificationsLiveRoute
   '/api/public/mobile/tickets/$id': typeof ApiPublicMobileTicketsIdRoute
 }
 export interface FileRoutesByTo {
@@ -161,6 +177,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardIndexRoute
   '/api/public/features': typeof ApiPublicFeaturesRoute
   '/api/public/debug/api-key': typeof ApiPublicDebugApiKeyRoute
+  '/api/public/hooks/poll-live-notifications': typeof ApiPublicHooksPollLiveNotificationsRoute
   '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
   '/api/public/mobile/login': typeof ApiPublicMobileLoginRoute
   '/api/public/mobile/signup': typeof ApiPublicMobileSignupRoute
@@ -168,6 +185,7 @@ export interface FileRoutesByTo {
   '/api/public/team-image/$id': typeof ApiPublicTeamImageIdRoute
   '/api/public/mobile/matches/live': typeof ApiPublicMobileMatchesLiveRoute
   '/api/public/mobile/matches/today': typeof ApiPublicMobileMatchesTodayRoute
+  '/api/public/mobile/notifications/live': typeof ApiPublicMobileNotificationsLiveRoute
   '/api/public/mobile/tickets/$id': typeof ApiPublicMobileTicketsIdRoute
 }
 export interface FileRoutesById {
@@ -183,6 +201,7 @@ export interface FileRoutesById {
   '/dashboard/': typeof DashboardIndexRoute
   '/api/public/features': typeof ApiPublicFeaturesRoute
   '/api/public/debug/api-key': typeof ApiPublicDebugApiKeyRoute
+  '/api/public/hooks/poll-live-notifications': typeof ApiPublicHooksPollLiveNotificationsRoute
   '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
   '/api/public/mobile/login': typeof ApiPublicMobileLoginRoute
   '/api/public/mobile/signup': typeof ApiPublicMobileSignupRoute
@@ -190,6 +209,7 @@ export interface FileRoutesById {
   '/api/public/team-image/$id': typeof ApiPublicTeamImageIdRoute
   '/api/public/mobile/matches/live': typeof ApiPublicMobileMatchesLiveRoute
   '/api/public/mobile/matches/today': typeof ApiPublicMobileMatchesTodayRoute
+  '/api/public/mobile/notifications/live': typeof ApiPublicMobileNotificationsLiveRoute
   '/api/public/mobile/tickets/$id': typeof ApiPublicMobileTicketsIdRoute
 }
 export interface FileRouteTypes {
@@ -206,6 +226,7 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/api/public/features'
     | '/api/public/debug/api-key'
+    | '/api/public/hooks/poll-live-notifications'
     | '/api/public/hooks/refresh-daily-matches'
     | '/api/public/mobile/login'
     | '/api/public/mobile/signup'
@@ -213,6 +234,7 @@ export interface FileRouteTypes {
     | '/api/public/team-image/$id'
     | '/api/public/mobile/matches/live'
     | '/api/public/mobile/matches/today'
+    | '/api/public/mobile/notifications/live'
     | '/api/public/mobile/tickets/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -226,6 +248,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/api/public/features'
     | '/api/public/debug/api-key'
+    | '/api/public/hooks/poll-live-notifications'
     | '/api/public/hooks/refresh-daily-matches'
     | '/api/public/mobile/login'
     | '/api/public/mobile/signup'
@@ -233,6 +256,7 @@ export interface FileRouteTypes {
     | '/api/public/team-image/$id'
     | '/api/public/mobile/matches/live'
     | '/api/public/mobile/matches/today'
+    | '/api/public/mobile/notifications/live'
     | '/api/public/mobile/tickets/$id'
   id:
     | '__root__'
@@ -247,6 +271,7 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/api/public/features'
     | '/api/public/debug/api-key'
+    | '/api/public/hooks/poll-live-notifications'
     | '/api/public/hooks/refresh-daily-matches'
     | '/api/public/mobile/login'
     | '/api/public/mobile/signup'
@@ -254,6 +279,7 @@ export interface FileRouteTypes {
     | '/api/public/team-image/$id'
     | '/api/public/mobile/matches/live'
     | '/api/public/mobile/matches/today'
+    | '/api/public/mobile/notifications/live'
     | '/api/public/mobile/tickets/$id'
   fileRoutesById: FileRoutesById
 }
@@ -263,6 +289,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiPublicFeaturesRoute: typeof ApiPublicFeaturesRoute
   ApiPublicDebugApiKeyRoute: typeof ApiPublicDebugApiKeyRoute
+  ApiPublicHooksPollLiveNotificationsRoute: typeof ApiPublicHooksPollLiveNotificationsRoute
   ApiPublicHooksRefreshDailyMatchesRoute: typeof ApiPublicHooksRefreshDailyMatchesRoute
   ApiPublicMobileLoginRoute: typeof ApiPublicMobileLoginRoute
   ApiPublicMobileSignupRoute: typeof ApiPublicMobileSignupRoute
@@ -270,6 +297,7 @@ export interface RootRouteChildren {
   ApiPublicTeamImageIdRoute: typeof ApiPublicTeamImageIdRoute
   ApiPublicMobileMatchesLiveRoute: typeof ApiPublicMobileMatchesLiveRoute
   ApiPublicMobileMatchesTodayRoute: typeof ApiPublicMobileMatchesTodayRoute
+  ApiPublicMobileNotificationsLiveRoute: typeof ApiPublicMobileNotificationsLiveRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -379,6 +407,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksRefreshDailyMatchesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/poll-live-notifications': {
+      id: '/api/public/hooks/poll-live-notifications'
+      path: '/api/public/hooks/poll-live-notifications'
+      fullPath: '/api/public/hooks/poll-live-notifications'
+      preLoaderRoute: typeof ApiPublicHooksPollLiveNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/debug/api-key': {
       id: '/api/public/debug/api-key'
       path: '/api/public/debug/api-key'
@@ -392,6 +427,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/mobile/tickets/$id'
       preLoaderRoute: typeof ApiPublicMobileTicketsIdRouteImport
       parentRoute: typeof ApiPublicMobileTicketsRoute
+    }
+    '/api/public/mobile/notifications/live': {
+      id: '/api/public/mobile/notifications/live'
+      path: '/api/public/mobile/notifications/live'
+      fullPath: '/api/public/mobile/notifications/live'
+      preLoaderRoute: typeof ApiPublicMobileNotificationsLiveRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/mobile/matches/today': {
       id: '/api/public/mobile/matches/today'
@@ -452,6 +494,8 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   ApiPublicFeaturesRoute: ApiPublicFeaturesRoute,
   ApiPublicDebugApiKeyRoute: ApiPublicDebugApiKeyRoute,
+  ApiPublicHooksPollLiveNotificationsRoute:
+    ApiPublicHooksPollLiveNotificationsRoute,
   ApiPublicHooksRefreshDailyMatchesRoute:
     ApiPublicHooksRefreshDailyMatchesRoute,
   ApiPublicMobileLoginRoute: ApiPublicMobileLoginRoute,
@@ -460,6 +504,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicTeamImageIdRoute: ApiPublicTeamImageIdRoute,
   ApiPublicMobileMatchesLiveRoute: ApiPublicMobileMatchesLiveRoute,
   ApiPublicMobileMatchesTodayRoute: ApiPublicMobileMatchesTodayRoute,
+  ApiPublicMobileNotificationsLiveRoute: ApiPublicMobileNotificationsLiveRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

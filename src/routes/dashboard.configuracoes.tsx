@@ -546,6 +546,17 @@ function ApiPanel({
     },
     {
       method: "GET",
+      path: "/api/public/mobile/notifications/live",
+      title: "Notificações ao vivo",
+      desc: "Feed pronto de notificações de todos os jogos ao vivo: gols, cartões, eventos e estado do jogo. Não depende do painel web aberto.",
+      notes: [
+        "Recomendado polling a cada 10–15s no app mobile.",
+        "Use notification.id pra deduplicar no app antes de mostrar push/local notification.",
+        "Query opcional: ?include_match_state=false pra retornar só events[] reais, sem item de estado do jogo.",
+      ],
+    },
+    {
+      method: "GET",
       path: "/api/public/team-image/{id}",
       title: "Logo do time",
       desc: "Proxy de imagem do escudo do time (usa o team.id retornado nos endpoints de matches). Retorna PNG/JPG ou SVG fallback.",
@@ -638,16 +649,37 @@ function ApiPanel({
 }`;
 
 
-  const notifShape = `// Formato do evento (dentro de match.events[])
+  const notifShape = `// GET /api/public/mobile/notifications/live → 200
 {
-  "id": "string",           // id único do evento
-  "type": "goal" | "yellowcard" | "redcard" | "subst" | ...,
-  "team": "home" | "away",
-  "minute": "45",
-  "extraMin": "2",          // opcional
-  "player": "string",       // opcional
-  "assist": "string",       // opcional
-  "result": "1-0"           // opcional (gols)
+  "ok": true,
+  "fetchedAt": "2026-07-08T21:47:00.000Z",
+  "count": 2,
+  "matchesCount": 8,
+  "notifications": [
+    {
+      "id": "9981234:event:e4",
+      "matchId": "9981234",
+      "kind": "goal",                 // goal | card | event | live | finish
+      "type": "goal",
+      "title": "Gol do Flamengo",
+      "text": "58' goal · Flamengo · Arrascaeta (2-1)",
+      "league": "Brasileirão Série A",
+      "leagueId": "384",
+      "minute": "58",
+      "team": "home",
+      "player": "Arrascaeta",
+      "result": "2-1",
+      "score1": 2,
+      "score2": 1,
+      "status": "live",
+      "rawStatus": "58'",
+      "live": true,
+      "finished": false,
+      "team1": { "id": "1234", "name": "Flamengo", "logo": "https://.../api/public/team-image/1234" },
+      "team2": { "id": "5678", "name": "Palmeiras", "logo": "https://.../api/public/team-image/5678" },
+      "fetchedAt": "2026-07-08T21:47:00.000Z"
+    }
+  ]
 }`;
 
   const matchShape = `// GET /api/public/mobile/matches/live → 200
@@ -705,6 +737,7 @@ async function apiGet(path, params = {}) {
 // Uso
 const { tickets }  = await apiGet("/api/public/mobile/tickets", { status: "ao_vivo", limit: 50 });
 const { matches }  = await apiGet("/api/public/mobile/matches/live");
+const { notifications } = await apiGet("/api/public/mobile/notifications/live", { limit: 200 });
 const oneTicket    = await apiGet("/api/public/mobile/tickets/A7F3B21C4E88");`;
 
   const rnExample = `// React Native / Expo — hook com polling
@@ -715,20 +748,29 @@ const API_KEY  = "${apiKey || "SUA_CHAVE_AQUI"}";
 
 export function useLiveMatches(intervalMs = 15000) {
   const [matches, setMatches] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   useEffect(() => {
     let alive = true;
     const load = async () => {
-      const res = await fetch(\`\${API_BASE}/api/public/mobile/matches/live\`, {
-        headers: { "X-API-Key": API_KEY },
-      });
-      const data = await res.json();
-      if (alive && data.ok) setMatches(data.matches);
+      const [liveRes, notifRes] = await Promise.all([
+        fetch(\`\${API_BASE}/api/public/mobile/matches/live\`, {
+          headers: { "X-API-Key": API_KEY },
+        }),
+        fetch(\`\${API_BASE}/api/public/mobile/notifications/live\`, {
+          headers: { "X-API-Key": API_KEY },
+        }),
+      ]);
+      const live = await liveRes.json();
+      const notif = await notifRes.json();
+      if (!alive) return;
+      if (live.ok) setMatches(live.matches);
+      if (notif.ok) setNotifications(notif.notifications);
     };
     load();
     const t = setInterval(load, intervalMs);
     return () => { alive = false; clearInterval(t); };
   }, [intervalMs]);
-  return matches;
+  return { matches, notifications };
 }`;
 
   const paramsTable: Array<{ param: string; type: string; desc: string; example: string }> = [

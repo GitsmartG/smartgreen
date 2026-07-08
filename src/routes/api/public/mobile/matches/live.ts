@@ -12,9 +12,18 @@ export const Route = createFileRoute("/api/public/mobile/matches/live")({
         if (unauth) return unauth;
         try {
           const { fetchLiveMatchesPayload } = await import("@/lib/daily-matches.server");
+          const { flattenMobileMatches } = await import("@/lib/mobile-matches");
           const payload = await fetchLiveMatchesPayload();
+          const origin = new URL(request.url).origin;
+          const matches = flattenMobileMatches(payload, origin);
           return new Response(
-            JSON.stringify({ ok: true, fetchedAt: new Date().toISOString(), ...payload }),
+            JSON.stringify({
+              ok: true,
+              fetchedAt: new Date().toISOString(),
+              count: matches.length,
+              matches,
+              ...payload,
+            }),
             {
               status: 200,
               headers: {
