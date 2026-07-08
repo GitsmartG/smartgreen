@@ -428,6 +428,11 @@ function ApiPanel({
     if (apiKey && !confirm("Gerar uma nova chave vai INVALIDAR a chave atual. Continuar?")) return;
     setRegenerating(true);
     try {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        alert("Sua sessão expirou. Faça login novamente para gerar uma nova chave.");
+        return;
+      }
       const { regenerateApiKey } = await import("@/lib/internal-api-key.functions");
       const res = await regenerateApiKey();
       if (res?.key) {
