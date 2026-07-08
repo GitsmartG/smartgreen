@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bell, Trophy, Play, Flag, X, BadgeAlert, Activity, Radio } from "lucide-react";
+import { Bell, Trophy, Play, Flag, X, AlertTriangle, Activity, Radio } from "lucide-react";
 import { useLiveGoalNotifications, type LiveNotification } from "@/hooks/use-live-goal-notifications";
 
 function timeAgo(ts: number): string {
@@ -14,7 +14,7 @@ function timeAgo(ts: number): string {
 function iconFor(kind: LiveNotification["kind"]) {
   if (kind === "goal") return <Trophy className="h-3.5 w-3.5 text-emerald-400" />;
   if (kind === "start") return <Play className="h-3.5 w-3.5 text-sky-400" />;
-  if (kind === "card") return <BadgeAlert className="h-3.5 w-3.5 text-amber-400" />;
+  if (kind === "card") return <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />;
   if (kind === "event") return <Activity className="h-3.5 w-3.5 text-sky-400" />;
   return <Flag className="h-3.5 w-3.5 text-neutral-400" />;
 }
@@ -40,9 +40,9 @@ function titleFor(n: LiveNotification): string {
 
 export function LiveNotificationsPanel({ isDark }: { isDark: boolean }) {
   const { notifs: raw, dismiss, clear } = useLiveGoalNotifications();
-  const notifs = (Array.isArray(raw) ? raw : []).filter(
-    (n): n is LiveNotification => !!n && typeof n === "object" && typeof n.id === "string",
-  );
+  const notifs = (Array.isArray(raw) ? raw : [])
+    .filter((n): n is LiveNotification => !!n && typeof n === "object" && typeof n.id === "string")
+    .slice(0, 3);
 
   const border = isDark ? "border-neutral-800" : "border-neutral-200";
   const item = isDark
