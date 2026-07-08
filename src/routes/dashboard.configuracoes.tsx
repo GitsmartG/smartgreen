@@ -415,12 +415,15 @@ function ApiPanel({
   useEffect(() => {
     (async () => {
       try {
+        const { data } = await supabase.auth.getSession();
+        if (!data.session) return; // sem sessão → não chama server fn protegida
         const { getInternalApiKey } = await import("@/lib/internal-api-key.functions");
         const res = await getInternalApiKey();
         if (res?.key) setApiKey(res.key);
-      } catch { /* usuário não logado ou erro — mantém vazio */ }
+      } catch { /* silencia — apenas não mostra a chave */ }
     })();
   }, []);
+
 
 
   const copy = async (text: string) => {
