@@ -77,6 +77,26 @@ function LoginPage() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    setError(null);
+    if (!email) {
+      setError("Coloca seu e-mail primeiro, mano.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (resetError) throw resetError;
+      setError("Te mandei o link de redefinição no e-mail.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível enviar o link agora");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const isDark = theme === "dark";
   const isSignup = mode === "signup";
 
@@ -194,8 +214,9 @@ function LoginPage() {
                   Senha
                 </label>
                 {!isSignup && (
-                  <a
-                    href="#"
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
                     className={
                       "text-xs font-medium " +
                       (isDark
@@ -204,7 +225,7 @@ function LoginPage() {
                     }
                   >
                     Esqueci minha senha
-                  </a>
+                  </button>
                 )}
               </div>
               <div className="relative">
