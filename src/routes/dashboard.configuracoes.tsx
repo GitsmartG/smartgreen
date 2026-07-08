@@ -83,6 +83,10 @@ function ConfiguracoesPage() {
           <Activity className="h-4 w-4" />
           Monitoramento
         </button>
+        <button className={navBtn(tab === "api")} onClick={() => setTab("api")}>
+          <Cable className="h-4 w-4" />
+          API Mobile
+        </button>
       </nav>
 
       {tab === "geral" && (
