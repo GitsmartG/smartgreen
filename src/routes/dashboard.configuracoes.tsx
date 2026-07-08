@@ -628,6 +628,95 @@ function ApiPanel({
   "result": "1-0"           // opcional (gols)
 }`;
 
+  const matchShape = `// GET /api/public/mobile/matches/live → 200
+{
+  "ok": true,
+  "fetchedAt": "2026-07-08T21:47:00.000Z",
+  "count": 1,
+  "matches": [
+    {
+      "id": "9981234",
+      "league": "Brasileirão Série A",
+      "leagueId": "384",
+      "status": "live",            // scheduled | live | finished
+      "minute": "62",
+      "startMs": 1783545000000,
+      "team1": { "id": "1234", "name": "Flamengo", "logo": "/api/public/team-image/1234" },
+      "team2": { "id": "5678", "name": "Palmeiras", "logo": "/api/public/team-image/5678" },
+      "score1": 2,
+      "score2": 1,
+      "events": [
+        { "id": "e1", "type": "goal", "team": "home", "minute": "12", "player": "Pedro", "result": "1-0" },
+        { "id": "e2", "type": "yellowcard", "team": "away", "minute": "34", "player": "Gómez" },
+        { "id": "e3", "type": "goal", "team": "away", "minute": "51", "player": "Endrick", "result": "1-1" },
+        { "id": "e4", "type": "goal", "team": "home", "minute": "58", "player": "Arrascaeta", "result": "2-1" }
+      ]
+    }
+  ]
+}`;
+
+  const errorShape = `// Respostas de erro (todas retornam JSON)
+401 Unauthorized  → { "ok": false, "error": "invalid_api_key" }
+429 Too Many Reqs → { "ok": false, "error": "rate_limited" }
+500 Server Error  → { "ok": false, "error": "mensagem detalhada" }`;
+
+  const curlExample = `# cURL — jogos ao vivo
+curl -H "X-API-Key: ${apiKey || "SUA_CHAVE_AQUI"}" \\
+  ${origin}/api/public/mobile/matches/live
+
+# cURL — só tickets green (últimos 20)
+curl -H "X-API-Key: ${apiKey || "SUA_CHAVE_AQUI"}" \\
+  "${origin}/api/public/mobile/tickets?status=green&limit=20"`;
+
+  const jsExample = `// JavaScript / TypeScript (browser, Node, Vercel)
+const API_BASE = "${origin}";
+const API_KEY  = "${apiKey || "SUA_CHAVE_AQUI"}";
+
+async function apiGet(path, params = {}) {
+  const url = new URL(API_BASE + path);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, String(v)));
+  const res = await fetch(url, { headers: { "X-API-Key": API_KEY } });
+  if (!res.ok) throw new Error(\`\${res.status} \${res.statusText}\`);
+  return res.json();
+}
+
+// Uso
+const { tickets }  = await apiGet("/api/public/mobile/tickets", { status: "ao_vivo", limit: 50 });
+const { matches }  = await apiGet("/api/public/mobile/matches/live");
+const oneTicket    = await apiGet("/api/public/mobile/tickets/A7F3B21C4E88");`;
+
+  const rnExample = `// React Native / Expo — hook com polling
+import { useEffect, useState } from "react";
+
+const API_BASE = "${origin}";
+const API_KEY  = "${apiKey || "SUA_CHAVE_AQUI"}";
+
+export function useLiveMatches(intervalMs = 15000) {
+  const [matches, setMatches] = useState([]);
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      const res = await fetch(\`\${API_BASE}/api/public/mobile/matches/live\`, {
+        headers: { "X-API-Key": API_KEY },
+      });
+      const data = await res.json();
+      if (alive && data.ok) setMatches(data.matches);
+    };
+    load();
+    const t = setInterval(load, intervalMs);
+    return () => { alive = false; clearInterval(t); };
+  }, [intervalMs]);
+  return matches;
+}`;
+
+  const paramsTable: Array<{ param: string; type: string; desc: string; example: string }> = [
+    { param: "status", type: "string", desc: "Filtra por status do ticket.", example: "aguardando | ao_vivo | green | red" },
+    { param: "limit",  type: "number", desc: "Máximo de tickets (default 100, teto 500).", example: "?limit=50" },
+  ];
+
+  const [tab, setTab] = useState<"curl" | "js" | "rn">("js");
+
+
   const box = isDark ? "bg-neutral-950/60 border-neutral-800" : "bg-neutral-50 border-neutral-200";
   const codeCls = "font-mono text-[12px] break-all";
 
@@ -736,16 +825,46 @@ function ApiPanel({
           </div>
         </div>
 
-        <div className={`mt-3 rounded-lg border p-3 ${box}`}>
-          <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1`}>Exemplo de uso (fetch no Vercel)</div>
-          <pre className={`${codeCls} overflow-x-auto whitespace-pre`}>{`await fetch("${origin || "https://smartgreen-phi.vercel.app"}/api/public/mobile/tickets", {
-  headers: { "X-API-Key": "${apiKey || "SUA_CHAVE_AQUI"}" }
-}).then(r => r.json());`}</pre>
+        <div className={`mt-3 rounded-lg border ${box}`}>
+          <div className="flex items-center gap-1 border-b border-inherit p-1.5">
+            {([
+              { id: "js" as const, label: "JavaScript / TS" },
+              { id: "rn" as const, label: "React Native" },
+              { id: "curl" as const, label: "cURL" },
+            ]).map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={
+                  "h-7 px-3 rounded text-[11px] font-medium transition-colors " +
+                  (tab === t.id
+                    ? "bg-emerald-500/15 text-emerald-500"
+                    : (isDark ? "text-neutral-400 hover:text-neutral-200" : "text-neutral-500 hover:text-neutral-800"))
+                }
+              >
+                {t.label}
+              </button>
+            ))}
+            <button
+              onClick={() => copy(tab === "curl" ? curlExample : tab === "rn" ? rnExample : jsExample)}
+              className={
+                "ml-auto h-7 px-2.5 rounded text-[11px] font-medium inline-flex items-center gap-1 " +
+                (isDark ? "text-neutral-400 hover:text-neutral-200" : "text-neutral-500 hover:text-neutral-800")
+              }
+            >
+              <Copy className="h-3 w-3" />
+              Copiar
+            </button>
+          </div>
+          <pre className={`${codeCls} overflow-x-auto whitespace-pre p-3 max-h-[360px]`}>
+{tab === "curl" ? curlExample : tab === "rn" ? rnExample : jsExample}
+          </pre>
         </div>
         <p className={`text-[11px] ${muted} mt-2`}>
-          Origens liberadas via CORS: <code className="font-mono">smartgreen-phi.vercel.app</code>, qualquer <code className="font-mono">*.vercel.app</code> e <code className="font-mono">localhost</code>.
+          Origens liberadas via CORS: <code className="font-mono">smartgreen-phi.vercel.app</code>, qualquer <code className="font-mono">*.vercel.app</code> e <code className="font-mono">localhost</code>. Cache do servidor: 5s (tickets), 15s (matches/live), 60s (matches/today).
         </p>
       </div>
+
 
 
       {endpoints.map((ep) => {
@@ -826,9 +945,51 @@ function ApiPanel({
         </p>
         <pre className={`rounded-lg border p-3 ${box} ${codeCls} overflow-x-auto whitespace-pre max-h-[480px]`}>{ticketShape}</pre>
       </div>
+
+      <div className={`rounded-xl border p-5 ${panel}`}>
+        <h4 className="font-semibold mb-1">Query params — /mobile/tickets</h4>
+        <p className={`text-xs ${muted} mb-3`}>Filtros opcionais aceitos na URL. Combine à vontade.</p>
+        <div className={`rounded-lg border ${box} overflow-hidden`}>
+          <table className="w-full text-xs">
+            <thead>
+              <tr className={isDark ? "bg-neutral-900/60" : "bg-neutral-100"}>
+                <th className="text-left px-3 py-2 font-semibold">Param</th>
+                <th className="text-left px-3 py-2 font-semibold">Tipo</th>
+                <th className="text-left px-3 py-2 font-semibold">Descrição</th>
+                <th className="text-left px-3 py-2 font-semibold">Exemplo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paramsTable.map((p) => (
+                <tr key={p.param} className="border-t border-inherit">
+                  <td className="px-3 py-2 font-mono text-emerald-500">{p.param}</td>
+                  <td className={`px-3 py-2 ${muted}`}>{p.type}</td>
+                  <td className="px-3 py-2">{p.desc}</td>
+                  <td className="px-3 py-2 font-mono text-[11px]">{p.example}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className={`rounded-xl border p-5 ${panel}`}>
+        <h4 className="font-semibold mb-1">Exemplo de payload — Matches (ao vivo)</h4>
+        <p className={`text-xs ${muted} mb-3`}>
+          Formato do <code className="font-mono">/mobile/matches/live</code>. Cada match traz <code className="font-mono">events[]</code>: use pra gerar push (compare com o snapshot anterior).
+        </p>
+        <pre className={`rounded-lg border p-3 ${box} ${codeCls} overflow-x-auto whitespace-pre max-h-[480px]`}>{matchShape}</pre>
+      </div>
+
+      <div className={`rounded-xl border p-5 ${panel}`}>
+        <h4 className="font-semibold mb-1">Respostas de erro</h4>
+        <p className={`text-xs ${muted} mb-3`}>Toda resposta de erro é JSON com <code className="font-mono">ok: false</code>.</p>
+        <pre className={`rounded-lg border p-3 ${box} ${codeCls} overflow-x-auto whitespace-pre`}>{errorShape}</pre>
+      </div>
     </div>
   );
 }
+
 
 
 
