@@ -22,6 +22,8 @@ function UsuariosPage() {
   const fetchUsers = useServerFn(listAdminUsers);
   const changeRole = useServerFn(setUserRole);
   const removeUser = useServerFn(deleteAppUser);
+  const createUser = useServerFn(createAppUser);
+  const [showCreate, setShowCreate] = useState(false);
 
   const panel = isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200";
   const muted = isDark ? "text-neutral-400" : "text-neutral-500";
