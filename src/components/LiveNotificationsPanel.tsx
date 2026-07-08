@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bell, Trophy, Play, Flag, X, BadgeAlert, Activity, Radio } from "lucide-react";
+import { Bell, Trophy, Play, Flag, X, AlertTriangle, Activity, Radio } from "lucide-react";
 import { useLiveGoalNotifications, type LiveNotification } from "@/hooks/use-live-goal-notifications";
 
 function timeAgo(ts: number): string {
