@@ -995,8 +995,8 @@ export function useLiveMatches(intervalMs = 15000) {
       <div className={`rounded-xl border p-5 ${panel}`}>
         <h4 className="font-semibold mb-1">Notificações ao vivo (gols, cartões, início/fim)</h4>
         <p className={`text-xs ${muted} mb-3`}>
-          Não existe endpoint separado de "notificações". O app faz polling em <code className="font-mono">/matches/live</code> a cada 15s
-          e compara o placar e o array <code className="font-mono">events</code> com o snapshot anterior. Cada diff vira uma push local.
+          Use <code className="font-mono">/mobile/notifications/live</code> pra consumir um feed pronto e persistido de eventos ao vivo.
+          O backend coleta sozinho todo minuto; o app ainda pode fazer polling a cada 10–15s pra exibir rápido.
         </p>
         <pre className={`rounded-lg border p-3 ${box} ${codeCls} overflow-x-auto whitespace-pre`}>{notifShape}</pre>
       </div>
