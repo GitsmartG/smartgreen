@@ -154,24 +154,14 @@ function sNum(v: unknown, fb = 0): number {
   return fb;
 }
 
-function formatSpTime(date?: string, time?: string): string | undefined {
+function formatSpTime(_date?: string, time?: string): string | undefined {
+  // A Statpal já devolve o horário do jogo no fuso do calendário consultado
+  // (America/Sao_Paulo, definido no todayISO do server). Não reconverter —
+  // reconverter causa jogos das 15h aparecerem como 12h.
   if (!time) return undefined;
   const t = time.match(/^(\d{1,2}):(\d{2})/);
   if (!t) return time;
-  const hh = t[1].padStart(2, "0");
-  const mm = t[2];
-  const d =
-    date && /^\d{4}[-.]\d{2}[-.]\d{2}$/.test(date)
-      ? date.replace(/\./g, "-")
-      : new Date().toISOString().slice(0, 10);
-  const iso = `${d}T${hh}:${mm}:00Z`;
-  const dt = new Date(iso);
-  if (Number.isNaN(dt.getTime())) return time;
-  return new Intl.DateTimeFormat("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "America/Sao_Paulo",
-  }).format(dt);
+  return `${t[1].padStart(2, "0")}:${t[2]}`;
 }
 
 function JogosHojePage() {
