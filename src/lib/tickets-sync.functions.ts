@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { Database } from "@/integrations/supabase/types";
+
 
 // DTO puro (camelCase) devolvido pelo endpoint público, pro app mobile consumir.
 export type PublicTicketDTO = {
@@ -117,13 +116,6 @@ export function ticketRowToDTO(row: {
   };
 }
 
-function publicClient() {
-  return createClient<Database>(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-  );
-}
 
 
 // Sincroniza a lista inteira do frontend (localStorage) para o banco.
