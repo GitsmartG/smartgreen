@@ -72,10 +72,13 @@ async function syncTicketsToBackend(tickets: Ticket[]) {
   if (syncTimer) clearTimeout(syncTimer);
   syncTimer = setTimeout(async () => {
     try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) return; // não logado — não sincroniza
       const { syncAllTickets } = await import("./tickets-sync.functions");
       await syncAllTickets({ data: { tickets } });
     } catch {
-      /* offline ou não logado — próxima chamada tenta de novo */
+      /* offline ou erro — próxima chamada tenta de novo */
     }
   }, 400);
 }
