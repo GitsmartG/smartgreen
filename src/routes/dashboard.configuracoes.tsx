@@ -635,3 +635,156 @@ function ApiPanel({
   );
 }
 
+
+const FEATURE_LABELS: Record<FeatureKey, { label: string; desc: string }> = {
+  jogos: { label: "Jogos", desc: "Aba de jogos ao vivo e agendados." },
+  ligas: { label: "Ligas", desc: "Listagem e navegação por ligas." },
+  banca: { label: "Banca", desc: "Gestão de banca e apostas." },
+  parceiros: { label: "Parceiros", desc: "Área de casas parceiras." },
+  indique: { label: "Indique", desc: "Programa de indicação." },
+};
+
+function FeaturesPanel({
+  isDark,
+  panel,
+  muted,
+}: {
+  isDark: boolean;
+  panel: string;
+  muted: string;
+}) {
+  const [flags, setFlags] = useState<FeatureFlags | null>(null);
+  const [saving, setSaving] = useState<FeatureKey | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await getFeatureFlags();
+        setFlags(data);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Erro ao carregar");
+      }
+    })();
+  }, []);
+
+  const toggle = async (key: FeatureKey) => {
+    if (!flags) return;
+    const next = !flags[key];
+    setFlags({ ...flags, [key]: next });
+    setSaving(key);
+    setError(null);
+    try {
+      await setFeatureFlag({ data: { key, enabled: next } });
+    } catch (e) {
+      setFlags({ ...flags, [key]: !next });
+      setError(e instanceof Error ? e.message : "Erro ao salvar");
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const endpoint = typeof window !== "undefined" ? `${window.location.origin}/api/public/features` : "/api/public/features";
+
+  return (
+    <div className="space-y-4">
+      <div className={`rounded-xl border p-5 ${panel}`}>
+        <div className="mb-4">
+          <h3 className="font-semibold">Ativar / desativar funcionalidades</h3>
+          <p className={`text-xs ${muted} mt-0.5`}>
+            Liga e desliga áreas do app. O estado fica público em{" "}
+            <code className="text-emerald-500">/api/public/features</code>.
+          </p>
+        </div>
+
+        {error && (
+          <div className="mb-3 rounded-lg border border-red-500/30 bg-red-500/10 text-red-500 text-sm px-3 py-2 flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          {FEATURE_KEYS.map((key) => {
+            const on = flags?.[key] ?? true;
+            const busy = saving === key;
+            return (
+              <div
+                key={key}
+                className={
+                  "flex items-center justify-between rounded-lg border px-4 py-3 " +
+                  (isDark ? "border-neutral-800 bg-neutral-950" : "border-neutral-200 bg-neutral-50")
+                }
+              >
+                <div>
+                  <div className="text-sm font-medium">{FEATURE_LABELS[key].label}</div>
+                  <div className={`text-xs ${muted} mt-0.5`}>{FEATURE_LABELS[key].desc}</div>
+                </div>
+                <button
+                  onClick={() => void toggle(key)}
+                  disabled={busy || !flags}
+                  aria-pressed={on}
+                  className={
+                    "relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-60 " +
+                    (on ? "bg-emerald-500" : isDark ? "bg-neutral-700" : "bg-neutral-300")
+                  }
+                >
+                  <span
+                    className={
+                      "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform " +
+                      (on ? "translate-x-5" : "translate-x-1")
+                    }
+                  />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className={`rounded-xl border p-5 ${panel}`}>
+        <div className="mb-2 flex items-center gap-2">
+          <Cable className="h-4 w-4 text-emerald-500" />
+          <h3 className="font-semibold text-sm">Endpoint público</h3>
+        </div>
+        <p className={`text-xs ${muted} mb-3`}>
+          GET retorna JSON com <code>true</code> / <code>false</code> por funcionalidade.
+        </p>
+        <div className="flex items-center gap-2">
+          <code
+            className={
+              "flex-1 text-xs px-3 py-2 rounded-md border overflow-x-auto " +
+              (isDark ? "bg-neutral-950 border-neutral-800" : "bg-neutral-50 border-neutral-200")
+            }
+          >
+            {endpoint}
+          </code>
+          <button
+            onClick={() => void navigator.clipboard.writeText(endpoint)}
+            className={
+              "h-9 px-3 rounded-md border text-xs inline-flex items-center gap-1.5 " +
+              (isDark
+                ? "border-neutral-800 bg-neutral-950 text-neutral-200 hover:bg-neutral-800"
+                : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50")
+            }
+          >
+            <Copy className="h-3.5 w-3.5" /> Copiar
+          </button>
+          <a
+            href={endpoint}
+            target="_blank"
+            rel="noreferrer"
+            className={
+              "h-9 px-3 rounded-md border text-xs inline-flex items-center gap-1.5 " +
+              (isDark
+                ? "border-neutral-800 bg-neutral-950 text-neutral-200 hover:bg-neutral-800"
+                : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50")
+            }
+          >
+            <ExternalLink className="h-3.5 w-3.5" /> Testar
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
