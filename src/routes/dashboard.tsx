@@ -44,12 +44,28 @@ function DashboardLayout() {
 
   useEffect(() => {
     let cancelled = false;
-    supabase.auth.getUser().then(({ data, error }) => {
-      if (!cancelled && (error || !data.user)) {
+    async function check() {
+      const { data, error } = await supabase.auth.getUser();
+      if (cancelled) return;
+      if (error || !data.user) {
         localStorage.removeItem("sg-auth");
         navigate({ to: "/" });
+        return;
       }
-    });
+      const { data: isAdmin } = await supabase.rpc("has_role", {
+        _user_id: data.user.id,
+        _role: "admin",
+      });
+      if (cancelled) return;
+      if (!isAdmin) {
+        // usuário comum não acessa o painel — desloga e volta pro login
+        await supabase.auth.signOut();
+        localStorage.removeItem("sg-auth");
+        alert("Acesso restrito. Apenas administradores podem acessar o painel.");
+        navigate({ to: "/" });
+      }
+    }
+    void check();
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (!cancelled && event === "SIGNED_OUT") navigate({ to: "/" });
       if (!cancelled && !session && event !== "INITIAL_SESSION") localStorage.removeItem("sg-auth");
