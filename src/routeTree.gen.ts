@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as DashboardUsuariosRouteImport } from './routes/dashboard.usuarios'
 import { Route as DashboardNotificacoesRouteImport } from './routes/dashboard.notificacoes'
+import { Route as DashboardNewsRouteImport } from './routes/dashboard.news'
 import { Route as DashboardJogosRouteImport } from './routes/dashboard.jogos'
 import { Route as DashboardDicasRouteImport } from './routes/dashboard.dicas'
 import { Route as DashboardConfiguracoesRouteImport } from './routes/dashboard.configuracoes'
@@ -28,6 +29,7 @@ import { Route as ApiPublicHooksPollLiveNotificationsRouteImport } from './route
 import { Route as ApiPublicDebugApiKeyRouteImport } from './routes/api/public/debug/api-key'
 import { Route as ApiPublicMobileTicketsIdRouteImport } from './routes/api/public/mobile/tickets.$id'
 import { Route as ApiPublicMobileNotificationsLiveRouteImport } from './routes/api/public/mobile/notifications/live'
+import { Route as ApiPublicMobileNewsMatchIdRouteImport } from './routes/api/public/mobile/news.$matchId'
 import { Route as ApiPublicMobileMatchesTodayRouteImport } from './routes/api/public/mobile/matches/today'
 import { Route as ApiPublicMobileMatchesLiveRouteImport } from './routes/api/public/mobile/matches/live'
 import { Route as ApiPublicMobileMatchesByDateRouteImport } from './routes/api/public/mobile/matches/by-date'
@@ -60,6 +62,11 @@ const DashboardUsuariosRoute = DashboardUsuariosRouteImport.update({
 const DashboardNotificacoesRoute = DashboardNotificacoesRouteImport.update({
   id: '/notificacoes',
   path: '/notificacoes',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardNewsRoute = DashboardNewsRouteImport.update({
+  id: '/news',
+  path: '/news',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardJogosRoute = DashboardJogosRouteImport.update({
@@ -131,6 +138,12 @@ const ApiPublicMobileNotificationsLiveRoute =
     path: '/api/public/mobile/notifications/live',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicMobileNewsMatchIdRoute =
+  ApiPublicMobileNewsMatchIdRouteImport.update({
+    id: '/api/public/mobile/news/$matchId',
+    path: '/api/public/mobile/news/$matchId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicMobileMatchesTodayRoute =
   ApiPublicMobileMatchesTodayRouteImport.update({
     id: '/api/public/mobile/matches/today',
@@ -157,6 +170,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/dicas': typeof DashboardDicasRoute
   '/dashboard/jogos': typeof DashboardJogosRoute
+  '/dashboard/news': typeof DashboardNewsRoute
   '/dashboard/notificacoes': typeof DashboardNotificacoesRoute
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -171,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/api/public/mobile/matches/by-date': typeof ApiPublicMobileMatchesByDateRoute
   '/api/public/mobile/matches/live': typeof ApiPublicMobileMatchesLiveRoute
   '/api/public/mobile/matches/today': typeof ApiPublicMobileMatchesTodayRoute
+  '/api/public/mobile/news/$matchId': typeof ApiPublicMobileNewsMatchIdRoute
   '/api/public/mobile/notifications/live': typeof ApiPublicMobileNotificationsLiveRoute
   '/api/public/mobile/tickets/$id': typeof ApiPublicMobileTicketsIdRoute
 }
@@ -180,6 +195,7 @@ export interface FileRoutesByTo {
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/dicas': typeof DashboardDicasRoute
   '/dashboard/jogos': typeof DashboardJogosRoute
+  '/dashboard/news': typeof DashboardNewsRoute
   '/dashboard/notificacoes': typeof DashboardNotificacoesRoute
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard': typeof DashboardIndexRoute
@@ -194,6 +210,7 @@ export interface FileRoutesByTo {
   '/api/public/mobile/matches/by-date': typeof ApiPublicMobileMatchesByDateRoute
   '/api/public/mobile/matches/live': typeof ApiPublicMobileMatchesLiveRoute
   '/api/public/mobile/matches/today': typeof ApiPublicMobileMatchesTodayRoute
+  '/api/public/mobile/news/$matchId': typeof ApiPublicMobileNewsMatchIdRoute
   '/api/public/mobile/notifications/live': typeof ApiPublicMobileNotificationsLiveRoute
   '/api/public/mobile/tickets/$id': typeof ApiPublicMobileTicketsIdRoute
 }
@@ -205,6 +222,7 @@ export interface FileRoutesById {
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/dicas': typeof DashboardDicasRoute
   '/dashboard/jogos': typeof DashboardJogosRoute
+  '/dashboard/news': typeof DashboardNewsRoute
   '/dashboard/notificacoes': typeof DashboardNotificacoesRoute
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -219,6 +237,7 @@ export interface FileRoutesById {
   '/api/public/mobile/matches/by-date': typeof ApiPublicMobileMatchesByDateRoute
   '/api/public/mobile/matches/live': typeof ApiPublicMobileMatchesLiveRoute
   '/api/public/mobile/matches/today': typeof ApiPublicMobileMatchesTodayRoute
+  '/api/public/mobile/news/$matchId': typeof ApiPublicMobileNewsMatchIdRoute
   '/api/public/mobile/notifications/live': typeof ApiPublicMobileNotificationsLiveRoute
   '/api/public/mobile/tickets/$id': typeof ApiPublicMobileTicketsIdRoute
 }
@@ -231,6 +250,7 @@ export interface FileRouteTypes {
     | '/dashboard/configuracoes'
     | '/dashboard/dicas'
     | '/dashboard/jogos'
+    | '/dashboard/news'
     | '/dashboard/notificacoes'
     | '/dashboard/usuarios'
     | '/dashboard/'
@@ -245,6 +265,7 @@ export interface FileRouteTypes {
     | '/api/public/mobile/matches/by-date'
     | '/api/public/mobile/matches/live'
     | '/api/public/mobile/matches/today'
+    | '/api/public/mobile/news/$matchId'
     | '/api/public/mobile/notifications/live'
     | '/api/public/mobile/tickets/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -254,6 +275,7 @@ export interface FileRouteTypes {
     | '/dashboard/configuracoes'
     | '/dashboard/dicas'
     | '/dashboard/jogos'
+    | '/dashboard/news'
     | '/dashboard/notificacoes'
     | '/dashboard/usuarios'
     | '/dashboard'
@@ -268,6 +290,7 @@ export interface FileRouteTypes {
     | '/api/public/mobile/matches/by-date'
     | '/api/public/mobile/matches/live'
     | '/api/public/mobile/matches/today'
+    | '/api/public/mobile/news/$matchId'
     | '/api/public/mobile/notifications/live'
     | '/api/public/mobile/tickets/$id'
   id:
@@ -278,6 +301,7 @@ export interface FileRouteTypes {
     | '/dashboard/configuracoes'
     | '/dashboard/dicas'
     | '/dashboard/jogos'
+    | '/dashboard/news'
     | '/dashboard/notificacoes'
     | '/dashboard/usuarios'
     | '/dashboard/'
@@ -292,6 +316,7 @@ export interface FileRouteTypes {
     | '/api/public/mobile/matches/by-date'
     | '/api/public/mobile/matches/live'
     | '/api/public/mobile/matches/today'
+    | '/api/public/mobile/news/$matchId'
     | '/api/public/mobile/notifications/live'
     | '/api/public/mobile/tickets/$id'
   fileRoutesById: FileRoutesById
@@ -311,6 +336,7 @@ export interface RootRouteChildren {
   ApiPublicMobileMatchesByDateRoute: typeof ApiPublicMobileMatchesByDateRoute
   ApiPublicMobileMatchesLiveRoute: typeof ApiPublicMobileMatchesLiveRoute
   ApiPublicMobileMatchesTodayRoute: typeof ApiPublicMobileMatchesTodayRoute
+  ApiPublicMobileNewsMatchIdRoute: typeof ApiPublicMobileNewsMatchIdRoute
   ApiPublicMobileNotificationsLiveRoute: typeof ApiPublicMobileNotificationsLiveRoute
 }
 
@@ -356,6 +382,13 @@ declare module '@tanstack/react-router' {
       path: '/notificacoes'
       fullPath: '/dashboard/notificacoes'
       preLoaderRoute: typeof DashboardNotificacoesRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/news': {
+      id: '/dashboard/news'
+      path: '/news'
+      fullPath: '/dashboard/news'
+      preLoaderRoute: typeof DashboardNewsRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/jogos': {
@@ -449,6 +482,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMobileNotificationsLiveRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/mobile/news/$matchId': {
+      id: '/api/public/mobile/news/$matchId'
+      path: '/api/public/mobile/news/$matchId'
+      fullPath: '/api/public/mobile/news/$matchId'
+      preLoaderRoute: typeof ApiPublicMobileNewsMatchIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/mobile/matches/today': {
       id: '/api/public/mobile/matches/today'
       path: '/api/public/mobile/matches/today'
@@ -477,6 +517,7 @@ interface DashboardRouteChildren {
   DashboardConfiguracoesRoute: typeof DashboardConfiguracoesRoute
   DashboardDicasRoute: typeof DashboardDicasRoute
   DashboardJogosRoute: typeof DashboardJogosRoute
+  DashboardNewsRoute: typeof DashboardNewsRoute
   DashboardNotificacoesRoute: typeof DashboardNotificacoesRoute
   DashboardUsuariosRoute: typeof DashboardUsuariosRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
@@ -486,6 +527,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardConfiguracoesRoute: DashboardConfiguracoesRoute,
   DashboardDicasRoute: DashboardDicasRoute,
   DashboardJogosRoute: DashboardJogosRoute,
+  DashboardNewsRoute: DashboardNewsRoute,
   DashboardNotificacoesRoute: DashboardNotificacoesRoute,
   DashboardUsuariosRoute: DashboardUsuariosRoute,
   DashboardIndexRoute: DashboardIndexRoute,
@@ -526,6 +568,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicMobileMatchesByDateRoute: ApiPublicMobileMatchesByDateRoute,
   ApiPublicMobileMatchesLiveRoute: ApiPublicMobileMatchesLiveRoute,
   ApiPublicMobileMatchesTodayRoute: ApiPublicMobileMatchesTodayRoute,
+  ApiPublicMobileNewsMatchIdRoute: ApiPublicMobileNewsMatchIdRoute,
   ApiPublicMobileNotificationsLiveRoute: ApiPublicMobileNotificationsLiveRoute,
 }
 export const routeTree = rootRouteImport
