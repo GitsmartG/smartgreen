@@ -183,6 +183,13 @@ function StorylinesView({
   const homeName = news.meta?.home_team?.name ?? match.home?.name ?? "Casa";
   const awayName = news.meta?.away_team?.name ?? match.away?.name ?? "Fora";
 
+  const ctx = news.storylines?.match_context ?? [];
+  const home = news.storylines?.home ?? [];
+  const away = news.storylines?.away ?? [];
+  const rivalry = news.storylines?.rivalry;
+  const hasRivalry = !!(rivalry && (rivalry.is_named_derby || rivalry.same_city));
+  const isEmpty = ctx.length === 0 && home.length === 0 && away.length === 0 && !hasRivalry;
+
   return (
     <div className="space-y-6">
       <div>
@@ -194,21 +201,31 @@ function StorylinesView({
         </p>
       </div>
 
-      <StorylineSection title="Contexto da partida" items={news.storylines?.match_context ?? []} isDark={isDark} />
-      <StorylineSection title={homeName} items={news.storylines?.home ?? []} isDark={isDark} />
-      <StorylineSection title={awayName} items={news.storylines?.away ?? []} isDark={isDark} />
-
-      {news.storylines?.rivalry && (news.storylines.rivalry.is_named_derby || news.storylines.rivalry.same_city) && (
-        <div className={`rounded-md border p-3 text-xs ${isDark ? "border-neutral-800 bg-neutral-950" : "border-neutral-200 bg-neutral-50"}`}>
-          <span className="font-semibold">Rivalidade: </span>
-          {news.storylines.rivalry.derby_name_localized ??
-            news.storylines.rivalry.derby_name ??
-            (news.storylines.rivalry.same_city ? "Clássico da mesma cidade" : "—")}
+      {isEmpty ? (
+        <div className={`rounded-md border p-4 text-sm ${isDark ? "border-neutral-800 bg-neutral-950 text-neutral-400" : "border-neutral-200 bg-neutral-50 text-neutral-600"}`}>
+          A API não retornou storylines pra esse jogo. Isso é comum em partidas
+          de base (U17/U19/U20) e ligas menores — a Statpal só produz conteúdo
+          editorial pras principais competições. Tenta outro jogo da lista.
         </div>
+      ) : (
+        <>
+          <StorylineSection title="Contexto da partida" items={ctx} isDark={isDark} />
+          <StorylineSection title={homeName} items={home} isDark={isDark} />
+          <StorylineSection title={awayName} items={away} isDark={isDark} />
+          {hasRivalry && (
+            <div className={`rounded-md border p-3 text-xs ${isDark ? "border-neutral-800 bg-neutral-950" : "border-neutral-200 bg-neutral-50"}`}>
+              <span className="font-semibold">Rivalidade: </span>
+              {rivalry!.derby_name_localized ??
+                rivalry!.derby_name ??
+                (rivalry!.same_city ? "Clássico da mesma cidade" : "—")}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
 }
+
 
 function StorylineSection({
   title,
