@@ -103,14 +103,20 @@ function diffDaysFromToday(iso: string): number {
 
 export const getMatchesByDate = createServerFn({ method: "POST" })
   .inputValidator((input: { date: string }) => {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) {
+    const raw = (input?.date ?? "").toString().trim().toLowerCase();
+    let date = raw;
+    if (raw === "" || raw === "today" || raw === "hoje") date = brTodayISO();
+    else if (raw === "yesterday" || raw === "ontem") date = addDaysISOFn(brTodayISO(), -1);
+    else if (raw === "tomorrow" || raw === "amanha" || raw === "amanhã") date = addDaysISOFn(brTodayISO(), 1);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       throw new Error("Data inválida (use YYYY-MM-DD)");
     }
-    return input;
+    return { date };
   })
   .handler(async ({ data }): Promise<DailyMatchesResult> => {
     const { readCachedDaily, refreshDailyMatches } = await import("./daily-matches.server");
     const offset = diffDaysFromToday(data.date);
+
     if (Math.abs(offset) > 7) {
       return { ok: false, cached: false, error: "Data fora do range (±7 dias)." };
     }
