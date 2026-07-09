@@ -97,6 +97,7 @@ function DashboardLayout() {
     { label: "Usuários", icon: Users, to: "/dashboard/usuarios" },
     { label: "Dicas de Apostas", icon: Ticket, to: "/dashboard/dicas" },
     { label: "Jogos de Hoje", icon: CalendarDays, to: "/dashboard/jogos" },
+    { label: "News", icon: Newspaper, to: "/dashboard/news" },
     { label: "Notificações Push", icon: Bell, to: "/dashboard/notificacoes" },
     { label: "Configurações", icon: Settings, to: "/dashboard/configuracoes" },
   ];
