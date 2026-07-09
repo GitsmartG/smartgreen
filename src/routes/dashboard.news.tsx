@@ -22,10 +22,11 @@ function NewsPage() {
     ? "bg-neutral-950 border-neutral-800 hover:border-neutral-700"
     : "bg-white border-neutral-200 hover:border-neutral-300";
 
-  const [matches, setMatches] = useState<NormalizedMatch[]>([]);
+  type ItemMatch = NormalizedMatch & { leagueName?: string };
+  const [matches, setMatches] = useState<ItemMatch[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<NormalizedMatch | null>(null);
+  const [selected, setSelected] = useState<ItemMatch | null>(null);
   const [news, setNews] = useState<NewsResult | null>(null);
   const [loadingNews, setLoadingNews] = useState(false);
 
@@ -33,7 +34,9 @@ function NewsPage() {
     setLoadingList(true);
     try {
       const res = await fetchMatches({ data: { date: "today" } });
-      const list = (res?.payload?.leagues ?? []).flatMap((lg) => lg.matches ?? []);
+      const list: ItemMatch[] = (res?.payload?.leagues ?? []).flatMap((lg) =>
+        (lg.matches ?? []).map((m) => ({ ...m, leagueName: lg.name })),
+      );
       setMatches(list);
     } catch {
       setMatches([]);
@@ -47,7 +50,7 @@ function NewsPage() {
   }, [loadMatches]);
 
   const loadNews = useCallback(
-    async (m: NormalizedMatch) => {
+    async (m: ItemMatch) => {
       setSelected(m);
       setLoadingNews(true);
       setNews(null);
@@ -67,7 +70,7 @@ function NewsPage() {
     const q = query.trim().toLowerCase();
     if (!q) return matches;
     return matches.filter((m) => {
-      const hay = `${m.home?.name ?? ""} ${m.away?.name ?? ""} ${m.league ?? ""}`.toLowerCase();
+      const hay = `${m.home?.name ?? ""} ${m.away?.name ?? ""} ${m.leagueName ?? ""}`.toLowerCase();
       return hay.includes(q);
     });
   }, [matches, query]);
