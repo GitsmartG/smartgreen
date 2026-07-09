@@ -214,20 +214,26 @@ function JogosHojePage() {
   const [filter, setFilter] = useState<FilterKey>("todos");
   const [predictionMatch, setPredictionMatch] = useState<NormalizedMatch | null>(null);
   const [lineupsMatch, setLineupsMatch] = useState<NormalizedMatch | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(() => brTodayISO());
 
-  const load = useCallback(async (opts?: { silent?: boolean }) => {
+  const today = brTodayISO();
+  const offsetFromToday = diffDays(selectedDate, today);
+  const isToday = offsetFromToday === 0;
+
+  const load = useCallback(async (opts?: { silent?: boolean; date?: string }) => {
+    const d = opts?.date ?? selectedDate;
     if (!opts?.silent) setState((s) => ({ ...s, loading: true }));
     try {
-      const res = await fetchTodayMatches();
+      const res = await fetchByDate({ data: { date: d } });
       setState({ loading: false, data: res });
     } catch (e) {
-      if (opts?.silent) return; // mantém snapshot atual em refresh de fundo
+      if (opts?.silent) return;
       setState({
         loading: false,
         data: { ok: false, cached: false, error: e instanceof Error ? e.message : "Erro" },
       });
     }
-  }, [fetchTodayMatches]);
+  }, [fetchByDate, selectedDate]);
 
   const refreshLive = useCallback(async () => {
     setLiveRefreshing(true);
@@ -254,6 +260,7 @@ function JogosHojePage() {
 
   useEffect(() => {
     void load();
+    if (!isToday) return; // datas passadas/futuras não precisam de auto-refresh
     const liveId = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
       void refreshLive();
@@ -271,7 +278,8 @@ function JogosHojePage() {
       clearInterval(fullId);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [load, refreshLive]);
+  }, [load, refreshLive, isToday]);
+
 
   const filteredLeagues = useMemo<NormalizedLeague[]>(() => {
     const leagues = state.data?.payload?.leagues ?? [];
