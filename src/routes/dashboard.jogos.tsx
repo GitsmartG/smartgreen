@@ -12,9 +12,12 @@ import {
   Calendar,
   CheckCircle2,
   Users,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
-import { getLiveMatches, getTodayMatches, type DailyMatchesResult } from "@/lib/daily-matches.functions";
+import { getLiveMatches, getMatchesByDate, type DailyMatchesResult } from "@/lib/daily-matches.functions";
+
 import type { DailyMatchesPayload, NormalizedLeague, NormalizedMatch } from "@/lib/daily-matches.server";
 import { getMatchPrediction, type PredictionResult } from "@/lib/statpal-prediction.functions";
 import {
