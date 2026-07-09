@@ -218,6 +218,9 @@ function formatDateBR(iso: string): string {
   }).format(new Date(Date.UTC(y, m - 1, d, 12)));
 }
 
+function JogosHojePage() {
+
+
   const isDark = useIsDark();
   const fetchByDate = useServerFn(getMatchesByDate);
   const fetchLiveMatches = useServerFn(getLiveMatches);
