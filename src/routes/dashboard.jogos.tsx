@@ -191,7 +191,7 @@ function deriveMinuteFromKickoff(date?: string, time?: string, half?: "1H" | "2H
 
 function JogosHojePage() {
   const isDark = useIsDark();
-  const fetchTodayMatches = useServerFn(getTodayMatches);
+  const fetchByDate = useServerFn(getMatchesByDate);
   const fetchLiveMatches = useServerFn(getLiveMatches);
 
   const panel = isDark
