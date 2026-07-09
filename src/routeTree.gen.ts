@@ -15,7 +15,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as DashboardUsuariosRouteImport } from './routes/dashboard.usuarios'
 import { Route as DashboardNotificacoesRouteImport } from './routes/dashboard.notificacoes'
-import { Route as DashboardNewsRouteImport } from './routes/dashboard.news'
 import { Route as DashboardJogosRouteImport } from './routes/dashboard.jogos'
 import { Route as DashboardDicasRouteImport } from './routes/dashboard.dicas'
 import { Route as DashboardConfiguracoesRouteImport } from './routes/dashboard.configuracoes'
@@ -62,11 +61,6 @@ const DashboardUsuariosRoute = DashboardUsuariosRouteImport.update({
 const DashboardNotificacoesRoute = DashboardNotificacoesRouteImport.update({
   id: '/notificacoes',
   path: '/notificacoes',
-  getParentRoute: () => DashboardRoute,
-} as any)
-const DashboardNewsRoute = DashboardNewsRouteImport.update({
-  id: '/news',
-  path: '/news',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardJogosRoute = DashboardJogosRouteImport.update({
@@ -170,7 +164,6 @@ export interface FileRoutesByFullPath {
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/dicas': typeof DashboardDicasRoute
   '/dashboard/jogos': typeof DashboardJogosRoute
-  '/dashboard/news': typeof DashboardNewsRoute
   '/dashboard/notificacoes': typeof DashboardNotificacoesRoute
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -195,7 +188,6 @@ export interface FileRoutesByTo {
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/dicas': typeof DashboardDicasRoute
   '/dashboard/jogos': typeof DashboardJogosRoute
-  '/dashboard/news': typeof DashboardNewsRoute
   '/dashboard/notificacoes': typeof DashboardNotificacoesRoute
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard': typeof DashboardIndexRoute
@@ -222,7 +214,6 @@ export interface FileRoutesById {
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/dicas': typeof DashboardDicasRoute
   '/dashboard/jogos': typeof DashboardJogosRoute
-  '/dashboard/news': typeof DashboardNewsRoute
   '/dashboard/notificacoes': typeof DashboardNotificacoesRoute
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -250,7 +241,6 @@ export interface FileRouteTypes {
     | '/dashboard/configuracoes'
     | '/dashboard/dicas'
     | '/dashboard/jogos'
-    | '/dashboard/news'
     | '/dashboard/notificacoes'
     | '/dashboard/usuarios'
     | '/dashboard/'
@@ -275,7 +265,6 @@ export interface FileRouteTypes {
     | '/dashboard/configuracoes'
     | '/dashboard/dicas'
     | '/dashboard/jogos'
-    | '/dashboard/news'
     | '/dashboard/notificacoes'
     | '/dashboard/usuarios'
     | '/dashboard'
@@ -301,7 +290,6 @@ export interface FileRouteTypes {
     | '/dashboard/configuracoes'
     | '/dashboard/dicas'
     | '/dashboard/jogos'
-    | '/dashboard/news'
     | '/dashboard/notificacoes'
     | '/dashboard/usuarios'
     | '/dashboard/'
@@ -382,13 +370,6 @@ declare module '@tanstack/react-router' {
       path: '/notificacoes'
       fullPath: '/dashboard/notificacoes'
       preLoaderRoute: typeof DashboardNotificacoesRouteImport
-      parentRoute: typeof DashboardRoute
-    }
-    '/dashboard/news': {
-      id: '/dashboard/news'
-      path: '/news'
-      fullPath: '/dashboard/news'
-      preLoaderRoute: typeof DashboardNewsRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/jogos': {
@@ -517,7 +498,6 @@ interface DashboardRouteChildren {
   DashboardConfiguracoesRoute: typeof DashboardConfiguracoesRoute
   DashboardDicasRoute: typeof DashboardDicasRoute
   DashboardJogosRoute: typeof DashboardJogosRoute
-  DashboardNewsRoute: typeof DashboardNewsRoute
   DashboardNotificacoesRoute: typeof DashboardNotificacoesRoute
   DashboardUsuariosRoute: typeof DashboardUsuariosRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
@@ -527,7 +507,6 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardConfiguracoesRoute: DashboardConfiguracoesRoute,
   DashboardDicasRoute: DashboardDicasRoute,
   DashboardJogosRoute: DashboardJogosRoute,
-  DashboardNewsRoute: DashboardNewsRoute,
   DashboardNotificacoesRoute: DashboardNotificacoesRoute,
   DashboardUsuariosRoute: DashboardUsuariosRoute,
   DashboardIndexRoute: DashboardIndexRoute,
@@ -574,13 +553,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
