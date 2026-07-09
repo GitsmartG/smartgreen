@@ -128,7 +128,7 @@ function NewsPage() {
                   <div className="font-medium truncate">
                     {m.home?.name ?? "?"} <span className={muted}>vs</span> {m.away?.name ?? "?"}
                   </div>
-                  <div className={`mt-0.5 truncate ${muted}`}>{m.league ?? ""}</div>
+                  <div className={`mt-0.5 truncate ${muted}`}>{m.leagueName ?? ""}</div>
                 </button>
               );
             })
