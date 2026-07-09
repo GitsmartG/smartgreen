@@ -359,7 +359,10 @@ function JogosHojePage() {
       {/* Topo */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight">Jogos de Hoje</h2>
+          <h2 className="text-xl font-semibold tracking-tight">
+            {isToday ? "Jogos de Hoje" : offsetFromToday === -1 ? "Jogos de Ontem" : offsetFromToday === 1 ? "Jogos de Amanhã" : `Jogos · ${formatDateBR(selectedDate)}`}
+          </h2>
+
           <p className={`text-xs ${muted} mt-0.5 flex items-center gap-2 flex-wrap`}>
             <span>{totalCount} jogos no total</span>
             <span>·</span>
