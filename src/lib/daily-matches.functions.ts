@@ -52,7 +52,6 @@ export const getTodayMatches = createServerFn({ method: "GET" }).handler(
           payload: cached.payload,
         };
       }
-      // Cache stale ou inexistente → busca agora
       try {
         const fresh = await refreshDailyMatches();
         return {
@@ -63,7 +62,6 @@ export const getTodayMatches = createServerFn({ method: "GET" }).handler(
           payload: fresh.payload,
         };
       } catch (refreshErr) {
-        // Se o refresh falhar mas tem cache antigo, devolve o antigo
         if (cached) {
           return {
             ok: true,
@@ -75,7 +73,6 @@ export const getTodayMatches = createServerFn({ method: "GET" }).handler(
         }
         throw refreshErr;
       }
-
     } catch (e) {
       return {
         ok: false,
@@ -85,3 +82,80 @@ export const getTodayMatches = createServerFn({ method: "GET" }).handler(
     }
   },
 );
+
+const BR_TZ = "America/Sao_Paulo";
+function brTodayISO(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: BR_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+function diffDaysFromToday(iso: string): number {
+  const today = brTodayISO();
+  const [ty, tm, td] = today.split("-").map(Number);
+  const [gy, gm, gd] = iso.split("-").map(Number);
+  return Math.round(
+    (Date.UTC(gy, gm - 1, gd) - Date.UTC(ty, tm - 1, td)) / 86_400_000,
+  );
+}
+
+export const getMatchesByDate = createServerFn({ method: "POST" })
+  .inputValidator((input: { date: string }) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) {
+      throw new Error("Data inválida (use YYYY-MM-DD)");
+    }
+    return input;
+  })
+  .handler(async ({ data }): Promise<DailyMatchesResult> => {
+    const { readCachedDaily, refreshDailyMatches } = await import("./daily-matches.server");
+    const offset = diffDaysFromToday(data.date);
+    if (Math.abs(offset) > 7) {
+      return { ok: false, cached: false, error: "Data fora do range (±7 dias)." };
+    }
+    try {
+      const cached = await readCachedDaily(data.date);
+      const CACHE_TTL_MS = 60_000;
+      // Datas passadas: usa cache permanentemente. Hoje/futuro: TTL 60s.
+      const isFresh =
+        cached && (offset < 0 || Date.now() - new Date(cached.fetchedAt).getTime() < CACHE_TTL_MS);
+      if (cached && isFresh) {
+        return {
+          ok: true,
+          cached: true,
+          date: cached.date,
+          fetchedAt: cached.fetchedAt,
+          payload: cached.payload,
+        };
+      }
+      try {
+        const fresh = await refreshDailyMatches(data.date);
+        return {
+          ok: true,
+          cached: false,
+          date: fresh.date,
+          fetchedAt: new Date().toISOString(),
+          payload: fresh.payload,
+        };
+      } catch (refreshErr) {
+        if (cached) {
+          return {
+            ok: true,
+            cached: true,
+            date: cached.date,
+            fetchedAt: cached.fetchedAt,
+            payload: cached.payload,
+          };
+        }
+        throw refreshErr;
+      }
+    } catch (e) {
+      return {
+        ok: false,
+        cached: false,
+        error: e instanceof Error ? e.message : "Erro ao buscar jogos",
+      };
+    }
+  });
+

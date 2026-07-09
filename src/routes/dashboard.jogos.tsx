@@ -12,9 +12,12 @@ import {
   Calendar,
   CheckCircle2,
   Users,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
-import { getLiveMatches, getTodayMatches, type DailyMatchesResult } from "@/lib/daily-matches.functions";
+import { getLiveMatches, getMatchesByDate, type DailyMatchesResult } from "@/lib/daily-matches.functions";
+
 import type { DailyMatchesPayload, NormalizedLeague, NormalizedMatch } from "@/lib/daily-matches.server";
 import { getMatchPrediction, type PredictionResult } from "@/lib/statpal-prediction.functions";
 import {
@@ -186,9 +189,40 @@ function deriveMinuteFromKickoff(date?: string, time?: string, half?: "1H" | "2H
   return `${Math.max(1, minute)}'`;
 }
 
+const BR_TZ_STR = "America/Sao_Paulo";
+function brTodayISO(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: BR_TZ_STR,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+function addDaysISO(iso: string, days: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10);
+}
+function diffDays(a: string, b: string): number {
+  const [ay, am, ad] = a.split("-").map(Number);
+  const [by, bm, bd] = b.split("-").map(Number);
+  return Math.round((Date.UTC(ay, am - 1, ad) - Date.UTC(by, bm - 1, bd)) / 86_400_000);
+}
+function formatDateBR(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Intl.DateTimeFormat("pt-BR", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+  }).format(new Date(Date.UTC(y, m - 1, d, 12)));
+}
+
 function JogosHojePage() {
+
+
   const isDark = useIsDark();
-  const fetchTodayMatches = useServerFn(getTodayMatches);
+  const fetchByDate = useServerFn(getMatchesByDate);
   const fetchLiveMatches = useServerFn(getLiveMatches);
 
   const panel = isDark
@@ -211,20 +245,26 @@ function JogosHojePage() {
   const [filter, setFilter] = useState<FilterKey>("todos");
   const [predictionMatch, setPredictionMatch] = useState<NormalizedMatch | null>(null);
   const [lineupsMatch, setLineupsMatch] = useState<NormalizedMatch | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(() => brTodayISO());
 
-  const load = useCallback(async (opts?: { silent?: boolean }) => {
+  const today = brTodayISO();
+  const offsetFromToday = diffDays(selectedDate, today);
+  const isToday = offsetFromToday === 0;
+
+  const load = useCallback(async (opts?: { silent?: boolean; date?: string }) => {
+    const d = opts?.date ?? selectedDate;
     if (!opts?.silent) setState((s) => ({ ...s, loading: true }));
     try {
-      const res = await fetchTodayMatches();
+      const res = await fetchByDate({ data: { date: d } });
       setState({ loading: false, data: res });
     } catch (e) {
-      if (opts?.silent) return; // mantém snapshot atual em refresh de fundo
+      if (opts?.silent) return;
       setState({
         loading: false,
         data: { ok: false, cached: false, error: e instanceof Error ? e.message : "Erro" },
       });
     }
-  }, [fetchTodayMatches]);
+  }, [fetchByDate, selectedDate]);
 
   const refreshLive = useCallback(async () => {
     setLiveRefreshing(true);
@@ -251,6 +291,7 @@ function JogosHojePage() {
 
   useEffect(() => {
     void load();
+    if (!isToday) return; // datas passadas/futuras não precisam de auto-refresh
     const liveId = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
       void refreshLive();
@@ -268,7 +309,8 @@ function JogosHojePage() {
       clearInterval(fullId);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [load, refreshLive]);
+  }, [load, refreshLive, isToday]);
+
 
   const filteredLeagues = useMemo<NormalizedLeague[]>(() => {
     const leagues = state.data?.payload?.leagues ?? [];
@@ -317,7 +359,10 @@ function JogosHojePage() {
       {/* Topo */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight">Jogos de Hoje</h2>
+          <h2 className="text-xl font-semibold tracking-tight">
+            {isToday ? "Jogos de Hoje" : offsetFromToday === -1 ? "Jogos de Ontem" : offsetFromToday === 1 ? "Jogos de Amanhã" : `Jogos · ${formatDateBR(selectedDate)}`}
+          </h2>
+
           <p className={`text-xs ${muted} mt-0.5 flex items-center gap-2 flex-wrap`}>
             <span>{totalCount} jogos no total</span>
             <span>·</span>
@@ -352,6 +397,97 @@ function JogosHojePage() {
           </button>
         </div>
       </div>
+
+      {/* Navegador de datas */}
+      <div className={`rounded-xl border p-3 ${panel} flex flex-wrap items-center gap-2`}>
+        <button
+          type="button"
+          onClick={() => {
+            const next = addDaysISO(selectedDate, -1);
+            if (diffDays(next, today) < -7) return;
+            setSelectedDate(next);
+          }}
+          disabled={offsetFromToday <= -7}
+          aria-label="Dia anterior"
+          className={
+            "h-9 w-9 flex items-center justify-center rounded-md border transition-colors disabled:opacity-40 " +
+            (isDark ? "border-neutral-800 bg-neutral-900 hover:bg-neutral-800" : "border-neutral-300 bg-white hover:bg-neutral-50")
+          }
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+
+        {([-1, 0, 1] as const).map((off) => {
+          const label = off === -1 ? "Ontem" : off === 0 ? "Hoje" : "Amanhã";
+          const active = offsetFromToday === off;
+          return (
+            <button
+              key={off}
+              type="button"
+              onClick={() => setSelectedDate(addDaysISO(today, off))}
+              className={
+                "h-9 px-3 rounded-md border text-sm font-medium transition-colors " +
+                (active
+                  ? "bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-700"
+                  : isDark
+                    ? "border-neutral-800 bg-neutral-900 text-neutral-200 hover:bg-neutral-800"
+                    : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50")
+              }
+            >
+              {label}
+            </button>
+          );
+        })}
+
+        <input
+          type="date"
+          value={selectedDate}
+          min={addDaysISO(today, -7)}
+          max={addDaysISO(today, 7)}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
+            const off = diffDays(v, today);
+            if (Math.abs(off) > 7) return;
+            setSelectedDate(v);
+          }}
+          className={
+            "h-9 px-3 rounded-md border text-sm outline-none transition-colors " +
+            (isDark
+              ? "bg-neutral-950 border-neutral-800 text-neutral-100"
+              : "bg-white border-neutral-300 text-neutral-900")
+          }
+        />
+
+        <button
+          type="button"
+          onClick={() => {
+            const next = addDaysISO(selectedDate, 1);
+            if (diffDays(next, today) > 7) return;
+            setSelectedDate(next);
+          }}
+          disabled={offsetFromToday >= 7}
+          aria-label="Próximo dia"
+          className={
+            "h-9 w-9 flex items-center justify-center rounded-md border transition-colors disabled:opacity-40 " +
+            (isDark ? "border-neutral-800 bg-neutral-900 hover:bg-neutral-800" : "border-neutral-300 bg-white hover:bg-neutral-50")
+          }
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+
+        {!isToday && (
+          <button
+            type="button"
+            onClick={() => setSelectedDate(today)}
+            className={`ml-auto text-xs underline ${muted} hover:text-emerald-500`}
+          >
+            Voltar pra hoje
+          </button>
+        )}
+      </div>
+
+
 
       {/* Tabs de status */}
       <div className="flex flex-wrap gap-2">
