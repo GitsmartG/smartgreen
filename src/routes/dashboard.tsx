@@ -109,11 +109,13 @@ function DashboardLayout() {
         ? "Dicas de Apostas"
         : pathname === "/dashboard/jogos"
           ? "Jogos de Hoje"
-          : pathname === "/dashboard/notificacoes"
-            ? "Notificações Push"
-            : pathname === "/dashboard/configuracoes"
-              ? "Configurações"
-              : "Visão geral";
+          : pathname === "/dashboard/news"
+            ? "News"
+            : pathname === "/dashboard/notificacoes"
+              ? "Notificações Push"
+              : pathname === "/dashboard/configuracoes"
+                ? "Configurações"
+                : "Visão geral";
   const headerSub =
     pathname === "/dashboard/usuarios"
       ? "Visualize e gerencie os usuários do seu app."
@@ -121,11 +123,13 @@ function DashboardLayout() {
         ? "Gerencie e publique tickets de tips esportivas."
         : pathname === "/dashboard/jogos"
           ? "Partidas do dia atualizadas automaticamente."
-          : pathname === "/dashboard/notificacoes"
-            ? "Envie e agende notificações push."
-            : pathname === "/dashboard/configuracoes"
-              ? "Personalize seu painel e sua conta."
-              : "Bem-vindo de volta 👋";
+          : pathname === "/dashboard/news"
+            ? "Storylines editoriais dos jogos (insights, quotes e rivalidades)."
+            : pathname === "/dashboard/notificacoes"
+              ? "Envie e agende notificações push."
+              : pathname === "/dashboard/configuracoes"
+                ? "Personalize seu painel e sua conta."
+                : "Bem-vindo de volta 👋";
 
 
   return (
