@@ -101,6 +101,13 @@ function diffDaysFromToday(iso: string): number {
   );
 }
 
+function addDaysISOFn(iso: string, days: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10);
+}
+
 export const getMatchesByDate = createServerFn({ method: "POST" })
   .inputValidator((input: { date: string }) => {
     const raw = (input?.date ?? "").toString().trim().toLowerCase();
