@@ -52,10 +52,15 @@ function NewsPage() {
   const loadNews = useCallback(
     async (m: ItemMatch) => {
       setSelected(m);
-      setLoadingNews(true);
       setNews(null);
+      const id = (m.id ?? "").toString().trim();
+      if (!id) {
+        setNews({ ok: false, error: "Este jogo não tem ID válido para buscar storylines." });
+        return;
+      }
+      setLoadingNews(true);
       try {
-        const r = await fetchNews({ data: { matchId: m.id } });
+        const r = await fetchNews({ data: { matchId: id } });
         setNews(r);
       } catch (e) {
         setNews({ ok: false, error: e instanceof Error ? e.message : "Erro" });
@@ -65,6 +70,7 @@ function NewsPage() {
     },
     [fetchNews],
   );
+
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
