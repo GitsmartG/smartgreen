@@ -398,6 +398,97 @@ function JogosHojePage() {
         </div>
       </div>
 
+      {/* Navegador de datas */}
+      <div className={`rounded-xl border p-3 ${panel} flex flex-wrap items-center gap-2`}>
+        <button
+          type="button"
+          onClick={() => {
+            const next = addDaysISO(selectedDate, -1);
+            if (diffDays(next, today) < -7) return;
+            setSelectedDate(next);
+          }}
+          disabled={offsetFromToday <= -7}
+          aria-label="Dia anterior"
+          className={
+            "h-9 w-9 flex items-center justify-center rounded-md border transition-colors disabled:opacity-40 " +
+            (isDark ? "border-neutral-800 bg-neutral-900 hover:bg-neutral-800" : "border-neutral-300 bg-white hover:bg-neutral-50")
+          }
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+
+        {([-1, 0, 1] as const).map((off) => {
+          const label = off === -1 ? "Ontem" : off === 0 ? "Hoje" : "Amanhã";
+          const active = offsetFromToday === off;
+          return (
+            <button
+              key={off}
+              type="button"
+              onClick={() => setSelectedDate(addDaysISO(today, off))}
+              className={
+                "h-9 px-3 rounded-md border text-sm font-medium transition-colors " +
+                (active
+                  ? "bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-700"
+                  : isDark
+                    ? "border-neutral-800 bg-neutral-900 text-neutral-200 hover:bg-neutral-800"
+                    : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50")
+              }
+            >
+              {label}
+            </button>
+          );
+        })}
+
+        <input
+          type="date"
+          value={selectedDate}
+          min={addDaysISO(today, -7)}
+          max={addDaysISO(today, 7)}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
+            const off = diffDays(v, today);
+            if (Math.abs(off) > 7) return;
+            setSelectedDate(v);
+          }}
+          className={
+            "h-9 px-3 rounded-md border text-sm outline-none transition-colors " +
+            (isDark
+              ? "bg-neutral-950 border-neutral-800 text-neutral-100"
+              : "bg-white border-neutral-300 text-neutral-900")
+          }
+        />
+
+        <button
+          type="button"
+          onClick={() => {
+            const next = addDaysISO(selectedDate, 1);
+            if (diffDays(next, today) > 7) return;
+            setSelectedDate(next);
+          }}
+          disabled={offsetFromToday >= 7}
+          aria-label="Próximo dia"
+          className={
+            "h-9 w-9 flex items-center justify-center rounded-md border transition-colors disabled:opacity-40 " +
+            (isDark ? "border-neutral-800 bg-neutral-900 hover:bg-neutral-800" : "border-neutral-300 bg-white hover:bg-neutral-50")
+          }
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+
+        {!isToday && (
+          <button
+            type="button"
+            onClick={() => setSelectedDate(today)}
+            className={`ml-auto text-xs underline ${muted} hover:text-emerald-500`}
+          >
+            Voltar pra hoje
+          </button>
+        )}
+      </div>
+
+
+
       {/* Tabs de status */}
       <div className="flex flex-wrap gap-2">
         <StatusTab
