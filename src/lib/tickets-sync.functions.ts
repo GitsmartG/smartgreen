@@ -128,6 +128,13 @@ export function ticketRowToDTO(row: {
     parceiro: row.parceiro === "seubet" || row.parceiro === "h2bet" ? row.parceiro : null,
     url: row.url ?? null,
     createdAtMs: num(row.created_at_ms),
+    createdAt: num(row.created_at_ms) != null ? new Date(num(row.created_at_ms)!).toISOString() : null,
+    createdAtTime: num(row.created_at_ms) != null
+      ? new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(num(row.created_at_ms)!))
+      : null,
+    createdAtDate: num(row.created_at_ms) != null
+      ? new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(num(row.created_at_ms)!))
+      : null,
     startMs: num(row.start_ms),
     score1: row.score1,
     score2: row.score2,
