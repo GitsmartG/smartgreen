@@ -154,6 +154,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          access_expires_at: string | null
           created_at: string
           email: string | null
           id: string
@@ -161,6 +162,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          access_expires_at?: string | null
           created_at?: string
           email?: string | null
           id: string
@@ -168,6 +170,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          access_expires_at?: string | null
           created_at?: string
           email?: string | null
           id?: string
