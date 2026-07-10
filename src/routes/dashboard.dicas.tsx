@@ -455,6 +455,7 @@ function DicasPage() {
   const removeTicket = (id: string) => {
     setTickets((prev) => (Array.isArray(prev) ? prev : []).filter((t) => t.id !== id));
     setDetailsId(null);
+    void import("@/lib/tickets-store").then((m) => m.deleteTicket(id));
   };
 
   const counts = useMemo(() => {
