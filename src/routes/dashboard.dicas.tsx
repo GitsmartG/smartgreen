@@ -2430,19 +2430,22 @@ function DetailsModal({
             </div>
           </div>
 
-          {ticket.url && (
-            <div>
-              <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1`}>URL da aposta</div>
-              <a
-                href={ticket.url}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-emerald-500 hover:underline break-all"
-              >
-                {ticket.url}
-              </a>
-            </div>
-          )}
+          {ticket.url && (() => {
+            const finalUrl = applyBtag(ticket.url, ticket.parceiro);
+            return (
+              <div>
+                <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1`}>URL da aposta</div>
+                <a
+                  href={finalUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-emerald-500 hover:underline break-all"
+                >
+                  {finalUrl}
+                </a>
+              </div>
+            );
+          })()}
 
 
           <div>
