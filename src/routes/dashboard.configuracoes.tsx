@@ -561,9 +561,26 @@ function ApiPanel({
       method: "GET",
       path: "/api/public/team-image/{id}",
       title: "Logo do time",
-      desc: "Proxy de imagem do escudo do time (usa o team.id retornado nos endpoints de matches). Retorna PNG/JPG ou SVG fallback.",
-      notes: ["Cacheável por 24h. Use direto em <Image source={{ uri: ... }} />."],
+      desc: "Proxy de imagem do escudo do time (usa o team.id retornado nos endpoints de matches). Retorna PNG/JPG ou SVG fallback bonitão quando o time não tem logo.",
+      notes: [
+        "Cache imutável 7 dias — sem cota da Statpal.",
+        "Uso: <Image source={{ uri: `${API_BASE}/api/public/team-image/${teamId}` }} />",
+        "Sempre retorna 200 (nunca 404) — fallback SVG garante que o app não quebra.",
+      ],
     },
+    {
+      method: "GET",
+      path: "/api/public/league-image/{leagueId}",
+      title: "Logo da liga / campeonato",
+      desc: "Proxy de imagem do logo da liga (usa o leagueId retornado em match.leagueId, notification.leagueId e nos tickets). Retorna PNG/JPG ou SVG fallback.",
+      notes: [
+        "Cache imutável 7 dias — sem cota da Statpal.",
+        "Uso: <Image source={{ uri: `${API_BASE}/api/public/league-image/${match.leagueId}` }} />",
+        "Sempre retorna 200 (nunca 404) — fallback SVG com ícone de troféu.",
+        "Mesmo esquema do team-image, só troca o path.",
+      ],
+    },
+
     {
       method: "GET",
       path: "/api/public/mobile/tickets",
