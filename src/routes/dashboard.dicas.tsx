@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { loadTickets, saveTickets, type Ticket, type TicketLegResult, type TipStatus, type Parceiro as ParceiroT } from "@/lib/tickets-store";
 import { importBetTip, type BetTipsResult } from "@/lib/bet-tips";
+import { applyBtag } from "@/lib/bets-config";
 import { getSoccerLivescores, type LiveMatch } from "@/lib/livescores.functions";
 import { getTodayMatches, getMatchesByDate } from "@/lib/daily-matches.functions";
 import { findMatchForTicket, gradePalpite, gradeSinglePalpite } from "@/lib/auto-settle";
