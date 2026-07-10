@@ -207,9 +207,13 @@ function DicasPage() {
     if (!relevant.length) return;
     setRefreshing(true);
     try {
-      const [liveResult, todayResult] = await Promise.allSettled([
+      // Coleta datas relevantes dos tickets pendentes (aguardando/ao_vivo)
+      // pra buscar o feed do dia correto e conseguir gradar bilhetes antigos.
+      const extraDates = collectTicketDates(relevant);
+      const [liveResult, todayResult, ...extraResults] = await Promise.allSettled([
         fetchSoccerLivescores(),
         fetchTodayMatches(),
+        ...extraDates.map((d) => fetchMatchesByDate({ data: { date: d } })),
       ]);
       const liveMatches =
         liveResult.status === "fulfilled" && liveResult.value.ok && Array.isArray(liveResult.value.matches)
@@ -217,7 +221,13 @@ function DicasPage() {
           : [];
       const todayPayload =
         todayResult.status === "fulfilled" && todayResult.value.ok ? todayResult.value.payload : undefined;
-      const matches = mergeLiveMatches(payloadToLiveMatches(todayPayload), liveMatches);
+      const extraPayloads = extraResults
+        .map((r) => (r.status === "fulfilled" && r.value.ok ? r.value.payload : undefined))
+        .filter((p): p is NonNullable<typeof p> => Boolean(p));
+      const combinedFromPayloads = [todayPayload, ...extraPayloads]
+        .filter((p): p is NonNullable<typeof p> => Boolean(p))
+        .flatMap((p) => payloadToLiveMatches(p));
+      const matches = mergeLiveMatches(combinedFromPayloads, liveMatches);
 
       const nextLive: Record<string, LiveState> = {};
       for (const t of currentTickets) {
