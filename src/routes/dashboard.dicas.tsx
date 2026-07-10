@@ -1767,7 +1767,7 @@ function NovoTicketModal({
           ? splitPalpites(palpite.trim() || "Palpite do parceiro").length
           : 1,
         parceiro: feedResult.parceiro,
-        url: url || undefined,
+        url: url ? applyBtag(url, feedResult.parceiro) : undefined,
         createdAtMs: Date.now(),
         startMs: selected.startMs ?? null,
       });
