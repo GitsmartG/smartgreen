@@ -159,9 +159,9 @@ export function flattenMobileMatches(payload: SourcePayload | undefined, origin:
   const out: MobileMatchDTO[] = [];
   for (const league of Array.isArray(payload?.leagues) ? payload.leagues : []) {
     for (const match of Array.isArray(league.matches) ? league.matches : []) {
-      const status = lifecycle(match);
       const rawStatus = String(match.status || "");
       const k = kickoff(match.date, match.time);
+      const status = lifecycle(match, k.ms);
       const team1Logo = teamLogo(match.home, origin);
       const team2Logo = teamLogo(match.away, origin);
       const id = String(match.id || `${match.home?.name || "home"}-${match.away?.name || "away"}`);
@@ -173,7 +173,7 @@ export function flattenMobileMatches(payload: SourcePayload | undefined, origin:
         country: String(league.country || ""),
         status,
         rawStatus,
-        minute: minuteFromStatus(rawStatus),
+        minute: status === "live" ? (minuteFromStatus(rawStatus) ?? deriveMinute(k.ms)) : null,
         kickoff: k.iso,
         startMs: k.ms,
         venue: match.venue ? String(match.venue) : null,
