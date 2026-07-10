@@ -50,7 +50,7 @@ const DEFAULTS: Settings = {
 
 const STORAGE_KEY = "sg-settings";
 
-type TabKey = "geral" | "funcionalidades" | "monitoramento" | "api";
+type TabKey = "geral" | "bets" | "funcionalidades" | "monitoramento" | "api";
 
 function ConfiguracoesPage() {
   const isDark = useIsDark();
