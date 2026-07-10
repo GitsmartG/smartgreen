@@ -33,6 +33,7 @@ import { Route as ApiPublicMobileNewsMatchIdRouteImport } from './routes/api/pub
 import { Route as ApiPublicMobileMatchesTodayRouteImport } from './routes/api/public/mobile/matches/today'
 import { Route as ApiPublicMobileMatchesLiveRouteImport } from './routes/api/public/mobile/matches/live'
 import { Route as ApiPublicMobileMatchesByDateRouteImport } from './routes/api/public/mobile/matches/by-date'
+import { Route as ApiPublicMobileLineupsMatchIdRouteImport } from './routes/api/public/mobile/lineups.$matchId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -162,6 +163,12 @@ const ApiPublicMobileMatchesByDateRoute =
     path: '/api/public/mobile/matches/by-date',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicMobileLineupsMatchIdRoute =
+  ApiPublicMobileLineupsMatchIdRouteImport.update({
+    id: '/api/public/mobile/lineups/$matchId',
+    path: '/api/public/mobile/lineups/$matchId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -182,6 +189,7 @@ export interface FileRoutesByFullPath {
   '/api/public/mobile/signup': typeof ApiPublicMobileSignupRoute
   '/api/public/mobile/tickets': typeof ApiPublicMobileTicketsRouteWithChildren
   '/api/public/team-image/$id': typeof ApiPublicTeamImageIdRoute
+  '/api/public/mobile/lineups/$matchId': typeof ApiPublicMobileLineupsMatchIdRoute
   '/api/public/mobile/matches/by-date': typeof ApiPublicMobileMatchesByDateRoute
   '/api/public/mobile/matches/live': typeof ApiPublicMobileMatchesLiveRoute
   '/api/public/mobile/matches/today': typeof ApiPublicMobileMatchesTodayRoute
@@ -207,6 +215,7 @@ export interface FileRoutesByTo {
   '/api/public/mobile/signup': typeof ApiPublicMobileSignupRoute
   '/api/public/mobile/tickets': typeof ApiPublicMobileTicketsRouteWithChildren
   '/api/public/team-image/$id': typeof ApiPublicTeamImageIdRoute
+  '/api/public/mobile/lineups/$matchId': typeof ApiPublicMobileLineupsMatchIdRoute
   '/api/public/mobile/matches/by-date': typeof ApiPublicMobileMatchesByDateRoute
   '/api/public/mobile/matches/live': typeof ApiPublicMobileMatchesLiveRoute
   '/api/public/mobile/matches/today': typeof ApiPublicMobileMatchesTodayRoute
@@ -234,6 +243,7 @@ export interface FileRoutesById {
   '/api/public/mobile/signup': typeof ApiPublicMobileSignupRoute
   '/api/public/mobile/tickets': typeof ApiPublicMobileTicketsRouteWithChildren
   '/api/public/team-image/$id': typeof ApiPublicTeamImageIdRoute
+  '/api/public/mobile/lineups/$matchId': typeof ApiPublicMobileLineupsMatchIdRoute
   '/api/public/mobile/matches/by-date': typeof ApiPublicMobileMatchesByDateRoute
   '/api/public/mobile/matches/live': typeof ApiPublicMobileMatchesLiveRoute
   '/api/public/mobile/matches/today': typeof ApiPublicMobileMatchesTodayRoute
@@ -262,6 +272,7 @@ export interface FileRouteTypes {
     | '/api/public/mobile/signup'
     | '/api/public/mobile/tickets'
     | '/api/public/team-image/$id'
+    | '/api/public/mobile/lineups/$matchId'
     | '/api/public/mobile/matches/by-date'
     | '/api/public/mobile/matches/live'
     | '/api/public/mobile/matches/today'
@@ -287,6 +298,7 @@ export interface FileRouteTypes {
     | '/api/public/mobile/signup'
     | '/api/public/mobile/tickets'
     | '/api/public/team-image/$id'
+    | '/api/public/mobile/lineups/$matchId'
     | '/api/public/mobile/matches/by-date'
     | '/api/public/mobile/matches/live'
     | '/api/public/mobile/matches/today'
@@ -313,6 +325,7 @@ export interface FileRouteTypes {
     | '/api/public/mobile/signup'
     | '/api/public/mobile/tickets'
     | '/api/public/team-image/$id'
+    | '/api/public/mobile/lineups/$matchId'
     | '/api/public/mobile/matches/by-date'
     | '/api/public/mobile/matches/live'
     | '/api/public/mobile/matches/today'
@@ -333,6 +346,7 @@ export interface RootRouteChildren {
   ApiPublicMobileSignupRoute: typeof ApiPublicMobileSignupRoute
   ApiPublicMobileTicketsRoute: typeof ApiPublicMobileTicketsRouteWithChildren
   ApiPublicTeamImageIdRoute: typeof ApiPublicTeamImageIdRoute
+  ApiPublicMobileLineupsMatchIdRoute: typeof ApiPublicMobileLineupsMatchIdRoute
   ApiPublicMobileMatchesByDateRoute: typeof ApiPublicMobileMatchesByDateRoute
   ApiPublicMobileMatchesLiveRoute: typeof ApiPublicMobileMatchesLiveRoute
   ApiPublicMobileMatchesTodayRoute: typeof ApiPublicMobileMatchesTodayRoute
@@ -510,6 +524,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMobileMatchesByDateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/mobile/lineups/$matchId': {
+      id: '/api/public/mobile/lineups/$matchId'
+      path: '/api/public/mobile/lineups/$matchId'
+      fullPath: '/api/public/mobile/lineups/$matchId'
+      preLoaderRoute: typeof ApiPublicMobileLineupsMatchIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -565,6 +586,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicMobileSignupRoute: ApiPublicMobileSignupRoute,
   ApiPublicMobileTicketsRoute: ApiPublicMobileTicketsRouteWithChildren,
   ApiPublicTeamImageIdRoute: ApiPublicTeamImageIdRoute,
+  ApiPublicMobileLineupsMatchIdRoute: ApiPublicMobileLineupsMatchIdRoute,
   ApiPublicMobileMatchesByDateRoute: ApiPublicMobileMatchesByDateRoute,
   ApiPublicMobileMatchesLiveRoute: ApiPublicMobileMatchesLiveRoute,
   ApiPublicMobileMatchesTodayRoute: ApiPublicMobileMatchesTodayRoute,
