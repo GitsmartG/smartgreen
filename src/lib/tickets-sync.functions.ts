@@ -195,5 +195,5 @@ export const fetchAllTicketsRemote = createServerFn({ method: "GET" })
       .limit(500);
     if (error) throw error;
     const tickets = (data ?? []).map((r) => ticketRowToDTO(r as never));
-    return { ok: true as const, tickets };
+    return { ok: true as const, tickets: tickets as unknown as Record<string, unknown>[] };
   });
