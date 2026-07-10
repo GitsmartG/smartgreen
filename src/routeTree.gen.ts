@@ -28,6 +28,7 @@ import { Route as ApiPublicHooksRefreshDailyMatchesRouteImport } from './routes/
 import { Route as ApiPublicHooksPollLiveNotificationsRouteImport } from './routes/api/public/hooks/poll-live-notifications'
 import { Route as ApiPublicDebugApiKeyRouteImport } from './routes/api/public/debug/api-key'
 import { Route as ApiPublicMobileTicketsIdRouteImport } from './routes/api/public/mobile/tickets.$id'
+import { Route as ApiPublicMobilePredictionMatchIdRouteImport } from './routes/api/public/mobile/prediction.$matchId'
 import { Route as ApiPublicMobileNotificationsLiveRouteImport } from './routes/api/public/mobile/notifications/live'
 import { Route as ApiPublicMobileNewsMatchIdRouteImport } from './routes/api/public/mobile/news.$matchId'
 import { Route as ApiPublicMobileMatchesTodayRouteImport } from './routes/api/public/mobile/matches/today'
@@ -133,6 +134,12 @@ const ApiPublicMobileTicketsIdRoute =
     path: '/$id',
     getParentRoute: () => ApiPublicMobileTicketsRoute,
   } as any)
+const ApiPublicMobilePredictionMatchIdRoute =
+  ApiPublicMobilePredictionMatchIdRouteImport.update({
+    id: '/api/public/mobile/prediction/$matchId',
+    path: '/api/public/mobile/prediction/$matchId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicMobileNotificationsLiveRoute =
   ApiPublicMobileNotificationsLiveRouteImport.update({
     id: '/api/public/mobile/notifications/live',
@@ -195,6 +202,7 @@ export interface FileRoutesByFullPath {
   '/api/public/mobile/matches/today': typeof ApiPublicMobileMatchesTodayRoute
   '/api/public/mobile/news/$matchId': typeof ApiPublicMobileNewsMatchIdRoute
   '/api/public/mobile/notifications/live': typeof ApiPublicMobileNotificationsLiveRoute
+  '/api/public/mobile/prediction/$matchId': typeof ApiPublicMobilePredictionMatchIdRoute
   '/api/public/mobile/tickets/$id': typeof ApiPublicMobileTicketsIdRoute
 }
 export interface FileRoutesByTo {
@@ -221,6 +229,7 @@ export interface FileRoutesByTo {
   '/api/public/mobile/matches/today': typeof ApiPublicMobileMatchesTodayRoute
   '/api/public/mobile/news/$matchId': typeof ApiPublicMobileNewsMatchIdRoute
   '/api/public/mobile/notifications/live': typeof ApiPublicMobileNotificationsLiveRoute
+  '/api/public/mobile/prediction/$matchId': typeof ApiPublicMobilePredictionMatchIdRoute
   '/api/public/mobile/tickets/$id': typeof ApiPublicMobileTicketsIdRoute
 }
 export interface FileRoutesById {
@@ -249,6 +258,7 @@ export interface FileRoutesById {
   '/api/public/mobile/matches/today': typeof ApiPublicMobileMatchesTodayRoute
   '/api/public/mobile/news/$matchId': typeof ApiPublicMobileNewsMatchIdRoute
   '/api/public/mobile/notifications/live': typeof ApiPublicMobileNotificationsLiveRoute
+  '/api/public/mobile/prediction/$matchId': typeof ApiPublicMobilePredictionMatchIdRoute
   '/api/public/mobile/tickets/$id': typeof ApiPublicMobileTicketsIdRoute
 }
 export interface FileRouteTypes {
@@ -278,6 +288,7 @@ export interface FileRouteTypes {
     | '/api/public/mobile/matches/today'
     | '/api/public/mobile/news/$matchId'
     | '/api/public/mobile/notifications/live'
+    | '/api/public/mobile/prediction/$matchId'
     | '/api/public/mobile/tickets/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -304,6 +315,7 @@ export interface FileRouteTypes {
     | '/api/public/mobile/matches/today'
     | '/api/public/mobile/news/$matchId'
     | '/api/public/mobile/notifications/live'
+    | '/api/public/mobile/prediction/$matchId'
     | '/api/public/mobile/tickets/$id'
   id:
     | '__root__'
@@ -331,6 +343,7 @@ export interface FileRouteTypes {
     | '/api/public/mobile/matches/today'
     | '/api/public/mobile/news/$matchId'
     | '/api/public/mobile/notifications/live'
+    | '/api/public/mobile/prediction/$matchId'
     | '/api/public/mobile/tickets/$id'
   fileRoutesById: FileRoutesById
 }
@@ -352,6 +365,7 @@ export interface RootRouteChildren {
   ApiPublicMobileMatchesTodayRoute: typeof ApiPublicMobileMatchesTodayRoute
   ApiPublicMobileNewsMatchIdRoute: typeof ApiPublicMobileNewsMatchIdRoute
   ApiPublicMobileNotificationsLiveRoute: typeof ApiPublicMobileNotificationsLiveRoute
+  ApiPublicMobilePredictionMatchIdRoute: typeof ApiPublicMobilePredictionMatchIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -489,6 +503,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMobileTicketsIdRouteImport
       parentRoute: typeof ApiPublicMobileTicketsRoute
     }
+    '/api/public/mobile/prediction/$matchId': {
+      id: '/api/public/mobile/prediction/$matchId'
+      path: '/api/public/mobile/prediction/$matchId'
+      fullPath: '/api/public/mobile/prediction/$matchId'
+      preLoaderRoute: typeof ApiPublicMobilePredictionMatchIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/mobile/notifications/live': {
       id: '/api/public/mobile/notifications/live'
       path: '/api/public/mobile/notifications/live'
@@ -592,6 +613,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicMobileMatchesTodayRoute: ApiPublicMobileMatchesTodayRoute,
   ApiPublicMobileNewsMatchIdRoute: ApiPublicMobileNewsMatchIdRoute,
   ApiPublicMobileNotificationsLiveRoute: ApiPublicMobileNotificationsLiveRoute,
+  ApiPublicMobilePredictionMatchIdRoute: ApiPublicMobilePredictionMatchIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
