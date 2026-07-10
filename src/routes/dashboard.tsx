@@ -134,61 +134,99 @@ function DashboardLayout() {
 
   return (
     <div className={`h-screen overflow-hidden font-sans flex ${bg} ${text} transition-colors`}>
+  const sidebarInner = (
+    <>
+      <div className="h-16 shrink-0 flex items-center gap-2 px-5 border-b border-inherit">
+        <img src={LOGO_URL} alt="Smart Green" className="h-8 w-auto object-contain" />
+        <span className="font-semibold tracking-tight">Smart Green</span>
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="ml-auto md:hidden p-1 rounded hover:bg-neutral-500/10"
+          aria-label="Fechar menu"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+      <nav className="flex-1 min-h-0 overflow-y-auto p-3 space-y-1">
+        {nav.map((item) => {
+          const active = pathname === item.to;
+          return (
+            <Link
+              key={item.label}
+              to={item.to}
+              className={
+                "w-full flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-colors " +
+                (active
+                  ? isDark
+                    ? "bg-neutral-800 text-white"
+                    : "bg-neutral-100 text-neutral-900"
+                  : isDark
+                    ? "text-neutral-400 hover:bg-neutral-800/60 hover:text-neutral-100"
+                    : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900")
+              }
+            >
+              <item.icon className="h-6 w-6 shrink-0" strokeWidth={1.75} />
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+      <div className="shrink-0">
+        <LiveNotificationsPanel isDark={isDark} />
+      </div>
+      <div className="p-3 border-t border-inherit shrink-0">
+        <button
+          onClick={handleLogout}
+          className={
+            "w-full flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-colors " +
+            (isDark
+              ? "text-neutral-400 hover:bg-neutral-800 hover:text-white"
+              : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900")
+          }
+        >
+          <LogOut className="h-6 w-6 shrink-0" strokeWidth={1.75} />
+          Sair
+        </button>
+      </div>
+    </>
+  );
+
+  return (
+    <div className={`h-screen overflow-hidden font-sans flex ${bg} ${text} transition-colors`}>
       <aside className={`hidden md:flex w-64 h-screen shrink-0 flex-col border-r ${panel} transition-colors`}>
-        <div className="h-16 shrink-0 flex items-center gap-2 px-5 border-b border-inherit">
-          <img src={LOGO_URL} alt="Smart Green" className="h-8 w-auto object-contain" />
-          <span className="font-semibold tracking-tight">Smart Green</span>
-        </div>
-        <nav className="flex-1 min-h-0 overflow-y-auto p-3 space-y-1">
-          {nav.map((item) => {
-            const active = pathname === item.to;
-            return (
-              <Link
-                key={item.label}
-                to={item.to}
-                className={
-                  "w-full flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-colors " +
-                  (active
-                    ? isDark
-                      ? "bg-neutral-800 text-white"
-                      : "bg-neutral-100 text-neutral-900"
-                    : isDark
-                      ? "text-neutral-400 hover:bg-neutral-800/60 hover:text-neutral-100"
-                      : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900")
-                }
-              >
-                <item.icon className="h-6 w-6 shrink-0" strokeWidth={1.75} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="shrink-0">
-          <LiveNotificationsPanel isDark={isDark} />
-        </div>
-        <div className="p-3 border-t border-inherit shrink-0">
-          <button
-            onClick={handleLogout}
-            className={
-              "w-full flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium transition-colors " +
-              (isDark
-                ? "text-neutral-400 hover:bg-neutral-800 hover:text-white"
-                : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900")
-            }
-          >
-            <LogOut className="h-6 w-6 shrink-0" strokeWidth={1.75} />
-            Sair
-          </button>
-        </div>
+        {sidebarInner}
       </aside>
 
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
+          <aside className={`relative w-72 max-w-[85%] h-full flex flex-col border-r ${panel} ${text} shadow-2xl`}>
+            {sidebarInner}
+          </aside>
+        </div>
+      )}
+
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        <header className={`h-16 shrink-0 flex items-center justify-between px-6 border-b ${panel} transition-colors`}>
-          <div>
-            <h1 className="text-lg font-semibold tracking-tight">{headerTitle}</h1>
-            <p className={`text-xs ${muted}`}>{headerSub}</p>
+        <header className={`h-16 shrink-0 flex items-center justify-between gap-3 px-4 md:px-6 border-b ${panel} transition-colors`}>
+          <div className="flex items-center gap-2 min-w-0">
+            <button
+              onClick={() => setMobileOpen(true)}
+              aria-label="Abrir menu"
+              className={
+                "md:hidden h-9 w-9 rounded-md border flex items-center justify-center shrink-0 " +
+                (isDark
+                  ? "border-neutral-800 bg-neutral-900 text-neutral-300"
+                  : "border-neutral-200 bg-white text-neutral-700")
+              }
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+            <div className="min-w-0">
+              <h1 className="text-base md:text-lg font-semibold tracking-tight truncate">{headerTitle}</h1>
+              <p className={`text-xs ${muted} truncate hidden sm:block`}>{headerSub}</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setTheme(isDark ? "light" : "dark")}
               aria-label="Alternar tema"
@@ -201,21 +239,10 @@ function DashboardLayout() {
             >
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
-            <button
-              onClick={handleLogout}
-              className={
-                "md:hidden h-9 px-3 rounded-md border text-sm flex items-center gap-2 " +
-                (isDark
-                  ? "border-neutral-800 text-neutral-300"
-                  : "border-neutral-300 text-neutral-700")
-              }
-            >
-              <LogOut className="h-4 w-4" /> Sair
-            </button>
           </div>
         </header>
 
-        <div className="flex-1 min-h-0 overflow-y-auto p-6">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6">
           <Outlet />
         </div>
       </main>
