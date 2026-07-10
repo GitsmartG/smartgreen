@@ -224,6 +224,7 @@ function ConfiguracoesPage() {
         </div>
       )}
 
+      {tab === "bets" && <BetsPanel isDark={isDark} panel={panel} muted={muted} fieldCls={fieldCls} />}
       {tab === "funcionalidades" && <FeaturesPanel isDark={isDark} panel={panel} muted={muted} />}
       {tab === "monitoramento" && <MonitoramentoPanel isDark={isDark} panel={panel} muted={muted} />}
       {tab === "api" && <ApiPanel isDark={isDark} panel={panel} muted={muted} />}
