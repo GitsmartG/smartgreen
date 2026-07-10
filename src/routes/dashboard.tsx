@@ -33,6 +33,9 @@ function DashboardLayout() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
 
   useEffect(() => {
     const stored = localStorage.getItem("sg-theme") as "light" | "dark" | null;
