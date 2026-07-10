@@ -176,6 +176,13 @@ function DicasPage() {
   const [hydrated, setHydrated] = useState(false);
   const ticketsRef = useRef<Ticket[]>(tickets);
   const ticketList = Array.isArray(tickets) ? tickets : [];
+  const persistTickets = (updater: (prev: Ticket[]) => Ticket[]) => {
+    setTickets((prev) => {
+      const next = updater(Array.isArray(prev) ? prev : []);
+      saveTickets(next);
+      return next;
+    });
+  };
 
   // Carrega tickets do storage só no client (evita SSR mismatch e hooks count divergente).
   useEffect(() => {
@@ -386,7 +393,7 @@ function DicasPage() {
             const graded = gradePalpite(t.palpite, m, t);
             if (graded) {
               changed = true;
-              return { ...t, ...patch, status: graded };
+              return { ...t, ...patch, status: graded, legStatuses: isMult ? t.legStatuses : ([graded] as TipStatus[]) };
             }
             const hasLiveLegOverall =
               isMult && legResults
@@ -395,15 +402,15 @@ function DicasPage() {
             const someLive = m.live || hasLiveLegOverall;
             if (someLive && t.status !== "ao_vivo") {
               changed = true;
-              return { ...t, ...patch, status: "ao_vivo" as TipStatus };
+              return { ...t, ...patch, status: "ao_vivo" as TipStatus, legStatuses: isMult ? t.legStatuses : (["ao_vivo"] as TipStatus[]) };
             }
             if (!someLive && m.finished && t.status === "ao_vivo") {
               changed = true;
-              return { ...t, ...patch, status: "aguardando" as TipStatus };
+              return { ...t, ...patch, status: "aguardando" as TipStatus, legStatuses: isMult ? t.legStatuses : (["aguardando"] as TipStatus[]) };
             }
             if (!someLive && !m.live && !m.finished && t.status !== "aguardando") {
               changed = true;
-              return { ...t, ...patch, status: "aguardando" as TipStatus };
+              return { ...t, ...patch, status: "aguardando" as TipStatus, legStatuses: isMult ? t.legStatuses : (["aguardando"] as TipStatus[]) };
             }
             if (Object.keys(patch).length > 1) changed = true;
             return Object.keys(patch).length > 1 ? { ...t, ...patch } : t;
@@ -467,9 +474,20 @@ function DicasPage() {
   const detailsTicket = detailsId ? ticketList.find((t) => t.id === detailsId) ?? null : null;
 
   const updateStatus = (id: string, status: TipStatus) =>
-    setTickets((prev) => (Array.isArray(prev) ? prev : []).map((t) => (t.id === id ? { ...t, status } : t)));
+    persistTickets((prev) =>
+      prev.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              status,
+              legStatuses: !isMultiplaTicket(t) ? [status] : t.legStatuses,
+              resultCheckedAtMs: Date.now(),
+            }
+          : t,
+      ),
+    );
   const removeTicket = (id: string) => {
-    setTickets((prev) => (Array.isArray(prev) ? prev : []).filter((t) => t.id !== id));
+    persistTickets((prev) => prev.filter((t) => t.id !== id));
     setDetailsId(null);
     void import("@/lib/tickets-store").then((m) => m.deleteTicket(id));
   };
@@ -911,8 +929,7 @@ function TicketCard({
         </div>
         <ul className="flex flex-col gap-1.5">
           {palpites.map((p, i) => {
-            const matchedGameStatus = isMultipla ? ticket.legResults?.[i]?.status : undefined;
-            const legStatus = matchedGameStatus ?? ticket.legStatuses?.[i];
+            const legStatus = getDisplayedLegStatus(ticket, i, isMultipla);
             const dotCls =
               legStatus === "green"
                 ? "bg-emerald-500"
@@ -1250,6 +1267,11 @@ function resolveTicketStatus(statuses: TipStatus[]): TipStatus {
   if (safe.length > 0 && safe.every((status) => status === "green")) return "green";
   if (safe.some((status) => status === "ao_vivo")) return "ao_vivo";
   return "aguardando";
+}
+
+function getDisplayedLegStatus(ticket: Ticket, index: number, isMultipla: boolean): TipStatus {
+  if (!isMultipla) return ticket.legStatuses?.[index] ?? ticket.status;
+  return ticket.legResults?.[index]?.status ?? ticket.legStatuses?.[index] ?? "aguardando";
 }
 
 function teamLogoUrl(logo?: string, teamId?: string, teamName?: string): string | undefined {
