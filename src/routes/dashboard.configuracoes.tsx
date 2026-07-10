@@ -1025,6 +1025,7 @@ export function useLiveMatches(intervalMs = 15000) {
             <li>Múltipla: itere <code className="font-mono">ticket.legs[]</code> e renderize <code className="font-mono">leg.team1Logo</code> / <code className="font-mono">leg.team2Logo</code> por perna (também vem <code className="font-mono">score1/score2/minute/status/live/finished</code>).</li>
             <li>URL das logos é absoluta (CDN Statpal / SmartGreen). Se vier <code className="font-mono">null</code>, mostre placeholder — pode acontecer em jogos muito antigos ou ligas obscuras.</li>
             <li>Também vem <code className="font-mono">team1</code> / <code className="font-mono">team2</code> (nomes) e, quando disponível, <code className="font-mono">team1Id</code> / <code className="font-mono">team2Id</code> — dá pra fallback via <code className="font-mono">/api/public/team-image/{`{teamId}`}</code>.</li>
+            <li><b>Logo da liga:</b> use <code className="font-mono">/api/public/league-image/{`{leagueId}`}</code> (o <code className="font-mono">leagueId</code> vem em <code className="font-mono">match.leagueId</code> / <code className="font-mono">notification.leagueId</code>). Cache imutável de 7 dias, sem cota — pode chamar direto no <code className="font-mono">&lt;Image src&gt;</code>.</li>
           </ul>
         </div>
       </div>
