@@ -76,11 +76,54 @@ async function syncTicketsToBackend(tickets: Ticket[]) {
       const { data } = await supabase.auth.getSession();
       if (!data.session) return; // não logado — não sincroniza
       const { syncAllTickets } = await import("./tickets-sync.functions");
-      await syncAllTickets({ data: { tickets } });
-    } catch {
-      /* offline ou erro — próxima chamada tenta de novo */
+      await syncAllTickets({ data: { tickets, prune: false } });
+    } catch (err) {
+      console.warn("[tickets-store] sync falhou:", err);
     }
-  }, 400);
+  }, 150);
+}
+
+// Puxa tickets do backend e faz merge com o local (server wins em conflito).
+export async function hydrateTicketsFromServer(): Promise<Ticket[] | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data: session } = await supabase.auth.getSession();
+    if (!session.session) return null;
+    const { fetchAllTicketsRemote } = await import("./tickets-sync.functions");
+    const res = await fetchAllTicketsRemote();
+    if (!res.ok) return null;
+    const remote = (JSON.parse(res.ticketsJson) as unknown[])
+      .map(normalizeTicket)
+      .filter(isTicket);
+    const local = loadTickets();
+    const map = new Map<string, Ticket>();
+    for (const t of local) map.set(t.id, t);
+    for (const t of remote) map.set(t.id, t); // remote wins
+    const merged = Array.from(map.values());
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    window.dispatchEvent(new Event(EVENT));
+    return merged;
+  } catch (err) {
+    console.warn("[tickets-store] hydrate falhou:", err);
+    return null;
+  }
+}
+
+// Apaga um ticket local + remoto.
+export async function deleteTicket(id: string) {
+  const remaining = loadTickets().filter((t) => t.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(remaining));
+  window.dispatchEvent(new Event(EVENT));
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) return;
+    const { deleteTicketRemote } = await import("./tickets-sync.functions");
+    await deleteTicketRemote({ data: { id } });
+  } catch (err) {
+    console.warn("[tickets-store] delete falhou:", err);
+  }
 }
 
 
