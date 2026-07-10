@@ -377,3 +377,113 @@ function CreateUserModal({
     </div>
   );
 }
+
+function AccessBadge({ expiresAt, muted }: { expiresAt: string | null; muted: string }) {
+  if (!expiresAt) {
+    return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">Vitalício</span>;
+  }
+  const d = new Date(expiresAt);
+  const expired = d.getTime() < Date.now();
+  const cls = expired
+    ? "bg-red-500/15 text-red-500 border-red-500/30"
+    : "bg-blue-500/15 text-blue-500 border-blue-500/30";
+  return (
+    <div className="flex flex-col">
+      <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${cls}`}>
+        {expired ? "Expirado" : "Até " + formatDate(expiresAt)}
+      </span>
+      {!expired && <span className={`text-[10px] ${muted} mt-0.5`}>{formatDate(expiresAt)}</span>}
+    </div>
+  );
+}
+
+function toDatetimeLocal(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function ExpiryModal({
+  isDark, user, onClose, onSave,
+}: {
+  isDark: boolean;
+  user: AdminUserRow;
+  onClose: () => void;
+  onSave: (expiresAt: string | null) => Promise<void>;
+}) {
+  const [value, setValue] = useState<string>(toDatetimeLocal(user.access_expires_at));
+  const [busy, setBusy] = useState(false);
+  const panel = isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200";
+  const input =
+    "h-10 w-full rounded-md border px-3 text-sm outline-none " +
+    (isDark
+      ? "bg-neutral-950 border-neutral-800 text-neutral-100 focus:border-emerald-600"
+      : "bg-white border-neutral-300 text-neutral-900 focus:border-emerald-700");
+
+  function addDays(days: number) {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    setValue(toDatetimeLocal(d.toISOString()));
+  }
+
+  async function submit(expiresAt: string | null) {
+    setBusy(true);
+    await onSave(expiresAt);
+    setBusy(false);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className={`w-full max-w-md rounded-xl border shadow-xl p-6 space-y-4 ${panel}`}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Validade de acesso</h3>
+          <button type="button" onClick={onClose} className="p-1 rounded hover:bg-neutral-500/10">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <p className="text-xs opacity-70">Cliente: <span className="font-medium">{user.email}</span></p>
+
+        <div className="flex flex-wrap gap-2">
+          {[1, 7, 15, 30, 60, 90].map((d) => (
+            <button key={d} type="button" onClick={() => addDays(d)}
+              className="px-3 h-8 rounded-md text-xs border border-neutral-500/30 hover:bg-neutral-500/10">
+              +{d}d
+            </button>
+          ))}
+        </div>
+
+        <div>
+          <label className="text-xs font-medium block mb-1">Expira em</label>
+          <input type="datetime-local" value={value} onChange={(e) => setValue(e.target.value)} className={input} />
+          <p className="text-[11px] opacity-60 mt-1">Deixe em branco para acesso vitalício.</p>
+        </div>
+
+        <div className="flex justify-between gap-2 pt-2">
+          <button
+            type="button"
+            disabled={busy || !user.access_expires_at}
+            onClick={() => void submit(null)}
+            className="h-10 px-4 rounded-md border border-red-500/30 text-sm text-red-500 hover:bg-red-500/10 disabled:opacity-40"
+          >
+            Remover validade
+          </button>
+          <div className="flex gap-2">
+            <button type="button" onClick={onClose} className="h-10 px-4 rounded-md border border-neutral-500/30 text-sm hover:bg-neutral-500/10">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              disabled={busy || !value}
+              onClick={() => void submit(new Date(value).toISOString())}
+              className="h-10 px-4 rounded-md bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-500 inline-flex items-center gap-2 disabled:opacity-60"
+            >
+              {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+              Salvar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
