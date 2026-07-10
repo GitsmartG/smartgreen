@@ -658,6 +658,17 @@ function LeagueSection({
           (isDark ? "border-neutral-800 bg-neutral-950/40" : "border-neutral-200 bg-neutral-50")
         }
       >
+        {league.id && (
+          <img
+            src={`/api/public/league-image/${encodeURIComponent(league.id)}`}
+            alt=""
+            loading="lazy"
+            className="h-6 w-6 rounded object-contain bg-white/5 shrink-0"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = "none";
+            }}
+          />
+        )}
         {countryLabel && (
           <span
             className={
@@ -670,6 +681,7 @@ function LeagueSection({
             {countryLabel.slice(0, 3)}
           </span>
         )}
+
           <h3 className="text-sm font-semibold flex-1 min-w-0 truncate">
           {s(league.name, "Liga")}
         </h3>
