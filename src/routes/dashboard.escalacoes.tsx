@@ -146,7 +146,7 @@ function EscalacoesPage() {
                     <div className={`text-sm font-medium ${text}`}>
                       {m.home.name} <span className={muted}>vs</span> {m.away.name}
                     </div>
-                    <div className={`text-[11px] ${muted}`}>{m.status || m.kickoffLocal || ""}</div>
+                    <div className={`text-[11px] ${muted}`}>{m.status || ""}</div>
                   </button>
                 );
               })

@@ -16,6 +16,7 @@ import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as DashboardUsuariosRouteImport } from './routes/dashboard.usuarios'
 import { Route as DashboardNotificacoesRouteImport } from './routes/dashboard.notificacoes'
 import { Route as DashboardJogosRouteImport } from './routes/dashboard.jogos'
+import { Route as DashboardEscalacoesRouteImport } from './routes/dashboard.escalacoes'
 import { Route as DashboardDicasRouteImport } from './routes/dashboard.dicas'
 import { Route as DashboardConfiguracoesRouteImport } from './routes/dashboard.configuracoes'
 import { Route as ApiPublicFeaturesRouteImport } from './routes/api/public/features'
@@ -66,6 +67,11 @@ const DashboardNotificacoesRoute = DashboardNotificacoesRouteImport.update({
 const DashboardJogosRoute = DashboardJogosRouteImport.update({
   id: '/jogos',
   path: '/jogos',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardEscalacoesRoute = DashboardEscalacoesRouteImport.update({
+  id: '/escalacoes',
+  path: '/escalacoes',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardDicasRoute = DashboardDicasRouteImport.update({
@@ -163,6 +169,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/dicas': typeof DashboardDicasRoute
+  '/dashboard/escalacoes': typeof DashboardEscalacoesRoute
   '/dashboard/jogos': typeof DashboardJogosRoute
   '/dashboard/notificacoes': typeof DashboardNotificacoesRoute
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
@@ -187,6 +194,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/dicas': typeof DashboardDicasRoute
+  '/dashboard/escalacoes': typeof DashboardEscalacoesRoute
   '/dashboard/jogos': typeof DashboardJogosRoute
   '/dashboard/notificacoes': typeof DashboardNotificacoesRoute
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
@@ -213,6 +221,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/dicas': typeof DashboardDicasRoute
+  '/dashboard/escalacoes': typeof DashboardEscalacoesRoute
   '/dashboard/jogos': typeof DashboardJogosRoute
   '/dashboard/notificacoes': typeof DashboardNotificacoesRoute
   '/dashboard/usuarios': typeof DashboardUsuariosRoute
@@ -240,6 +249,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/dashboard/configuracoes'
     | '/dashboard/dicas'
+    | '/dashboard/escalacoes'
     | '/dashboard/jogos'
     | '/dashboard/notificacoes'
     | '/dashboard/usuarios'
@@ -264,6 +274,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/dashboard/configuracoes'
     | '/dashboard/dicas'
+    | '/dashboard/escalacoes'
     | '/dashboard/jogos'
     | '/dashboard/notificacoes'
     | '/dashboard/usuarios'
@@ -289,6 +300,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/dashboard/configuracoes'
     | '/dashboard/dicas'
+    | '/dashboard/escalacoes'
     | '/dashboard/jogos'
     | '/dashboard/notificacoes'
     | '/dashboard/usuarios'
@@ -377,6 +389,13 @@ declare module '@tanstack/react-router' {
       path: '/jogos'
       fullPath: '/dashboard/jogos'
       preLoaderRoute: typeof DashboardJogosRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/escalacoes': {
+      id: '/dashboard/escalacoes'
+      path: '/escalacoes'
+      fullPath: '/dashboard/escalacoes'
+      preLoaderRoute: typeof DashboardEscalacoesRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/dicas': {
@@ -497,6 +516,7 @@ declare module '@tanstack/react-router' {
 interface DashboardRouteChildren {
   DashboardConfiguracoesRoute: typeof DashboardConfiguracoesRoute
   DashboardDicasRoute: typeof DashboardDicasRoute
+  DashboardEscalacoesRoute: typeof DashboardEscalacoesRoute
   DashboardJogosRoute: typeof DashboardJogosRoute
   DashboardNotificacoesRoute: typeof DashboardNotificacoesRoute
   DashboardUsuariosRoute: typeof DashboardUsuariosRoute
@@ -506,6 +526,7 @@ interface DashboardRouteChildren {
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardConfiguracoesRoute: DashboardConfiguracoesRoute,
   DashboardDicasRoute: DashboardDicasRoute,
+  DashboardEscalacoesRoute: DashboardEscalacoesRoute,
   DashboardJogosRoute: DashboardJogosRoute,
   DashboardNotificacoesRoute: DashboardNotificacoesRoute,
   DashboardUsuariosRoute: DashboardUsuariosRoute,
