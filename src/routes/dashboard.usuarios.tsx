@@ -187,6 +187,7 @@ function UsuariosPage() {
               <tr>
                 <th className="text-left font-medium px-4 py-3">Usuário</th>
                 <th className="text-left font-medium px-4 py-3">Função</th>
+                <th className="text-left font-medium px-4 py-3">Acesso</th>
                 <th className="text-left font-medium px-4 py-3">Cadastro</th>
                 <th className="text-left font-medium px-4 py-3">Último acesso</th>
                 <th className="text-right font-medium px-4 py-3">Ações</th>
@@ -194,10 +195,10 @@ function UsuariosPage() {
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={5} className={`text-center py-12 ${muted}`}>Carregando...</td></tr>
+                <tr><td colSpan={6} className={`text-center py-12 ${muted}`}>Carregando...</td></tr>
               )}
               {!loading && filtered.length === 0 && (
-                <tr><td colSpan={5} className={`text-center py-12 ${muted}`}>Nenhum usuário encontrado.</td></tr>
+                <tr><td colSpan={6} className={`text-center py-12 ${muted}`}>Nenhum usuário encontrado.</td></tr>
               )}
               {!loading && filtered.map((u) => (
                 <tr key={u.id} className={"border-t transition-colors " + (isDark ? "border-neutral-800 hover:bg-neutral-800/40" : "border-neutral-200 hover:bg-neutral-50")}>
