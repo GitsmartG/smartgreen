@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, Search, Users, RefreshCw, AlertCircle, Shirt } from "lucide-react";
+import { Loader2, Search, Users, RefreshCw, AlertCircle } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
 import { getMatchesByDate } from "@/lib/daily-matches.functions";
 import type { NormalizedMatch } from "@/lib/daily-matches.server";
@@ -229,15 +229,70 @@ function TeamPanel({
     <div className={`rounded-lg border ${panel} p-3 space-y-3`}>
       <div>
         <div className="text-sm font-semibold">{team.team_name || label}</div>
-        <div className={`text-[11px] ${muted} flex flex-wrap gap-x-2`}>
-          {team.team_formation && <span>Formação: {team.team_formation}</span>}
-          {team.coach?.name && <span>· Técnico: {team.coach.name}</span>}
-        </div>
+        {team.team_formation && (
+          <div className={`text-[11px] ${muted}`}>Formação: {team.team_formation}</div>
+        )}
       </div>
 
-      <PlayerGroup title="Titulares" players={team.starting_xi} isDark={isDark} icon />
+      {team.coach?.name && (
+        <div className={`flex items-center gap-3 rounded-md border ${panel} p-2`}>
+          <PlayerAvatar name={team.coach.name} isDark={isDark} accent />
+          <div className="min-w-0">
+            <div className={`text-[10px] uppercase tracking-wide ${muted}`}>Técnico</div>
+            <div className="text-sm font-medium truncate">{team.coach.name}</div>
+          </div>
+        </div>
+      )}
+
+      <PlayerGroup title="Titulares" players={team.starting_xi} isDark={isDark} />
       <PlayerGroup title="Reservas" players={team.bench} isDark={isDark} />
       <SidelinedGroup players={team.sidelined} isDark={isDark} />
+    </div>
+  );
+}
+
+function initials(name?: string): string {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function avatarColor(name?: string): string {
+  const palette = [
+    "from-emerald-500 to-teal-600",
+    "from-sky-500 to-blue-600",
+    "from-violet-500 to-purple-600",
+    "from-rose-500 to-pink-600",
+    "from-amber-500 to-orange-600",
+    "from-fuchsia-500 to-pink-600",
+    "from-lime-500 to-emerald-600",
+    "from-indigo-500 to-blue-600",
+  ];
+  const key = name || "?";
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return palette[h % palette.length];
+}
+
+function PlayerAvatar({
+  name,
+  isDark,
+  accent,
+}: {
+  name?: string;
+  isDark: boolean;
+  accent?: boolean;
+}) {
+  void isDark;
+  const size = accent ? "h-10 w-10 text-sm" : "h-8 w-8 text-[11px]";
+  return (
+    <div
+      className={`${size} shrink-0 rounded-full bg-gradient-to-br ${avatarColor(name)} text-white font-semibold flex items-center justify-center shadow-sm ring-1 ring-black/10`}
+      aria-hidden
+    >
+      {initials(name)}
     </div>
   );
 }
@@ -246,23 +301,33 @@ function PlayerGroup({
   title,
   players,
   isDark,
-  icon,
 }: {
   title: string;
   players?: LineupPlayer[];
   isDark: boolean;
-  icon?: boolean;
 }) {
   const muted = isDark ? "text-neutral-400" : "text-neutral-500";
+  const chip = isDark ? "bg-neutral-900 text-neutral-200" : "bg-white text-neutral-800";
   if (!players || players.length === 0) return null;
   return (
     <div>
       <div className={`text-[11px] uppercase tracking-wide ${muted} mb-1`}>{title}</div>
-      <ul className="space-y-1">
+      <ul className="space-y-1.5">
         {players.map((p, i) => (
-          <li key={`${p.id ?? i}-${p.name ?? i}`} className="flex items-center gap-2 text-sm">
-            {icon && <Shirt className="h-3 w-3 opacity-60 shrink-0" />}
-            <span className={`w-6 text-right tabular-nums ${muted}`}>{p.number ?? "-"}</span>
+          <li
+            key={`${p.id ?? i}-${p.name ?? i}`}
+            className="flex items-center gap-2 text-sm"
+          >
+            <div className="relative">
+              <PlayerAvatar name={p.name} isDark={isDark} />
+              {p.number && (
+                <span
+                  className={`absolute -bottom-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold tabular-nums flex items-center justify-center border ${chip} ${isDark ? "border-neutral-700" : "border-neutral-300"}`}
+                >
+                  {p.number}
+                </span>
+              )}
+            </div>
             <span className="flex-1 truncate">{p.name ?? "—"}</span>
             {p.position && <span className={`text-[10px] ${muted}`}>{p.position}</span>}
           </li>
@@ -281,6 +346,7 @@ function SidelinedGroup({ players, isDark }: { players?: SidelinedPlayer[]; isDa
       <ul className="space-y-1">
         {players.map((p, i) => (
           <li key={`${p.id ?? i}-${p.name ?? i}`} className="flex items-center gap-2 text-sm">
+            <PlayerAvatar name={p.name} isDark={isDark} />
             <span className="flex-1 truncate">{p.name ?? "—"}</span>
             {p.status && <span className="text-[10px] text-amber-500">{p.status}</span>}
           </li>
