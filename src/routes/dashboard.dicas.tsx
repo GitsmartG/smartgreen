@@ -176,6 +176,13 @@ function DicasPage() {
   const [hydrated, setHydrated] = useState(false);
   const ticketsRef = useRef<Ticket[]>(tickets);
   const ticketList = Array.isArray(tickets) ? tickets : [];
+  const persistTickets = (updater: (prev: Ticket[]) => Ticket[]) => {
+    setTickets((prev) => {
+      const next = updater(Array.isArray(prev) ? prev : []);
+      saveTickets(next);
+      return next;
+    });
+  };
 
   // Carrega tickets do storage só no client (evita SSR mismatch e hooks count divergente).
   useEffect(() => {
@@ -467,9 +474,20 @@ function DicasPage() {
   const detailsTicket = detailsId ? ticketList.find((t) => t.id === detailsId) ?? null : null;
 
   const updateStatus = (id: string, status: TipStatus) =>
-    setTickets((prev) => (Array.isArray(prev) ? prev : []).map((t) => (t.id === id ? { ...t, status } : t)));
+    persistTickets((prev) =>
+      prev.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              status,
+              legStatuses: !isMultiplaTicket(t) ? [status] : t.legStatuses,
+              resultCheckedAtMs: Date.now(),
+            }
+          : t,
+      ),
+    );
   const removeTicket = (id: string) => {
-    setTickets((prev) => (Array.isArray(prev) ? prev : []).filter((t) => t.id !== id));
+    persistTickets((prev) => prev.filter((t) => t.id !== id));
     setDetailsId(null);
     void import("@/lib/tickets-store").then((m) => m.deleteTicket(id));
   };
