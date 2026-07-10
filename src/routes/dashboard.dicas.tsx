@@ -180,6 +180,11 @@ function DicasPage() {
   useEffect(() => {
     setTickets(loadTickets());
     setHydrated(true);
+    // Puxa do backend em background e merge (server wins).
+    void import("@/lib/tickets-store").then(async (m) => {
+      const merged = await m.hydrateTicketsFromServer();
+      if (merged) setTickets(merged);
+    });
   }, []);
 
   useEffect(() => {
@@ -455,6 +460,7 @@ function DicasPage() {
   const removeTicket = (id: string) => {
     setTickets((prev) => (Array.isArray(prev) ? prev : []).filter((t) => t.id !== id));
     setDetailsId(null);
+    void import("@/lib/tickets-store").then((m) => m.deleteTicket(id));
   };
 
   const counts = useMemo(() => {

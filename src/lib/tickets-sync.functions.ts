@@ -119,11 +119,13 @@ export function ticketRowToDTO(row: {
 
 
 // Sincroniza a lista inteira do frontend (localStorage) para o banco.
-// Faz upsert de tudo e apaga o que não estiver mais na lista, tudo em uma chamada.
+// Faz upsert de tudo. Só remove órfãos quando `prune=true` (default false)
+// pra não apagar bilhetes vindos de outro device.
 export const syncAllTickets = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { tickets: TicketInput[] }) => ({
+  .inputValidator((d: { tickets: TicketInput[]; prune?: boolean }) => ({
     tickets: Array.isArray(d.tickets) ? d.tickets : [],
+    prune: Boolean(d.prune),
   }))
   .handler(async ({ data, context }) => {
     const rows = data.tickets.map((t) => ({
@@ -153,17 +155,46 @@ export const syncAllTickets = createServerFn({ method: "POST" })
     }));
 
     if (rows.length) {
-      const { error: upErr } = await context.supabase.from("tickets").upsert(rows as never);
+      const { error: upErr } = await context.supabase
+        .from("tickets")
+        .upsert(rows as never, { onConflict: "id" });
       if (upErr) throw upErr;
     }
 
-    // Apaga tickets do DB que não estão mais na lista local.
-    const ids = rows.map((r) => r.id);
-    const del = context.supabase.from("tickets").delete();
-    const { error: delErr } = ids.length
-      ? await del.not("id", "in", `(${ids.map((i) => `"${i.replace(/"/g, '""')}"`).join(",")})`)
-      : await del.not("id", "is", null);
-    if (delErr) throw delErr;
+    if (data.prune) {
+      const ids = rows.map((r) => r.id);
+      const del = context.supabase.from("tickets").delete();
+      const { error: delErr } = ids.length
+        ? await del.not("id", "in", `(${ids.map((i) => `"${i.replace(/"/g, '""')}"`).join(",")})`)
+        : await del.not("id", "is", null);
+      if (delErr) throw delErr;
+    }
 
     return { ok: true, count: rows.length };
+  });
+
+// Apaga um ticket específico (chamado ao remover no frontend).
+export const deleteTicketRemote = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => ({ id: String(d.id || "") }))
+  .handler(async ({ data, context }) => {
+    if (!data.id) return { ok: false as const, error: "id vazio" };
+    const { error } = await context.supabase.from("tickets").delete().eq("id", data.id);
+    if (error) throw error;
+    return { ok: true as const };
+  });
+
+// Busca todos os tickets do banco (pra hidratar o frontend com dados de outros devices).
+export const fetchAllTicketsRemote = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("tickets")
+      .select("*")
+      .order("updated_at", { ascending: false })
+      .limit(500);
+    if (error) throw error;
+    const tickets = (data ?? []).map((r) => ticketRowToDTO(r as never));
+    // serializa como JSON string pra escapar do type-check estrito de "unknown".
+    return { ok: true as const, ticketsJson: JSON.stringify(tickets) };
   });
