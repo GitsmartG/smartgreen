@@ -45,6 +45,14 @@ function parseOverUnder(p: string): { isOver: boolean; line: number } | null {
   return { isOver, line };
 }
 
+function parseFinalResultPick(p: string): "home" | "draw" | "away" | null {
+  const compact = p.replace(/\s+/g, " ").trim();
+  if (/\b(?:w\s*1|1\s*x\s*2\s*[-:]?\s*1|resultado\s+final\s*[-:]?\s*1|vencedor\s*[-:]?\s*1)\b/.test(compact)) return "home";
+  if (/\b(?:w\s*2|1\s*x\s*2\s*[-:]?\s*2|resultado\s+final\s*[-:]?\s*2|vencedor\s*[-:]?\s*2)\b/.test(compact)) return "away";
+  if (/\b(?:x|empate|draw|resultado\s+final\s*[-:]?\s*x)\b/.test(compact)) return "draw";
+  return null;
+}
+
 export function gradeSinglePalpite(palpite: string, match: LiveMatch, ticket: Ticket): TipStatus | null {
   // Precisa ter placar disponível (mesmo ao vivo).
   if (match.score1 == null || match.score2 == null) return null;
@@ -147,6 +155,14 @@ export function gradeSinglePalpite(palpite: string, match: LiveMatch, ticket: Ti
 
   // Empate
   if (/\bempate\b|\bdraw\b/.test(p)) {
+    return homeScore === awayScore ? "green" : "red";
+  }
+
+  // Resultado final / 1x2 vindo de casas como W1, W2, 1 ou X.
+  const finalResultPick = parseFinalResultPick(p);
+  if (finalResultPick) {
+    if (finalResultPick === "home") return homeScore > awayScore ? "green" : "red";
+    if (finalResultPick === "away") return awayScore > homeScore ? "green" : "red";
     return homeScore === awayScore ? "green" : "red";
   }
 
