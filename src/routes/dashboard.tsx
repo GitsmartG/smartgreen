@@ -115,11 +115,13 @@ function DashboardLayout() {
         ? "Dicas de Apostas"
         : pathname === "/dashboard/jogos"
           ? "Jogos de Hoje"
-          : pathname === "/dashboard/notificacoes"
-            ? "Notificações Push"
-            : pathname === "/dashboard/configuracoes"
-              ? "Configurações"
-              : "Visão geral";
+          : pathname === "/dashboard/escalacoes"
+            ? "Escalações"
+            : pathname === "/dashboard/notificacoes"
+              ? "Notificações Push"
+              : pathname === "/dashboard/configuracoes"
+                ? "Configurações"
+                : "Visão geral";
   const headerSub =
     pathname === "/dashboard/usuarios"
       ? "Visualize e gerencie os usuários do seu app."
