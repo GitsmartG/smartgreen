@@ -658,9 +658,9 @@ function LeagueSection({
           (isDark ? "border-neutral-800 bg-neutral-950/40" : "border-neutral-200 bg-neutral-50")
         }
       >
-        {league.id && (
+        {(league.id || league.name) && (
           <img
-            src={`/api/public/league-image/${encodeURIComponent(league.id)}`}
+            src={`/api/public/league-image/${encodeURIComponent(league.id || "x")}?name=${encodeURIComponent(league.name || "")}`}
             alt=""
             loading="lazy"
             className="h-6 w-6 rounded object-contain bg-white/5 shrink-0"
@@ -669,6 +669,7 @@ function LeagueSection({
             }}
           />
         )}
+
         {countryLabel && (
           <span
             className={
