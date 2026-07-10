@@ -10,7 +10,8 @@ import {
   Sun,
   Moon,
   CalendarDays,
-  
+  Menu,
+  X,
 } from "lucide-react";
 import { LiveNotificationsPanel } from "@/components/LiveNotificationsPanel";
 import { supabase } from "@/integrations/supabase/client";
