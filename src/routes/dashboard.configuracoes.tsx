@@ -1017,6 +1017,16 @@ export function useLiveMatches(intervalMs = 15000) {
             <li>Pra sync incremental, guarde o <code className="font-mono">fetchedAt</code> da última resposta e mande em <code className="font-mono">?since=</code> na próxima.</li>
           </ul>
         </div>
+
+        <div className={`mt-4 rounded-lg p-3 ${isDark ? "bg-emerald-500/10 border border-emerald-500/30" : "bg-emerald-50 border border-emerald-200"}`}>
+          <div className="text-xs font-semibold text-emerald-500 mb-1">🖼️ Logos dos times (para renderizar o bilhete bonitão)</div>
+          <ul className={`text-[11px] ${muted} space-y-0.5 pl-4 list-disc`}>
+            <li>Simples: use <code className="font-mono">ticket.team1Logo</code> / <code className="font-mono">ticket.team2Logo</code> no cabeçalho do card.</li>
+            <li>Múltipla: itere <code className="font-mono">ticket.legs[]</code> e renderize <code className="font-mono">leg.team1Logo</code> / <code className="font-mono">leg.team2Logo</code> por perna (também vem <code className="font-mono">score1/score2/minute/status/live/finished</code>).</li>
+            <li>URL das logos é absoluta (CDN Statpal / SmartGreen). Se vier <code className="font-mono">null</code>, mostre placeholder — pode acontecer em jogos muito antigos ou ligas obscuras.</li>
+            <li>Também vem <code className="font-mono">team1</code> / <code className="font-mono">team2</code> (nomes) e, quando disponível, <code className="font-mono">team1Id</code> / <code className="font-mono">team2Id</code> — dá pra fallback via <code className="font-mono">/api/public/team-image/{`{teamId}`}</code>.</li>
+          </ul>
+        </div>
       </div>
 
       {endpoints.map((ep) => {

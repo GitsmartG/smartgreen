@@ -245,8 +245,10 @@ function DashboardLayout() {
           </div>
         </header>
 
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6">
-          <Outlet />
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 md:p-6">
+          <div className="min-w-0 max-w-full">
+            <Outlet />
+          </div>
         </div>
       </main>
     </div>
