@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { loadTickets, saveTickets, type Ticket, type TicketLegResult, type TipStatus, type Parceiro as ParceiroT } from "@/lib/tickets-store";
 import { importBetTip, type BetTipsResult } from "@/lib/bet-tips";
+import { applyBtag } from "@/lib/bets-config";
 import { getSoccerLivescores, type LiveMatch } from "@/lib/livescores.functions";
 import { getTodayMatches, getMatchesByDate } from "@/lib/daily-matches.functions";
 import { findMatchForTicket, gradePalpite, gradeSinglePalpite } from "@/lib/auto-settle";
@@ -1731,7 +1732,7 @@ function NovoTicketModal({
           }),
           entradas: 1,
           parceiro: feedResult.parceiro,
-          url: url || undefined,
+          url: url ? applyBtag(url, feedResult.parceiro) : undefined,
           createdAtMs: Date.now(),
           startMs: null,
         });
@@ -1766,7 +1767,7 @@ function NovoTicketModal({
           ? splitPalpites(palpite.trim() || "Palpite do parceiro").length
           : 1,
         parceiro: feedResult.parceiro,
-        url: url || undefined,
+        url: url ? applyBtag(url, feedResult.parceiro) : undefined,
         createdAtMs: Date.now(),
         startMs: selected.startMs ?? null,
       });
@@ -1789,7 +1790,7 @@ function NovoTicketModal({
         }),
         entradas: 1,
         parceiro,
-        url: url || undefined,
+        url: url ? applyBtag(url, parceiro) : undefined,
         createdAtMs: Date.now(),
         startMs: null,
       });
@@ -2429,19 +2430,22 @@ function DetailsModal({
             </div>
           </div>
 
-          {ticket.url && (
-            <div>
-              <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1`}>URL da aposta</div>
-              <a
-                href={ticket.url}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-emerald-500 hover:underline break-all"
-              >
-                {ticket.url}
-              </a>
-            </div>
-          )}
+          {ticket.url && (() => {
+            const finalUrl = applyBtag(ticket.url, ticket.parceiro);
+            return (
+              <div>
+                <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1`}>URL da aposta</div>
+                <a
+                  href={finalUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-emerald-500 hover:underline break-all"
+                >
+                  {finalUrl}
+                </a>
+              </div>
+            );
+          })()}
 
 
           <div>

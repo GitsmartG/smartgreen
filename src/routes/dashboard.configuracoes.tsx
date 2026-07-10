@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
-import { Building2, Save, Check, Activity, RefreshCw, AlertCircle, Gauge, Cable, Copy, ExternalLink, ToggleLeft } from "lucide-react";
+import { Building2, Save, Check, Activity, RefreshCw, AlertCircle, Gauge, Cable, Copy, ExternalLink, ToggleLeft, Wallet, Plus, Trash2 } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
 import { getStatpalUsage, type StatpalUsage } from "@/lib/statpal-usage.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { getFeatureFlags, setFeatureFlag, FEATURE_KEYS, type FeatureKey, type FeatureFlags } from "@/lib/feature-flags.functions";
 import { getInternalApiKey, regenerateApiKey } from "@/lib/internal-api-key.functions";
+import { loadBets, saveBets, type BetConfig, DEFAULT_BETS } from "@/lib/bets-config";
 
 
 
@@ -49,7 +50,7 @@ const DEFAULTS: Settings = {
 
 const STORAGE_KEY = "sg-settings";
 
-type TabKey = "geral" | "funcionalidades" | "monitoramento" | "api";
+type TabKey = "geral" | "bets" | "funcionalidades" | "monitoramento" | "api";
 
 function ConfiguracoesPage() {
   const isDark = useIsDark();
@@ -115,6 +116,10 @@ function ConfiguracoesPage() {
         <button className={navBtn(tab === "geral")} onClick={() => setTab("geral")}>
           <Building2 className="h-4 w-4" />
           Geral
+        </button>
+        <button className={navBtn(tab === "bets")} onClick={() => setTab("bets")}>
+          <Wallet className="h-4 w-4" />
+          Bets
         </button>
         <button className={navBtn(tab === "funcionalidades")} onClick={() => setTab("funcionalidades")}>
           <ToggleLeft className="h-4 w-4" />
@@ -219,6 +224,7 @@ function ConfiguracoesPage() {
         </div>
       )}
 
+      {tab === "bets" && <BetsPanel isDark={isDark} panel={panel} muted={muted} fieldCls={fieldCls} />}
       {tab === "funcionalidades" && <FeaturesPanel isDark={isDark} panel={panel} muted={muted} />}
       {tab === "monitoramento" && <MonitoramentoPanel isDark={isDark} panel={panel} muted={muted} />}
       {tab === "api" && <ApiPanel isDark={isDark} panel={panel} muted={muted} />}
@@ -1324,6 +1330,164 @@ function FeaturesPanel({
             <ExternalLink className="h-3.5 w-3.5" /> Testar
           </a>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function BetsPanel({
+  isDark,
+  panel,
+  muted,
+  fieldCls,
+}: {
+  isDark: boolean;
+  panel: string;
+  muted: string;
+  fieldCls: string;
+}) {
+  const [bets, setBets] = useState<BetConfig[]>(() => loadBets());
+  const [saved, setSaved] = useState(false);
+
+  const update = (id: string, patch: Partial<BetConfig>) =>
+    setBets((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
+
+  const remove = (id: string) => {
+    if (DEFAULT_BETS.some((d) => d.id === id)) return; // não remove as padrão
+    setBets((prev) => prev.filter((b) => b.id !== id));
+  };
+
+  const add = () => {
+    const id = prompt("ID da bet (slug, ex.: betano):")?.trim().toLowerCase();
+    if (!id) return;
+    if (bets.some((b) => b.id === id)) {
+      alert("Já existe uma bet com esse ID.");
+      return;
+    }
+    setBets((prev) => [
+      ...prev,
+      { id, name: id, domain: "", affiliatePath: "/affiliates/", btag: "" },
+    ]);
+  };
+
+  const salvar = () => {
+    saveBets(bets);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const preview = (b: BetConfig) =>
+    b.domain && b.btag
+      ? `https://${b.domain}${b.affiliatePath.startsWith("/") ? b.affiliatePath : `/${b.affiliatePath}`}?btag=${encodeURIComponent(b.btag)}`
+      : "—";
+
+  return (
+    <div className="space-y-4">
+      <div className={`rounded-xl border p-5 ${panel}`}>
+        <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h3 className="font-semibold">Bets configuradas</h3>
+            <p className={`text-xs ${muted} mt-0.5`}>
+              Cadastre suas casas com a <b>btag</b> de afiliado. Toda vez que um bilhete for criado
+              sem <code>?btag=</code>, o link é substituído automaticamente pelo link de afiliado.
+            </p>
+          </div>
+          <button
+            onClick={add}
+            className={
+              "h-9 px-3 rounded-md text-xs font-semibold border inline-flex items-center gap-1.5 " +
+              (isDark
+                ? "border-neutral-800 bg-neutral-950 text-neutral-200 hover:bg-neutral-800"
+                : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50")
+            }
+          >
+            <Plus className="h-3.5 w-3.5" /> Nova bet
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {bets.map((b) => (
+            <div
+              key={b.id}
+              className={`rounded-lg border p-4 ${isDark ? "border-neutral-800 bg-neutral-950" : "border-neutral-200 bg-neutral-50"}`}
+            >
+              <div className="flex items-center justify-between mb-3 gap-2">
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] uppercase tracking-wider ${muted}`}>id</span>
+                  <code className="text-xs font-mono">{b.id}</code>
+                </div>
+                {!DEFAULT_BETS.some((d) => d.id === b.id) && (
+                  <button
+                    onClick={() => remove(b.id)}
+                    className="text-red-500 hover:text-red-400 text-xs inline-flex items-center gap-1"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Remover
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Field label="Nome" muted={muted}>
+                  <input
+                    value={b.name}
+                    onChange={(e) => update(b.id, { name: e.target.value })}
+                    className={fieldCls}
+                  />
+                </Field>
+                <Field label="Domínio (sem https)" muted={muted}>
+                  <input
+                    value={b.domain}
+                    onChange={(e) => update(b.id, { domain: e.target.value.trim() })}
+                    placeholder="h2.bet.br"
+                    className={fieldCls}
+                  />
+                </Field>
+                <Field label="Caminho do afiliado" muted={muted}>
+                  <input
+                    value={b.affiliatePath}
+                    onChange={(e) => update(b.id, { affiliatePath: e.target.value })}
+                    placeholder="/affiliates/"
+                    className={fieldCls}
+                  />
+                </Field>
+                <Field label="btag (código de indicação)" muted={muted}>
+                  <input
+                    value={b.btag}
+                    onChange={(e) => update(b.id, { btag: e.target.value.trim() })}
+                    placeholder="ex.: smartgreen123"
+                    className={fieldCls}
+                  />
+                </Field>
+              </div>
+              <div className="mt-3">
+                <div className={`text-[10px] uppercase tracking-wider ${muted} mb-1`}>
+                  Preview do link de afiliado
+                </div>
+                <div className={`text-xs font-mono break-all ${muted}`}>{preview(b)}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className={`rounded-xl border p-3 flex items-center justify-between ${panel}`}>
+        <div className={`text-xs ${muted}`}>
+          {saved ? (
+            <span className="inline-flex items-center gap-1.5 text-emerald-500 font-medium">
+              <Check className="h-4 w-4" /> Bets salvas
+            </span>
+          ) : (
+            "Alterações não são aplicadas até você salvar."
+          )}
+        </div>
+        <button
+          onClick={salvar}
+          style={{
+            backgroundImage: "linear-gradient(90deg, #0f5f2a 0%, #1f8a3a 55%, #54ee2b 100%)",
+          }}
+          className="h-10 px-5 rounded-md text-white text-sm font-semibold inline-flex items-center gap-2 hover:brightness-110 active:brightness-95 shadow-sm"
+        >
+          <Save className="h-4 w-4" /> Salvar alterações
+        </button>
       </div>
     </div>
   );
