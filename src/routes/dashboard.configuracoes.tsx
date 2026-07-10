@@ -935,6 +935,68 @@ export function useLiveMatches(intervalMs = 15000) {
 
 
 
+      {/* Card destacado: Dicas / Tickets */}
+      <div className={`rounded-xl border-2 border-emerald-500/40 p-5 ${panel} relative overflow-hidden`}>
+        <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">
+          DESTAQUE
+        </div>
+        <div className="flex items-start gap-3 mb-3">
+          <div className="h-10 w-10 rounded-lg bg-emerald-500/15 text-emerald-500 flex items-center justify-center">
+            <Cable className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-base">🎯 Dicas / Tickets — endpoint principal do app</h3>
+            <p className={`text-xs ${muted} mt-1`}>
+              É por aqui que o app puxa TODAS as dicas de aposta que você publica no admin. Cada dica vem com status atualizado
+              (aguardando, ao vivo, green, red), odd, banca, placar, logos, link de aposta e — no caso de múltiplas — o resultado por perna.
+              A cada ticket criado ou atualizado no dashboard, o endpoint devolve na hora (cache de 5s no servidor).
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">
+          {[
+            { title: "Todos os tickets (mais recentes)", url: "/api/public/mobile/tickets?limit=50" },
+            { title: "Só as dicas de hoje", url: "/api/public/mobile/tickets?date=today" },
+            { title: "Dicas de ontem (histórico)", url: "/api/public/mobile/tickets?date=yesterday" },
+            { title: "Dicas de uma data específica", url: "/api/public/mobile/tickets?date=2026-07-10" },
+            { title: "Só os greens de hoje", url: "/api/public/mobile/tickets?date=today&status=green" },
+            { title: "Só ao vivo agora", url: "/api/public/mobile/tickets?status=ao_vivo" },
+            { title: "Sync incremental (novos/atualizados)", url: "/api/public/mobile/tickets?since=2026-07-10T14:00:00Z" },
+            { title: "Ticket individual (detalhe)", url: "/api/public/mobile/tickets/{ticketId}" },
+          ].map((r) => (
+            <div key={r.url} className={`rounded-lg border p-2.5 ${box} flex items-center justify-between gap-2`}>
+              <div className="min-w-0 flex-1">
+                <div className="text-[11px] font-medium mb-0.5">{r.title}</div>
+                <div className={`${codeCls} text-emerald-500 truncate`}>{r.url}</div>
+              </div>
+              <button
+                onClick={() => copy(origin + r.url)}
+                className={
+                  "shrink-0 h-7 px-2.5 rounded text-[11px] font-medium inline-flex items-center gap-1 " +
+                  (isDark
+                    ? "border border-neutral-800 bg-neutral-900 text-neutral-200 hover:bg-neutral-800"
+                    : "border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50")
+                }
+              >
+                <Copy className="h-3 w-3" />
+                {copied === origin + r.url ? "OK" : "Copiar"}
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className={`mt-4 rounded-lg p-3 ${isDark ? "bg-amber-500/10 border border-amber-500/30" : "bg-amber-50 border border-amber-200"}`}>
+          <div className="text-xs font-semibold text-amber-500 mb-1">⚠️ Ticket criado não aparece no app?</div>
+          <ul className={`text-[11px] ${muted} space-y-0.5 pl-4 list-disc`}>
+            <li>Confere se o app está enviando o header <code className="font-mono">X-API-Key</code>.</li>
+            <li>Se estiver filtrando por <code className="font-mono">?date=today</code>, a data usada é <b>match_date</b> (data do jogo, fuso BRT) — não a data de criação.</li>
+            <li>Pra pegar o bilhete recém-criado independente da data do jogo, chame sem <code className="font-mono">?date</code>: ordenado por <code className="font-mono">updated_at desc</code>, o novo vem primeiro.</li>
+            <li>Pra sync incremental, guarde o <code className="font-mono">fetchedAt</code> da última resposta e mande em <code className="font-mono">?since=</code> na próxima.</li>
+          </ul>
+        </div>
+      </div>
+
       {endpoints.map((ep) => {
         const full = origin + ep.path.replace("{id}", "123");
         return (
