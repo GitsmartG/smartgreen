@@ -291,7 +291,7 @@ function RoleBadge({ role }: { role: Role }) {
   return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-neutral-500/15 text-neutral-400 border border-neutral-500/30">Usuário</span>;
 }
 
-type CreatePayload = { email: string; password: string; name?: string; role: Role };
+type CreatePayload = { email: string; password: string; name?: string; role: Role; expiresAt: string | null };
 
 function CreateUserModal({
   isDark,
