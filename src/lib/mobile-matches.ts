@@ -112,9 +112,26 @@ function teamLogo(team: SourceTeam | undefined, origin: string): string | null {
   return null;
 }
 
-function lifecycle(match: SourceMatch): "scheduled" | "live" | "finished" {
+function deriveMinute(startMs: number | null): string | null {
+  if (startMs == null) return null;
+  const mins = Math.floor((Date.now() - startMs) / 60000);
+  if (mins < 0 || mins > 130) return null;
+  if (mins <= 45) return String(Math.max(1, mins));
+  if (mins < 60) return "HT";
+  if (mins <= 105) return String(Math.min(90, mins - 15));
+  return "90+";
+}
+
+const FINISHED_AFTER_MS = 2.5 * 60 * 60 * 1000; // 2h30 após o kickoff, considera encerrado
+
+function lifecycle(match: SourceMatch, startMs: number | null): "scheduled" | "live" | "finished" {
   if (match.finished) return "finished";
   if (match.live) return "live";
+  if (startMs != null) {
+    const elapsed = Date.now() - startMs;
+    if (elapsed >= FINISHED_AFTER_MS) return "finished";
+    if (elapsed >= 0) return "live";
+  }
   return "scheduled";
 }
 
@@ -152,9 +169,9 @@ export function flattenMobileMatches(payload: SourcePayload | undefined, origin:
   const out: MobileMatchDTO[] = [];
   for (const league of Array.isArray(payload?.leagues) ? payload.leagues : []) {
     for (const match of Array.isArray(league.matches) ? league.matches : []) {
-      const status = lifecycle(match);
       const rawStatus = String(match.status || "");
       const k = kickoff(match.date, match.time);
+      const status = lifecycle(match, k.ms);
       const team1Logo = teamLogo(match.home, origin);
       const team2Logo = teamLogo(match.away, origin);
       const id = String(match.id || `${match.home?.name || "home"}-${match.away?.name || "away"}`);
@@ -166,7 +183,7 @@ export function flattenMobileMatches(payload: SourcePayload | undefined, origin:
         country: String(league.country || ""),
         status,
         rawStatus,
-        minute: minuteFromStatus(rawStatus),
+        minute: status === "live" ? (minuteFromStatus(rawStatus) ?? deriveMinute(k.ms)) : null,
         kickoff: k.iso,
         startMs: k.ms,
         venue: match.venue ? String(match.venue) : null,
