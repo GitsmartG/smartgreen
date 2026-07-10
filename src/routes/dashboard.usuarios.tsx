@@ -214,6 +214,7 @@ function UsuariosPage() {
                     </div>
                   </td>
                   <td className="px-4 py-4"><RoleBadge role={u.role} /></td>
+                  <td className="px-4 py-4"><AccessBadge expiresAt={u.access_expires_at} muted={muted} /></td>
                   <td className={`px-4 py-4 ${muted}`}>{formatDate(u.created_at)}</td>
                   <td className={`px-4 py-4 ${muted}`}>{u.last_sign_in_at ? formatDate(u.last_sign_in_at) : "—"}</td>
                   <td className="px-4 py-4 text-right relative">
