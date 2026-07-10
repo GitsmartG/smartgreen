@@ -67,7 +67,10 @@ export const Route = createFileRoute("/api/public/mobile/tickets")({
               : resolveDateAlias(dateParam);
             const range = brtDateToUtcRange(iso);
             if (range) {
-              query = query.gte("match_date", range.fromUtc).lte("match_date", range.toUtc);
+              // match_date é texto humano ("09 de jul. de 2026"); filtramos por start_ms (bigint em ms UTC)
+              const fromMs = new Date(range.fromUtc).getTime();
+              const toMs = new Date(range.toUtc).getTime();
+              query = query.gte("start_ms", fromMs).lte("start_ms", toMs);
             }
           }
           if (since) {
