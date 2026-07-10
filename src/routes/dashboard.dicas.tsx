@@ -213,7 +213,7 @@ function DicasPage() {
       const [liveResult, todayResult, ...extraResults] = await Promise.allSettled([
         fetchSoccerLivescores(),
         fetchTodayMatches(),
-        ...extraDates.map((d) => fetchMatchesByDate({ data: { date: d } })),
+        ...extraDates.map((d: string) => fetchMatchesByDate({ data: { date: d } })),
       ]);
       const liveMatches =
         liveResult.status === "fulfilled" && liveResult.value.ok && Array.isArray(liveResult.value.matches)
