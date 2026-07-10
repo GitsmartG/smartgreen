@@ -128,7 +128,7 @@ export const getMatchesByDate = createServerFn({ method: "POST" })
       month: "2-digit",
       day: "2-digit",
     }).format(new Date());
-    const data = ctx?.data ?? { date: brTodayISO() };
+    const data = ctx?.data ?? { date: handlerToday };
     const [ty, tm, td] = handlerToday.split("-").map(Number);
     const [gy, gm, gd] = data.date.split("-").map(Number);
     const offset = Math.round(
