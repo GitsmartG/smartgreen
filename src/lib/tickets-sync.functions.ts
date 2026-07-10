@@ -23,11 +23,25 @@ export type PublicTicketDTO = {
   score2: number | null;
   team1Logo: string | null;
   team2Logo: string | null;
+  team1: string | null;
+  team2: string | null;
+  legs: Array<{
+    index: number;
+    team1: string | null;
+    team2: string | null;
+    team1Logo: string | null;
+    team2Logo: string | null;
+    score1: number | null;
+    score2: number | null;
+    minute: string | null;
+    status: "aguardando" | "ao_vivo" | "green" | "red";
+    live: boolean;
+    finished: boolean;
+  }>;
   legResults: unknown;
   legStatuses: string[] | null;
   resultCheckedAtMs: number | null;
   updatedAt: string;
-
 };
 
 // Payload aceito no upsert (mesmo formato do Ticket do frontend).
