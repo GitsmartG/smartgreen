@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, Search, Users, RefreshCw, AlertCircle, Shirt } from "lucide-react";
+import { Loader2, Search, Users, RefreshCw, AlertCircle } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
 import { getMatchesByDate } from "@/lib/daily-matches.functions";
 import type { NormalizedMatch } from "@/lib/daily-matches.server";
