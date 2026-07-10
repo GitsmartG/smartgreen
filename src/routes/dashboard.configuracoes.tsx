@@ -593,6 +593,7 @@ function ApiPanel({
   "ok": true,
   "fetchedAt": "2026-07-08T14:33:00.000Z",
   "count": 2,
+  "counts": { "total": 2, "aguardando": 0, "ao_vivo": 1, "green": 1, "red": 0 },
   "tickets": [
     {
       "id": "A7F3B21C4E88",
