@@ -56,7 +56,12 @@ export const Route = createFileRoute("/api/public/mobile/login")({
           .maybeSingle();
         if (prof?.access_expires_at && new Date(prof.access_expires_at).getTime() < Date.now()) {
           await client.auth.signOut();
-          return cors(Response.json({ ok: false, error: "Seu acesso expirou. Contate o suporte." }, { status: 403 }));
+          return cors(Response.json({
+            ok: false,
+            error: "access_expired",
+            message: "Seu acesso expirou. Contate o suporte.",
+            access_expires_at: prof.access_expires_at,
+          }, { status: 403 }));
         }
 
         // Descobre role
@@ -75,6 +80,7 @@ export const Route = createFileRoute("/api/public/mobile/login")({
             id: data.user!.id,
             email: data.user!.email,
             role: hasAdmin ? "admin" : "user",
+            access_expires_at: prof?.access_expires_at ?? null,
           },
         }));
       },

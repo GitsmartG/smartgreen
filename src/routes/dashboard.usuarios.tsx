@@ -291,7 +291,7 @@ function RoleBadge({ role }: { role: Role }) {
   return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-neutral-500/15 text-neutral-400 border border-neutral-500/30">Usuário</span>;
 }
 
-type CreatePayload = { email: string; password: string; name?: string; role: Role };
+type CreatePayload = { email: string; password: string; name?: string; role: Role; expiresAt: string | null };
 
 function CreateUserModal({
   isDark,
@@ -306,6 +306,8 @@ function CreateUserModal({
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>("user");
+  const [durationDays, setDurationDays] = useState<string>("30");
+  const [customDate, setCustomDate] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -316,11 +318,24 @@ function CreateUserModal({
       ? "bg-neutral-950 border-neutral-800 text-neutral-100 focus:border-emerald-600"
       : "bg-white border-neutral-300 text-neutral-900 focus:border-emerald-700");
 
+  function computeExpiresAt(): string | null {
+    if (durationDays === "lifetime") return null;
+    if (durationDays === "custom") {
+      if (!customDate) return null;
+      return new Date(customDate).toISOString();
+    }
+    const days = parseInt(durationDays, 10);
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d.toISOString();
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (durationDays === "custom" && !customDate) { setErr("Escolha a data de expiração"); return; }
     setErr(null);
     setBusy(true);
-    const error = await onCreate({ email: email.trim(), password, name: name.trim() || undefined, role });
+    const error = await onCreate({ email: email.trim(), password, name: name.trim() || undefined, role, expiresAt: computeExpiresAt() });
     setBusy(false);
     if (error) { setErr(error); return; }
     onClose();
@@ -359,6 +374,25 @@ function CreateUserModal({
               <option value="user">Usuário</option>
               <option value="admin">Administrador</option>
             </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium block mb-1">Tempo de acesso *</label>
+            <select value={durationDays} onChange={(e) => setDurationDays(e.target.value)} className={input}>
+              <option value="1">1 dia</option>
+              <option value="7">7 dias</option>
+              <option value="15">15 dias</option>
+              <option value="30">30 dias</option>
+              <option value="60">60 dias</option>
+              <option value="90">90 dias</option>
+              <option value="180">180 dias</option>
+              <option value="365">1 ano</option>
+              <option value="custom">Data personalizada</option>
+              <option value="lifetime">Vitalício</option>
+            </select>
+            {durationDays === "custom" && (
+              <input type="datetime-local" value={customDate} onChange={(e) => setCustomDate(e.target.value)} className={input + " mt-2"} />
+            )}
+            <p className="text-[11px] opacity-60 mt-1">Após expirar, o usuário não conseguirá entrar no app.</p>
           </div>
         </div>
 

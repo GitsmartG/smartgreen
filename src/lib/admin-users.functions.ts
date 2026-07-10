@@ -69,13 +69,14 @@ export const deleteAppUser = createServerFn({ method: "POST" })
 
 export const createAppUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { email: string; password: string; name?: string; role: "admin" | "user" }) =>
+  .inputValidator((input: { email: string; password: string; name?: string; role: "admin" | "user"; expiresAt: string | null }) =>
     z.object({
       email: z.string().email(),
       password: z.string().min(6, "Senha deve ter ao menos 6 caracteres"),
       name: z.string().trim().optional(),
       role: z.enum(["admin", "user"]),
-    }).parse(input),
+      expiresAt: z.string().datetime().nullable(),
+    }).parse(input) as { email: string; password: string; name?: string; role: "admin" | "user"; expiresAt: string | null },
   )
   .handler(async ({ data, context }): Promise<{ ok: boolean; error?: string; userId?: string }> => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", {
@@ -94,6 +95,10 @@ export const createAppUser = createServerFn({ method: "POST" })
     if (data.role === "admin") {
       await context.supabase.rpc("admin_set_role", { _target: created.user.id, _role: "admin" });
     }
+    await context.supabase.rpc("admin_set_access_expiry", {
+      _target: created.user.id,
+      _expires_at: data.expiresAt as unknown as string,
+    });
     return { ok: true, userId: created.user.id };
   });
 
