@@ -1732,7 +1732,7 @@ function NovoTicketModal({
           }),
           entradas: 1,
           parceiro: feedResult.parceiro,
-          url: url || undefined,
+          url: url ? applyBtag(url, feedResult.parceiro) : undefined,
           createdAtMs: Date.now(),
           startMs: null,
         });
