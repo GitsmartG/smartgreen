@@ -614,12 +614,29 @@ function ApiPanel({
       "startMs": 1783545000000,
       "score1": 1,
       "score2": 0,
-      "team1Logo": "/api/public/team-image/1234",
-      "team2Logo": "/api/public/team-image/5678",
+      "team1": "Flamengo",
+      "team2": "Palmeiras",
+      "team1Logo": "https://cdn.smartgreen.app/logos/flamengo.png",
+      "team2Logo": "https://cdn.smartgreen.app/logos/palmeiras.png",
+      "legs": [
+        {
+          "index": 0,
+          "team1": "Flamengo",
+          "team2": "Palmeiras",
+          "team1Logo": "https://cdn.smartgreen.app/logos/flamengo.png",
+          "team2Logo": "https://cdn.smartgreen.app/logos/palmeiras.png",
+          "score1": 1,
+          "score2": 0,
+          "minute": "58",
+          "status": "ao_vivo",
+          "live": true,
+          "finished": false
+        }
+      ],
       "createdAtMs": 1783538000000,
       "updatedAt": "2026-07-08T21:47:12.000Z",
-      "legResults": null,             // preenchido em múltiplas
-      "legStatuses": null,
+      "legResults": { "0": { "team1Logo": "...", "team2Logo": "...", "score1": 1, "score2": 0 } },
+      "legStatuses": ["ao_vivo"],
       "resultCheckedAtMs": 1783545420000
     },
     {
@@ -639,14 +656,17 @@ function ApiPanel({
       "startMs": 1783458000000,
       "score1": null,
       "score2": null,
+      "team1": "Real",
+      "team2": "Barça",
       "team1Logo": null,
       "team2Logo": null,
+      "legs": [
+        { "index": 0, "team1": "Real",   "team2": "Barça",    "team1Logo": "https://.../real.png",   "team2Logo": "https://.../barca.png",    "score1": 2, "score2": 1, "minute": null, "status": "green", "live": false, "finished": true },
+        { "index": 1, "team1": "City",   "team2": "Arsenal",  "team1Logo": "https://.../city.png",   "team2Logo": "https://.../arsenal.png",  "score1": 3, "score2": 0, "minute": null, "status": "green", "live": false, "finished": true },
+        { "index": 2, "team1": "Bayern", "team2": "Dortmund", "team1Logo": "https://.../bayern.png", "team2Logo": "https://.../dortmund.png", "score1": 4, "score2": 2, "minute": null, "status": "green", "live": false, "finished": true }
+      ],
       "legStatuses": ["green", "green", "green"],
-      "legResults": {
-        "0": { "team1": "Real", "team2": "Barça", "score1": 2, "score2": 1, "status": "green", "finished": true },
-        "1": { "team1": "City",  "team2": "Arsenal","score1": 3, "score2": 0, "status": "green", "finished": true },
-        "2": { "team1": "Bayern","team2": "Dortmund","score1": 4, "score2": 2, "status": "green", "finished": true }
-      }
+      "legResults": { "0": { "team1Logo": "...", "team2Logo": "..." }, "1": { }, "2": { } }
     }
   ]
 }`;
