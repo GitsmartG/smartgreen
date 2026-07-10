@@ -1046,9 +1046,9 @@ export function useLiveMatches(intervalMs = 15000) {
               </div>
             </div>
 
-            <div className={`rounded-lg border p-3 ${box} flex items-center justify-between gap-2 mt-3`}>
-              <div className={codeCls + " text-emerald-500 truncate"}>{ep.path}</div>
-              <div className="flex items-center gap-1.5 shrink-0">
+            <div className={`rounded-lg border p-3 ${box} flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-3`}>
+              <div className={codeCls + " text-emerald-500 break-all min-w-0 flex-1"}>{ep.path}</div>
+              <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
                 <button
                   onClick={() => copy(full)}
                   className={
