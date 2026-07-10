@@ -152,6 +152,13 @@ function normalizeTicket(value: unknown): Ticket | null {
   const score1 = Number(t.score1);
   const score2 = Number(t.score2);
   const entradas = Number.isFinite(rawEntradas) ? rawEntradas : 1;
+  const normalizedLegStatuses: TipStatus[] | undefined = Array.isArray(t.legStatuses)
+    ? (t.legStatuses as unknown[]).map((s) =>
+        s === "green" || s === "red" || s === "ao_vivo" ? (s as TipStatus) : ("aguardando" as TipStatus),
+      )
+    : !detectedMultipla && status !== "aguardando"
+      ? [status]
+      : undefined;
 
   return {
     id: String(t.id || crypto.randomUUID()).slice(0, 12).toUpperCase(),
@@ -175,11 +182,7 @@ function normalizeTicket(value: unknown): Ticket | null {
     team2Logo: normalizeLogo(t.team2Logo),
     legResults: normalizeLegResults(t.legResults),
     resultCheckedAtMs: Number.isFinite(Number(t.resultCheckedAtMs)) ? Number(t.resultCheckedAtMs) : undefined,
-    legStatuses: Array.isArray(t.legStatuses)
-      ? (t.legStatuses as unknown[]).map((s) =>
-          s === "green" || s === "red" || s === "ao_vivo" ? (s as TipStatus) : ("aguardando" as TipStatus),
-        )
-      : undefined,
+    legStatuses: normalizedLegStatuses,
   };
 }
 
