@@ -658,7 +658,10 @@ function ApiPanel({
           "finished": false
         }
       ],
-      "createdAtMs": 1783538000000,
+      "createdAtMs": 1783538000000,          // timestamp (ms UTC) de criação do ticket
+      "createdAt": "2026-07-08T19:33:20.000Z", // ISO 8601 UTC
+      "createdAtDate": "08/07/2026",         // data de criação (BRT, pt-BR)
+      "createdAtTime": "16:33",              // horário de criação (BRT, HH:mm 24h)
       "updatedAt": "2026-07-08T21:47:12.000Z",
       "legResults": { "0": { "team1Logo": "...", "team2Logo": "...", "score1": 1, "score2": 0 } },
       "legStatuses": ["ao_vivo"],
