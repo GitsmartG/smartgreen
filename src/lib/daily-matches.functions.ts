@@ -109,7 +109,7 @@ function addDaysISOFn(iso: string, days: number): string {
 }
 
 export const getMatchesByDate = createServerFn({ method: "POST" })
-  .inputValidator((input: { date: string }) => {
+  .inputValidator((input: { date?: string } | undefined) => {
     const raw = (input?.date ?? "").toString().trim().toLowerCase();
     let date = raw;
     if (raw === "" || raw === "today" || raw === "hoje") date = brTodayISO();
@@ -120,8 +120,9 @@ export const getMatchesByDate = createServerFn({ method: "POST" })
     }
     return { date };
   })
-  .handler(async ({ data }): Promise<DailyMatchesResult> => {
+  .handler(async (ctx): Promise<DailyMatchesResult> => {
     const { readCachedDaily, refreshDailyMatches } = await import("./daily-matches.server");
+    const data = ctx?.data ?? { date: brTodayISO() };
     const offset = diffDaysFromToday(data.date);
 
     if (Math.abs(offset) > 7) {
