@@ -130,12 +130,9 @@ function DashboardLayout() {
             : pathname === "/dashboard/configuracoes"
               ? "Personalize seu painel e sua conta."
               : "Bem-vindo de volta 👋";
-
-
-  return (
-    <div className={`h-screen overflow-hidden font-sans flex ${bg} ${text} transition-colors`}>
   const sidebarInner = (
     <>
+
       <div className="h-16 shrink-0 flex items-center gap-2 px-5 border-b border-inherit">
         <img src={LOGO_URL} alt="Smart Green" className="h-8 w-auto object-contain" />
         <span className="font-semibold tracking-tight">Smart Green</span>
