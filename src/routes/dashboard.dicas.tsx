@@ -393,7 +393,7 @@ function DicasPage() {
             const graded = gradePalpite(t.palpite, m, t);
             if (graded) {
               changed = true;
-              return { ...t, ...patch, status: graded };
+              return { ...t, ...patch, status: graded, legStatuses: isMult ? t.legStatuses : [graded] };
             }
             const hasLiveLegOverall =
               isMult && legResults
@@ -402,15 +402,15 @@ function DicasPage() {
             const someLive = m.live || hasLiveLegOverall;
             if (someLive && t.status !== "ao_vivo") {
               changed = true;
-              return { ...t, ...patch, status: "ao_vivo" as TipStatus };
+              return { ...t, ...patch, status: "ao_vivo" as TipStatus, legStatuses: isMult ? t.legStatuses : ["ao_vivo"] };
             }
             if (!someLive && m.finished && t.status === "ao_vivo") {
               changed = true;
-              return { ...t, ...patch, status: "aguardando" as TipStatus };
+              return { ...t, ...patch, status: "aguardando" as TipStatus, legStatuses: isMult ? t.legStatuses : ["aguardando"] };
             }
             if (!someLive && !m.live && !m.finished && t.status !== "aguardando") {
               changed = true;
-              return { ...t, ...patch, status: "aguardando" as TipStatus };
+              return { ...t, ...patch, status: "aguardando" as TipStatus, legStatuses: isMult ? t.legStatuses : ["aguardando"] };
             }
             if (Object.keys(patch).length > 1) changed = true;
             return Object.keys(patch).length > 1 ? { ...t, ...patch } : t;
@@ -929,8 +929,7 @@ function TicketCard({
         </div>
         <ul className="flex flex-col gap-1.5">
           {palpites.map((p, i) => {
-            const matchedGameStatus = isMultipla ? ticket.legResults?.[i]?.status : undefined;
-            const legStatus = matchedGameStatus ?? ticket.legStatuses?.[i];
+            const legStatus = getDisplayedLegStatus(ticket, i, isMultipla);
             const dotCls =
               legStatus === "green"
                 ? "bg-emerald-500"
