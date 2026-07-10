@@ -520,9 +520,11 @@ function ApiPanel({
       method: "POST",
       path: "/api/public/mobile/login",
       title: "Login (email + senha)",
-      desc: "Autentica um usuário existente. Body JSON: { email, password }. NÃO exige X-API-Key (a auth é pela senha). Retorna access_token, refresh_token, expires_in e user { id, email, role }.",
+      desc: "Autentica um usuário existente. Body JSON: { email, password }. NÃO exige X-API-Key (a auth é pela senha). Retorna access_token, refresh_token, expires_in e user { id, email, role, access_expires_at }.",
       notes: [
         "401 = email ou senha incorretos.",
+        "403 { error: 'access_expired', access_expires_at } = acesso do usuário expirou — bloqueie entrada no app e mostre tela de renovação.",
+        "access_expires_at pode ser null (vitalício) ou ISO timestamp. Cheque no client a cada login e ao abrir o app; se < now(), força logout.",
         "role pode ser 'admin' ou 'user' — use pra liberar áreas restritas no app.",
         "access_token expira em ~1h; use refresh_token pra renovar sem pedir senha de novo.",
       ],
