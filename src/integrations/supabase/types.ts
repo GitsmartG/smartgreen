@@ -286,6 +286,7 @@ export type Database = {
       admin_list_users: {
         Args: never
         Returns: {
+          access_expires_at: string
           created_at: string
           email: string
           id: string
