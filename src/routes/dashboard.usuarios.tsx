@@ -241,6 +241,12 @@ function UsuariosPage() {
                           {u.role === "admin" ? "Remover admin" : "Tornar admin"}
                         </button>
                         <button
+                          onClick={() => { setOpenMenu(null); setExpiryTarget(u); }}
+                          className={"w-full px-3 py-2 flex items-center gap-2 " + (isDark ? "hover:bg-neutral-800" : "hover:bg-neutral-50")}
+                        >
+                          <Clock className="h-4 w-4" /> Definir validade
+                        </button>
+                        <button
                           onClick={() => void handleDelete(u)}
                           className="w-full px-3 py-2 flex items-center gap-2 text-red-500 hover:bg-red-500/10 border-t border-neutral-800/30"
                         >
