@@ -260,8 +260,18 @@ export const Route = createFileRoute("/api/public/league-image/$id")({
           }
         }
 
-        // 3) fallback svg
+        // 3) TheSportsDB busca livre pelo nome da liga
+        if (name) {
+          const viaName = await fetchSportsDbBadgeByName(name);
+          if (viaName) {
+            const r = await proxyImage(viaName);
+            if (r) return r;
+          }
+        }
+
+        // 4) fallback svg
         return fallbackSvg(params.id);
+
       },
     },
   },
