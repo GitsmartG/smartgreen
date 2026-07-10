@@ -774,7 +774,10 @@ export function useLiveMatches(intervalMs = 15000) {
 }`;
 
   const paramsTable: Array<{ param: string; type: string; desc: string; example: string }> = [
-    { param: "status", type: "string", desc: "Filtra por status do ticket.", example: "aguardando | ao_vivo | green | red" },
+    { param: "status", type: "string", desc: "Filtra por status do ticket.", example: "?status=green" },
+    { param: "type", type: "string", desc: "Filtra por tipo de bilhete.", example: "?type=Simples ou ?type=Múltipla" },
+    { param: "date", type: "string", desc: "Filtra por data do jogo (fuso BRT). Aceita alias ou YYYY-MM-DD.", example: "?date=today | yesterday | tomorrow | 2026-07-10" },
+    { param: "since", type: "ISO date", desc: "Sync incremental: só devolve tickets com updated_at > since. Use pra atualizar cache do app sem baixar tudo.", example: "?since=2026-07-10T14:00:00Z" },
     { param: "limit",  type: "number", desc: "Máximo de tickets (default 100, teto 500).", example: "?limit=50" },
   ];
 
