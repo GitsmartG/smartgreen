@@ -18,6 +18,9 @@ export type PublicTicketDTO = {
   parceiro: "seubet" | "h2bet" | null;
   url: string | null;
   createdAtMs: number | null;
+  createdAt: string | null;
+  createdAtTime: string | null;
+  createdAtDate: string | null;
   startMs: number | null;
   score1: number | null;
   score2: number | null;
