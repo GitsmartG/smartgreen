@@ -129,6 +129,8 @@ function DashboardLayout() {
         ? "Gerencie e publique tickets de tips esportivas."
         : pathname === "/dashboard/jogos"
           ? "Partidas do dia atualizadas automaticamente."
+          : pathname === "/dashboard/escalacoes"
+            ? "Escalações, técnicos e desfalques das partidas."
           : pathname === "/dashboard/notificacoes"
             ? "Envie e agende notificações push."
             : pathname === "/dashboard/configuracoes"
