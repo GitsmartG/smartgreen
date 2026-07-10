@@ -110,6 +110,49 @@ function findCurated(name: string): string | null {
 // Cache in-memory por processo (não persiste entre cold starts, mas ajuda)
 const memo = new Map<string, string | null>();
 
+async function fetchSportsDbBadgeByName(name: string): Promise<string | null> {
+  const q = (name || "").trim();
+  if (!q) return null;
+  const key = `n:${normalize(q)}`;
+  if (memo.has(key)) return memo.get(key) || null;
+  try {
+    const res = await fetch(
+      `https://www.thesportsdb.com/api/v1/json/3/searchleagues.php?l=${encodeURIComponent(q)}`,
+      { headers: { Accept: "application/json" } },
+    );
+    if (!res.ok) {
+      memo.set(key, null);
+      return null;
+    }
+    const data = (await res.json()) as {
+      leagues?: Array<{ strLeague?: string; strLeagueAlternate?: string; strSport?: string; strBadge?: string }>;
+    };
+    const target = normalize(q);
+    const soccer = (data.leagues ?? []).filter(
+      (l) => (!l.strSport || /soccer|football/i.test(l.strSport)) && l.strBadge?.startsWith("http"),
+    );
+    let best: string | null = null;
+    let exact: string | null = null;
+    for (const l of soccer) {
+      const cand = [l.strLeague, ...(l.strLeagueAlternate || "").split(",")]
+        .map((s) => normalize(s || ""))
+        .filter(Boolean);
+      if (cand.some((c) => c === target)) {
+        exact = l.strBadge!;
+        break;
+      }
+      if (!best && cand.some((c) => c.includes(target) || target.includes(c))) {
+        best = l.strBadge!;
+      }
+    }
+    const url = exact || best || soccer[0]?.strBadge || null;
+    memo.set(key, url);
+    return url;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchSportsDbBadgeByCountry(name: string, country: string): Promise<string | null> {
   const key = `c:${normalize(country)}`;
   if (memo.has(key)) {
@@ -138,6 +181,7 @@ async function fetchSportsDbBadgeByCountry(name: string, country: string): Promi
     return null;
   }
 }
+
 
 function matchInCached(flat: string, name: string): string | null {
   if (!flat) return null;
@@ -216,8 +260,18 @@ export const Route = createFileRoute("/api/public/league-image/$id")({
           }
         }
 
-        // 3) fallback svg
+        // 3) TheSportsDB busca livre pelo nome da liga
+        if (name) {
+          const viaName = await fetchSportsDbBadgeByName(name);
+          if (viaName) {
+            const r = await proxyImage(viaName);
+            if (r) return r;
+          }
+        }
+
+        // 4) fallback svg
         return fallbackSvg(params.id);
+
       },
     },
   },
