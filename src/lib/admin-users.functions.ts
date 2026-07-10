@@ -108,7 +108,7 @@ export const setUserAccessExpiry = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<{ ok: boolean; error?: string }> => {
     const { error } = await context.supabase.rpc("admin_set_access_expiry", {
       _target: data.targetId,
-      _expires_at: data.expiresAt,
+      _expires_at: data.expiresAt as unknown as string,
     });
     if (error) return { ok: false, error: error.message };
     return { ok: true };
