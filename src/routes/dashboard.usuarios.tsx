@@ -96,6 +96,16 @@ function UsuariosPage() {
     setUsers((cur) => cur.filter((x) => x.id !== u.id));
   }, [removeUser]);
 
+  const handleSaveExpiry = useCallback(async (u: AdminUserRow, expiresAt: string | null) => {
+    setBusyId(u.id);
+    const res = await changeExpiry({ data: { targetId: u.id, expiresAt } });
+    setBusyId(null);
+    if (!res.ok) { alert(res.error ?? "Erro"); return false; }
+    setUsers((cur) => cur.map((x) => (x.id === u.id ? { ...x, access_expires_at: expiresAt } : x)));
+    return true;
+  }, [changeExpiry]);
+
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
