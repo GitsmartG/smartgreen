@@ -100,6 +100,14 @@ export function ticketRowToDTO(row: {
     const n = typeof v === "string" ? Number(v) : (v as number);
     return Number.isFinite(n) ? n : null;
   };
+  const legs = buildLegs(row.event ?? "", row.leg_results, row.leg_statuses, {
+    team1Logo: row.team1_logo,
+    team2Logo: row.team2_logo,
+    score1: row.score1,
+    score2: row.score2,
+    status: (["aguardando", "ao_vivo", "green", "red"].includes(row.status) ? row.status : "aguardando") as PublicTicketDTO["status"],
+  });
+  const first = legs[0];
   return {
     id: row.id,
     status: (["aguardando", "ao_vivo", "green", "red"].includes(row.status)
@@ -122,12 +130,67 @@ export function ticketRowToDTO(row: {
     score2: row.score2,
     team1Logo: row.team1_logo,
     team2Logo: row.team2_logo,
+    team1: first?.team1 ?? null,
+    team2: first?.team2 ?? null,
+    legs,
     legResults: (row.leg_results as unknown) ?? null,
     legStatuses: Array.isArray(row.leg_statuses) ? (row.leg_statuses as string[]) : null,
-
     resultCheckedAtMs: num(row.result_checked_at_ms),
     updatedAt: row.updated_at,
   };
+}
+
+function splitTeams(s: string): { team1: string | null; team2: string | null } {
+  const m = s.match(/^\s*(.+?)\s+(?:vs\.?|x|×|-)\s+(.+?)\s*$/i);
+  if (!m) return { team1: null, team2: null };
+  return { team1: m[1].trim() || null, team2: m[2].trim() || null };
+}
+
+function buildLegs(
+  event: string,
+  legResultsRaw: unknown,
+  legStatusesRaw: unknown,
+  fallback: {
+    team1Logo: string | null;
+    team2Logo: string | null;
+    score1: number | null;
+    score2: number | null;
+    status: PublicTicketDTO["status"];
+  },
+): PublicTicketDTO["legs"] {
+  const cleaned = event.replace(/^\s*(m[uú]ltipla\s*[:\-]?\s*)/i, "");
+  const parts = cleaned.split(/\s*\+\s*/).map((p) => p.trim()).filter(Boolean);
+  const legResults = (legResultsRaw && typeof legResultsRaw === "object")
+    ? (legResultsRaw as Record<string, Record<string, unknown>>)
+    : {};
+  const legStatuses = Array.isArray(legStatusesRaw) ? (legStatusesRaw as string[]) : [];
+  return parts.map((part, idx) => {
+    const { team1, team2 } = splitTeams(part);
+    const lr = legResults[String(idx)] ?? {};
+    const num = (v: unknown): number | null => {
+      const n = typeof v === "string" ? Number(v) : (v as number);
+      return Number.isFinite(n) ? n : null;
+    };
+    const st = legStatuses[idx];
+    const status = (["aguardando", "ao_vivo", "green", "red"].includes(st)
+      ? st
+      : idx === 0
+        ? fallback.status
+        : "aguardando") as PublicTicketDTO["status"];
+    return {
+      index: idx,
+      team1: (typeof lr.team1 === "string" && lr.team1) || team1,
+      team2: (typeof lr.team2 === "string" && lr.team2) || team2,
+      team1Logo: (typeof lr.team1Logo === "string" && lr.team1Logo) || (idx === 0 ? fallback.team1Logo : null),
+      team2Logo: (typeof lr.team2Logo === "string" && lr.team2Logo) || (idx === 0 ? fallback.team2Logo : null),
+      score1: num(lr.score1) ?? (idx === 0 ? fallback.score1 : null),
+      score2: num(lr.score2) ?? (idx === 0 ? fallback.score2 : null),
+      minute: typeof lr.minute === "string" ? lr.minute : null,
+      status,
+      live: Boolean(lr.live),
+      finished: Boolean(lr.finished),
+    };
+  });
 }
 
 
