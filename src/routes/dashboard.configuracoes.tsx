@@ -632,7 +632,7 @@ function ApiPanel({
       "odd": 1.85,
       "banca": 100,                   // valor apostado (unidades ou R$)
       "esporte": "Futebol",
-      "date": "2026-07-08T21:30:00Z",
+      "date": "08/07/2026",             // data do JOGO (texto exibível pt-BR)
       "entradas": 1,                  // >1 = múltipla
       "parceiro": "seubet",           // seubet | h2bet | null
       "url": "https://seubet.com/...", // link do bilhete → botão APOSTAR
