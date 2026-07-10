@@ -261,6 +261,17 @@ function UsuariosPage() {
           </table>
         </div>
       </div>
+      {expiryTarget && (
+        <ExpiryModal
+          isDark={isDark}
+          user={expiryTarget}
+          onClose={() => setExpiryTarget(null)}
+          onSave={async (expiresAt) => {
+            const ok = await handleSaveExpiry(expiryTarget, expiresAt);
+            if (ok) setExpiryTarget(null);
+          }}
+        />
+      )}
     </div>
   );
 }
