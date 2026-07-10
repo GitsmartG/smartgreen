@@ -9,6 +9,7 @@ export type AdminUserRow = {
   role: "admin" | "user";
   created_at: string;
   last_sign_in_at: string | null;
+  access_expires_at: string | null;
 };
 
 export const checkIsAdmin = createServerFn({ method: "GET" })
