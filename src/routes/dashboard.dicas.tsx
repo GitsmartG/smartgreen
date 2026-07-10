@@ -180,6 +180,11 @@ function DicasPage() {
   useEffect(() => {
     setTickets(loadTickets());
     setHydrated(true);
+    // Puxa do backend em background e merge (server wins).
+    void import("@/lib/tickets-store").then(async (m) => {
+      const merged = await m.hydrateTicketsFromServer();
+      if (merged) setTickets(merged);
+    });
   }, []);
 
   useEffect(() => {
