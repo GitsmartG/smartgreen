@@ -570,16 +570,18 @@ function ApiPanel({
     },
     {
       method: "GET",
-      path: "/api/public/league-image/{leagueId}",
+      path: "/api/public/league-image/{leagueId}?name={leagueName}",
       title: "Logo da liga / campeonato",
-      desc: "Proxy de imagem do logo da liga (usa o leagueId retornado em match.leagueId, notification.leagueId e nos tickets). Retorna PNG/JPG ou SVG fallback.",
+      desc: "Proxy de logo da liga via TheSportsDB (grátis). Como a Statpal não expõe logos de liga, buscamos pelo NOME — sempre passe o parâmetro ?name= (URL-encoded).",
       notes: [
-        "Cache imutável 7 dias — sem cota da Statpal.",
-        "Uso: <Image source={{ uri: `${API_BASE}/api/public/league-image/${match.leagueId}` }} />",
-        "Sempre retorna 200 (nunca 404) — fallback SVG com ícone de troféu.",
-        "Mesmo esquema do team-image, só troca o path.",
+        "⚠️ OBRIGATÓRIO: ?name=<nome_da_liga> — sem isso volta fallback SVG direto.",
+        "Cache imutável 7 dias após o primeiro hit — TheSportsDB é público, sem cota.",
+        "Uso: <Image source={{ uri: `${API_BASE}/api/public/league-image/${leagueId}?name=${encodeURIComponent(match.league)}` }} />",
+        "Sempre retorna 200 (nunca 404) — fallback SVG com monograma da liga.",
+        "leagueId é usado só pra chave de cache; o match do logo é feito pelo nome.",
       ],
     },
+
 
     {
       method: "GET",
