@@ -295,6 +295,10 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
         }[]
       }
+      admin_set_access_expiry: {
+        Args: { _expires_at: string; _target: string }
+        Returns: undefined
+      }
       admin_set_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
