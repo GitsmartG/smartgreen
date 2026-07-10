@@ -266,7 +266,7 @@ function UsuariosPage() {
           isDark={isDark}
           user={expiryTarget}
           onClose={() => setExpiryTarget(null)}
-          onSave={async (expiresAt) => {
+          onSave={async (expiresAt: string | null) => {
             const ok = await handleSaveExpiry(expiryTarget, expiresAt);
             if (ok) setExpiryTarget(null);
           }}
