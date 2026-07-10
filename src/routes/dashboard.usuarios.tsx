@@ -375,6 +375,25 @@ function CreateUserModal({
               <option value="admin">Administrador</option>
             </select>
           </div>
+          <div>
+            <label className="text-xs font-medium block mb-1">Tempo de acesso *</label>
+            <select value={durationDays} onChange={(e) => setDurationDays(e.target.value)} className={input}>
+              <option value="1">1 dia</option>
+              <option value="7">7 dias</option>
+              <option value="15">15 dias</option>
+              <option value="30">30 dias</option>
+              <option value="60">60 dias</option>
+              <option value="90">90 dias</option>
+              <option value="180">180 dias</option>
+              <option value="365">1 ano</option>
+              <option value="custom">Data personalizada</option>
+              <option value="lifetime">Vitalício</option>
+            </select>
+            {durationDays === "custom" && (
+              <input type="datetime-local" value={customDate} onChange={(e) => setCustomDate(e.target.value)} className={input + " mt-2"} />
+            )}
+            <p className="text-[11px] opacity-60 mt-1">Após expirar, o usuário não conseguirá entrar no app.</p>
+          </div>
         </div>
 
         {err && <div className="rounded-md border border-red-500/30 bg-red-500/10 text-red-500 text-sm p-2">{err}</div>}
