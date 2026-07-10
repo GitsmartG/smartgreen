@@ -469,6 +469,24 @@ function todayISO(): string {
   return saoPauloDateParts(new Date()).dateISO;
 }
 
+// Datas passadas nunca devem ter jogos "ao vivo". Cache salvo enquanto o jogo
+// rolava mantém status "1H"/"2H"/"LIVE" — normaliza tudo pra encerrado.
+function finalizePastPayload(payload: DailyMatchesPayload): DailyMatchesPayload {
+  const leagues = (payload.leagues ?? []).map((lg) => ({
+    ...lg,
+    matches: (lg.matches ?? []).map((m) => {
+      if (!m.live && m.finished) return m;
+      const isFinal = m.finished || isFinished(String(m.status ?? ""));
+      return {
+        ...m,
+        live: false,
+        finished: true,
+        status: isFinal ? m.status : "FT",
+      };
+    }),
+  }));
+  return { ...payload, leagues };
+}
 
 export async function readCachedDaily(date?: string): Promise<{
   date: string;
@@ -488,7 +506,7 @@ export async function readCachedDaily(date?: string): Promise<{
     .eq("match_date", d)
     .maybeSingle();
   if (error || !data) return null;
-  const payload = data.payload as DailyMatchesPayload;
+  let payload = data.payload as DailyMatchesPayload;
   if (payload?.timeZone !== BR_TIME_ZONE) return null;
   // Invalida cache antigo que ainda não tem logo/id dos times
   const first = payload?.leagues?.[0]?.matches?.[0];
@@ -499,6 +517,10 @@ export async function readCachedDaily(date?: string): Promise<{
   if (cacheShapeIsStale(payload)) return null;
   // Invalida cache antigo vindo do endpoint live sem filtro, que misturava ontem/amanhã.
   if (!payloadHasOnlyDate(payload, String(data.match_date))) return null;
+  // Datas passadas: força tudo pra encerrado (cache pode ter sido salvo com jogos ao vivo).
+  if (dateDiffDays(String(data.match_date), todayISO()) < 0) {
+    payload = finalizePastPayload(payload);
+  }
   return {
     date: String(data.match_date),
     payload,
@@ -511,7 +533,10 @@ export async function refreshDailyMatches(date?: string): Promise<{
   payload: DailyMatchesPayload;
 }> {
   const d = date ?? todayISO();
-  const payload = await fetchMatchesPayloadForDate(d);
+  let payload = await fetchMatchesPayloadForDate(d);
+  if (dateDiffDays(d, todayISO()) < 0) {
+    payload = finalizePastPayload(payload);
+  }
   try {
     const client = getAdminClient();
     await client
