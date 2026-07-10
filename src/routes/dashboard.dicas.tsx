@@ -393,7 +393,7 @@ function DicasPage() {
             const graded = gradePalpite(t.palpite, m, t);
             if (graded) {
               changed = true;
-              return { ...t, ...patch, status: graded, legStatuses: isMult ? t.legStatuses : [graded] };
+              return { ...t, ...patch, status: graded, legStatuses: isMult ? t.legStatuses : ([graded] as TipStatus[]) };
             }
             const hasLiveLegOverall =
               isMult && legResults
@@ -402,15 +402,15 @@ function DicasPage() {
             const someLive = m.live || hasLiveLegOverall;
             if (someLive && t.status !== "ao_vivo") {
               changed = true;
-              return { ...t, ...patch, status: "ao_vivo" as TipStatus, legStatuses: isMult ? t.legStatuses : ["ao_vivo"] };
+              return { ...t, ...patch, status: "ao_vivo" as TipStatus, legStatuses: isMult ? t.legStatuses : (["ao_vivo"] as TipStatus[]) };
             }
             if (!someLive && m.finished && t.status === "ao_vivo") {
               changed = true;
-              return { ...t, ...patch, status: "aguardando" as TipStatus, legStatuses: isMult ? t.legStatuses : ["aguardando"] };
+              return { ...t, ...patch, status: "aguardando" as TipStatus, legStatuses: isMult ? t.legStatuses : (["aguardando"] as TipStatus[]) };
             }
             if (!someLive && !m.live && !m.finished && t.status !== "aguardando") {
               changed = true;
-              return { ...t, ...patch, status: "aguardando" as TipStatus, legStatuses: isMult ? t.legStatuses : ["aguardando"] };
+              return { ...t, ...patch, status: "aguardando" as TipStatus, legStatuses: isMult ? t.legStatuses : (["aguardando"] as TipStatus[]) };
             }
             if (Object.keys(patch).length > 1) changed = true;
             return Object.keys(patch).length > 1 ? { ...t, ...patch } : t;
@@ -1267,6 +1267,11 @@ function resolveTicketStatus(statuses: TipStatus[]): TipStatus {
   if (safe.length > 0 && safe.every((status) => status === "green")) return "green";
   if (safe.some((status) => status === "ao_vivo")) return "ao_vivo";
   return "aguardando";
+}
+
+function getDisplayedLegStatus(ticket: Ticket, index: number, isMultipla: boolean): TipStatus {
+  if (!isMultipla) return ticket.legStatuses?.[index] ?? ticket.status;
+  return ticket.legResults?.[index]?.status ?? ticket.legStatuses?.[index] ?? "aguardando";
 }
 
 function teamLogoUrl(logo?: string, teamId?: string, teamName?: string): string | undefined {
