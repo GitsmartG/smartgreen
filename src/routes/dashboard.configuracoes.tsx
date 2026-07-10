@@ -824,10 +824,10 @@ export function useLiveMatches(intervalMs = 15000) {
             </p>
           </div>
         </div>
-        <div className={`rounded-lg border p-3 ${box} flex items-center justify-between gap-2`}>
-          <div className="min-w-0">
+        <div className={`rounded-lg border p-3 ${box} flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2`}>
+          <div className="min-w-0 flex-1">
             <div className={`text-[10px] uppercase tracking-wider ${muted}`}>Base URL</div>
-            <div className={codeCls + " text-emerald-500 truncate"}>{origin || "https://seu-dominio.com"}</div>
+            <div className={codeCls + " text-emerald-500 break-all"}>{origin || "https://seu-dominio.com"}</div>
           </div>
           <button
             onClick={() => copy(origin)}
@@ -858,10 +858,10 @@ export function useLiveMatches(intervalMs = 15000) {
             </p>
           </div>
         </div>
-        <div className={`rounded-lg border p-3 ${box} flex items-center justify-between gap-2`}>
+        <div className={`rounded-lg border p-3 ${box} flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2`}>
           <div className="min-w-0 flex-1">
             <div className={`text-[10px] uppercase tracking-wider ${muted}`}>SMARTGREEN_API_KEY</div>
-            <div className={codeCls + " text-amber-500 truncate"}>
+            <div className={codeCls + " text-amber-500 break-all"}>
               {loadingKey
                 ? "Carregando chave..."
                 : apiKey
@@ -874,7 +874,7 @@ export function useLiveMatches(intervalMs = 15000) {
             </div>
             {keyError && <div className="mt-1 text-[11px] text-red-500">{keyError}</div>}
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
             {apiKey && (
               <button
                 onClick={() => setApiKeyRevealed((v) => !v)}
@@ -1046,9 +1046,9 @@ export function useLiveMatches(intervalMs = 15000) {
               </div>
             </div>
 
-            <div className={`rounded-lg border p-3 ${box} flex items-center justify-between gap-2 mt-3`}>
-              <div className={codeCls + " text-emerald-500 truncate"}>{ep.path}</div>
-              <div className="flex items-center gap-1.5 shrink-0">
+            <div className={`rounded-lg border p-3 ${box} flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-3`}>
+              <div className={codeCls + " text-emerald-500 break-all min-w-0 flex-1"}>{ep.path}</div>
+              <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
                 <button
                   onClick={() => copy(full)}
                   className={
