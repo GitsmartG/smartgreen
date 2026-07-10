@@ -24,7 +24,9 @@ function UsuariosPage() {
   const changeRole = useServerFn(setUserRole);
   const removeUser = useServerFn(deleteAppUser);
   const createUser = useServerFn(createAppUser);
+  const changeExpiry = useServerFn(setUserAccessExpiry);
   const [showCreate, setShowCreate] = useState(false);
+  const [expiryTarget, setExpiryTarget] = useState<AdminUserRow | null>(null);
 
   const panel = isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200";
   const muted = isDark ? "text-neutral-400" : "text-neutral-500";
