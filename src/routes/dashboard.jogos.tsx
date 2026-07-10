@@ -660,7 +660,7 @@ function LeagueSection({
       >
         {(league.id || league.name) && (
           <img
-            src={`/api/public/league-image/${encodeURIComponent(league.id || "x")}?name=${encodeURIComponent(league.name || "")}`}
+            src={`/api/public/league-image/${encodeURIComponent(league.id || "x")}?name=${encodeURIComponent(league.name || "")}&country=${encodeURIComponent(league.country || "")}`}
             alt=""
             loading="lazy"
             className="h-6 w-6 rounded object-contain bg-white/5 shrink-0"
