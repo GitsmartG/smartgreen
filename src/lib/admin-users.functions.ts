@@ -96,3 +96,20 @@ export const createAppUser = createServerFn({ method: "POST" })
     }
     return { ok: true, userId: created.user.id };
   });
+
+export const setUserAccessExpiry = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { targetId: string; expiresAt: string | null }) =>
+    z.object({
+      targetId: z.string().uuid(),
+      expiresAt: z.string().datetime().nullable(),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }): Promise<{ ok: boolean; error?: string }> => {
+    const { error } = await context.supabase.rpc("admin_set_access_expiry", {
+      _target: data.targetId,
+      _expires_at: data.expiresAt,
+    });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  });
