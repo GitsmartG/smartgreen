@@ -306,6 +306,8 @@ function CreateUserModal({
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>("user");
+  const [durationDays, setDurationDays] = useState<string>("30");
+  const [customDate, setCustomDate] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -316,11 +318,24 @@ function CreateUserModal({
       ? "bg-neutral-950 border-neutral-800 text-neutral-100 focus:border-emerald-600"
       : "bg-white border-neutral-300 text-neutral-900 focus:border-emerald-700");
 
+  function computeExpiresAt(): string | null {
+    if (durationDays === "lifetime") return null;
+    if (durationDays === "custom") {
+      if (!customDate) return null;
+      return new Date(customDate).toISOString();
+    }
+    const days = parseInt(durationDays, 10);
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d.toISOString();
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (durationDays === "custom" && !customDate) { setErr("Escolha a data de expiração"); return; }
     setErr(null);
     setBusy(true);
-    const error = await onCreate({ email: email.trim(), password, name: name.trim() || undefined, role });
+    const error = await onCreate({ email: email.trim(), password, name: name.trim() || undefined, role, expiresAt: computeExpiresAt() });
     setBusy(false);
     if (error) { setErr(error); return; }
     onClose();
