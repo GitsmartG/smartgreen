@@ -153,6 +153,7 @@ function DicasPage() {
   const isDark = useIsDark();
   const fetchSoccerLivescores = useServerFn(getSoccerLivescores);
   const fetchTodayMatches = useServerFn(getTodayMatches);
+  const fetchMatchesByDate = useServerFn(getMatchesByDate);
 
   const panel = isDark
     ? "bg-neutral-900 border-neutral-800"
