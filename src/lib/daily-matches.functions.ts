@@ -122,8 +122,18 @@ export const getMatchesByDate = createServerFn({ method: "POST" })
   })
   .handler(async (ctx): Promise<DailyMatchesResult> => {
     const { readCachedDaily, refreshDailyMatches } = await import("./daily-matches.server");
+    const handlerToday = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
     const data = ctx?.data ?? { date: brTodayISO() };
-    const offset = diffDaysFromToday(data.date);
+    const [ty, tm, td] = handlerToday.split("-").map(Number);
+    const [gy, gm, gd] = data.date.split("-").map(Number);
+    const offset = Math.round(
+      (Date.UTC(gy, gm - 1, gd) - Date.UTC(ty, tm - 1, td)) / 86_400_000,
+    );
 
     if (Math.abs(offset) > 7) {
       return { ok: false, cached: false, error: "Data fora do range (±7 dias)." };
