@@ -1278,6 +1278,44 @@ function payloadToLiveMatches(payload?: MatchLogoPayload): LiveMatch[] {
   );
 }
 
+const BR_TZ_DICAS = "America/Sao_Paulo";
+function brISOFromMs(ms: number): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: BR_TZ_DICAS,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(ms));
+}
+function brTodayISODicas(): string {
+  return brISOFromMs(Date.now());
+}
+function parseTicketDateISO(t: Ticket): string | null {
+  if (t.startMs && Number.isFinite(t.startMs)) return brISOFromMs(t.startMs);
+  const s = (t.date || "").trim();
+  // dd/mm/yyyy
+  const br = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (br) {
+    const [, d, m, y] = br;
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+  // yyyy-mm-dd
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  return null;
+}
+function collectTicketDates(tickets: Ticket[]): string[] {
+  const today = brTodayISODicas();
+  const set = new Set<string>();
+  for (const t of tickets) {
+    if (t.status === "green" || t.status === "red") continue; // já resolvido
+    const iso = parseTicketDateISO(t);
+    if (!iso || iso === today) continue;
+    set.add(iso);
+  }
+  // limita a 5 datas pra não estourar o feed
+  return Array.from(set).slice(0, 5);
+}
+
 function safeStr(v: unknown): string | undefined {
   if (v == null) return undefined;
   if (typeof v === "string") return v;
