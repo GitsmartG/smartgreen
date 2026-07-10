@@ -824,10 +824,10 @@ export function useLiveMatches(intervalMs = 15000) {
             </p>
           </div>
         </div>
-        <div className={`rounded-lg border p-3 ${box} flex items-center justify-between gap-2`}>
-          <div className="min-w-0">
+        <div className={`rounded-lg border p-3 ${box} flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2`}>
+          <div className="min-w-0 flex-1">
             <div className={`text-[10px] uppercase tracking-wider ${muted}`}>Base URL</div>
-            <div className={codeCls + " text-emerald-500 truncate"}>{origin || "https://seu-dominio.com"}</div>
+            <div className={codeCls + " text-emerald-500 break-all"}>{origin || "https://seu-dominio.com"}</div>
           </div>
           <button
             onClick={() => copy(origin)}
