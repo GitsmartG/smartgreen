@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { loadTickets, saveTickets, type Ticket, type TicketLegResult, type TipStatus, type Parceiro as ParceiroT } from "@/lib/tickets-store";
 import { importBetTip, type BetTipsResult } from "@/lib/bet-tips";
 import { getSoccerLivescores, type LiveMatch } from "@/lib/livescores.functions";
-import { getTodayMatches } from "@/lib/daily-matches.functions";
+import { getTodayMatches, getMatchesByDate } from "@/lib/daily-matches.functions";
 import { findMatchForTicket, gradePalpite, gradeSinglePalpite } from "@/lib/auto-settle";
 import { getMatchRichData, type RichMatchResponse } from "@/lib/soccer-details.functions";
 import { getCachedRich, setCachedRich } from "@/lib/rich-cache";
