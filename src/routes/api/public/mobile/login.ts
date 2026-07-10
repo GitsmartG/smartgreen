@@ -48,6 +48,17 @@ export const Route = createFileRoute("/api/public/mobile/login")({
           return cors(Response.json({ ok: false, error: "Email ou senha incorretos" }, { status: 401 }));
         }
 
+        // Verifica validade de acesso
+        const { data: prof } = await client
+          .from("profiles")
+          .select("access_expires_at")
+          .eq("id", data.user!.id)
+          .maybeSingle();
+        if (prof?.access_expires_at && new Date(prof.access_expires_at).getTime() < Date.now()) {
+          await client.auth.signOut();
+          return cors(Response.json({ ok: false, error: "Seu acesso expirou. Contate o suporte." }, { status: 403 }));
+        }
+
         // Descobre role
         const { data: hasAdmin } = await client.rpc("has_role", {
           _user_id: data.user!.id,

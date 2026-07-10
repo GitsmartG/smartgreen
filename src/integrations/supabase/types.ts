@@ -286,6 +286,7 @@ export type Database = {
       admin_list_users: {
         Args: never
         Returns: {
+          access_expires_at: string
           created_at: string
           email: string
           id: string
@@ -293,6 +294,10 @@ export type Database = {
           name: string
           role: Database["public"]["Enums"]["app_role"]
         }[]
+      }
+      admin_set_access_expiry: {
+        Args: { _expires_at: string; _target: string }
+        Returns: undefined
       }
       admin_set_role: {
         Args: {

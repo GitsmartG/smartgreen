@@ -1,13 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Search, RefreshCw, MoreHorizontal, Shield, ShieldOff, Trash2, Loader2, UserPlus, X } from "lucide-react";
+import { Search, RefreshCw, MoreHorizontal, Shield, ShieldOff, Trash2, Loader2, UserPlus, X, Clock } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
 import {
   listAdminUsers,
   setUserRole,
   deleteAppUser,
   createAppUser,
+  setUserAccessExpiry,
   type AdminUserRow,
 } from "@/lib/admin-users.functions";
 
@@ -23,7 +24,9 @@ function UsuariosPage() {
   const changeRole = useServerFn(setUserRole);
   const removeUser = useServerFn(deleteAppUser);
   const createUser = useServerFn(createAppUser);
+  const changeExpiry = useServerFn(setUserAccessExpiry);
   const [showCreate, setShowCreate] = useState(false);
+  const [expiryTarget, setExpiryTarget] = useState<AdminUserRow | null>(null);
 
   const panel = isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200";
   const muted = isDark ? "text-neutral-400" : "text-neutral-500";
@@ -92,6 +95,16 @@ function UsuariosPage() {
     if (!res.ok) { alert(res.error ?? "Erro"); return; }
     setUsers((cur) => cur.filter((x) => x.id !== u.id));
   }, [removeUser]);
+
+  const handleSaveExpiry = useCallback(async (u: AdminUserRow, expiresAt: string | null) => {
+    setBusyId(u.id);
+    const res = await changeExpiry({ data: { targetId: u.id, expiresAt } });
+    setBusyId(null);
+    if (!res.ok) { alert(res.error ?? "Erro"); return false; }
+    setUsers((cur) => cur.map((x) => (x.id === u.id ? { ...x, access_expires_at: expiresAt } : x)));
+    return true;
+  }, [changeExpiry]);
+
 
   return (
     <div className="space-y-4">
@@ -174,6 +187,7 @@ function UsuariosPage() {
               <tr>
                 <th className="text-left font-medium px-4 py-3">Usuário</th>
                 <th className="text-left font-medium px-4 py-3">Função</th>
+                <th className="text-left font-medium px-4 py-3">Acesso</th>
                 <th className="text-left font-medium px-4 py-3">Cadastro</th>
                 <th className="text-left font-medium px-4 py-3">Último acesso</th>
                 <th className="text-right font-medium px-4 py-3">Ações</th>
@@ -181,10 +195,10 @@ function UsuariosPage() {
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={5} className={`text-center py-12 ${muted}`}>Carregando...</td></tr>
+                <tr><td colSpan={6} className={`text-center py-12 ${muted}`}>Carregando...</td></tr>
               )}
               {!loading && filtered.length === 0 && (
-                <tr><td colSpan={5} className={`text-center py-12 ${muted}`}>Nenhum usuário encontrado.</td></tr>
+                <tr><td colSpan={6} className={`text-center py-12 ${muted}`}>Nenhum usuário encontrado.</td></tr>
               )}
               {!loading && filtered.map((u) => (
                 <tr key={u.id} className={"border-t transition-colors " + (isDark ? "border-neutral-800 hover:bg-neutral-800/40" : "border-neutral-200 hover:bg-neutral-50")}>
@@ -200,6 +214,7 @@ function UsuariosPage() {
                     </div>
                   </td>
                   <td className="px-4 py-4"><RoleBadge role={u.role} /></td>
+                  <td className="px-4 py-4"><AccessBadge expiresAt={u.access_expires_at} muted={muted} /></td>
                   <td className={`px-4 py-4 ${muted}`}>{formatDate(u.created_at)}</td>
                   <td className={`px-4 py-4 ${muted}`}>{u.last_sign_in_at ? formatDate(u.last_sign_in_at) : "—"}</td>
                   <td className="px-4 py-4 text-right relative">
@@ -226,6 +241,12 @@ function UsuariosPage() {
                           {u.role === "admin" ? "Remover admin" : "Tornar admin"}
                         </button>
                         <button
+                          onClick={() => { setOpenMenu(null); setExpiryTarget(u); }}
+                          className={"w-full px-3 py-2 flex items-center gap-2 " + (isDark ? "hover:bg-neutral-800" : "hover:bg-neutral-50")}
+                        >
+                          <Clock className="h-4 w-4" /> Definir validade
+                        </button>
+                        <button
                           onClick={() => void handleDelete(u)}
                           className="w-full px-3 py-2 flex items-center gap-2 text-red-500 hover:bg-red-500/10 border-t border-neutral-800/30"
                         >
@@ -240,6 +261,17 @@ function UsuariosPage() {
           </table>
         </div>
       </div>
+      {expiryTarget && (
+        <ExpiryModal
+          isDark={isDark}
+          user={expiryTarget}
+          onClose={() => setExpiryTarget(null)}
+          onSave={async (expiresAt: string | null) => {
+            const ok = await handleSaveExpiry(expiryTarget, expiresAt);
+            if (ok) setExpiryTarget(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -342,6 +374,116 @@ function CreateUserModal({
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+function AccessBadge({ expiresAt, muted }: { expiresAt: string | null; muted: string }) {
+  if (!expiresAt) {
+    return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">Vitalício</span>;
+  }
+  const d = new Date(expiresAt);
+  const expired = d.getTime() < Date.now();
+  const cls = expired
+    ? "bg-red-500/15 text-red-500 border-red-500/30"
+    : "bg-blue-500/15 text-blue-500 border-blue-500/30";
+  return (
+    <div className="flex flex-col">
+      <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${cls}`}>
+        {expired ? "Expirado" : "Até " + formatDate(expiresAt)}
+      </span>
+      {!expired && <span className={`text-[10px] ${muted} mt-0.5`}>{formatDate(expiresAt)}</span>}
+    </div>
+  );
+}
+
+function toDatetimeLocal(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function ExpiryModal({
+  isDark, user, onClose, onSave,
+}: {
+  isDark: boolean;
+  user: AdminUserRow;
+  onClose: () => void;
+  onSave: (expiresAt: string | null) => Promise<void>;
+}) {
+  const [value, setValue] = useState<string>(toDatetimeLocal(user.access_expires_at));
+  const [busy, setBusy] = useState(false);
+  const panel = isDark ? "bg-neutral-900 border-neutral-800" : "bg-white border-neutral-200";
+  const input =
+    "h-10 w-full rounded-md border px-3 text-sm outline-none " +
+    (isDark
+      ? "bg-neutral-950 border-neutral-800 text-neutral-100 focus:border-emerald-600"
+      : "bg-white border-neutral-300 text-neutral-900 focus:border-emerald-700");
+
+  function addDays(days: number) {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    setValue(toDatetimeLocal(d.toISOString()));
+  }
+
+  async function submit(expiresAt: string | null) {
+    setBusy(true);
+    await onSave(expiresAt);
+    setBusy(false);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className={`w-full max-w-md rounded-xl border shadow-xl p-6 space-y-4 ${panel}`}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Validade de acesso</h3>
+          <button type="button" onClick={onClose} className="p-1 rounded hover:bg-neutral-500/10">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <p className="text-xs opacity-70">Cliente: <span className="font-medium">{user.email}</span></p>
+
+        <div className="flex flex-wrap gap-2">
+          {[1, 7, 15, 30, 60, 90].map((d) => (
+            <button key={d} type="button" onClick={() => addDays(d)}
+              className="px-3 h-8 rounded-md text-xs border border-neutral-500/30 hover:bg-neutral-500/10">
+              +{d}d
+            </button>
+          ))}
+        </div>
+
+        <div>
+          <label className="text-xs font-medium block mb-1">Expira em</label>
+          <input type="datetime-local" value={value} onChange={(e) => setValue(e.target.value)} className={input} />
+          <p className="text-[11px] opacity-60 mt-1">Deixe em branco para acesso vitalício.</p>
+        </div>
+
+        <div className="flex justify-between gap-2 pt-2">
+          <button
+            type="button"
+            disabled={busy || !user.access_expires_at}
+            onClick={() => void submit(null)}
+            className="h-10 px-4 rounded-md border border-red-500/30 text-sm text-red-500 hover:bg-red-500/10 disabled:opacity-40"
+          >
+            Remover validade
+          </button>
+          <div className="flex gap-2">
+            <button type="button" onClick={onClose} className="h-10 px-4 rounded-md border border-neutral-500/30 text-sm hover:bg-neutral-500/10">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              disabled={busy || !value}
+              onClick={() => void submit(new Date(value).toISOString())}
+              className="h-10 px-4 rounded-md bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-500 inline-flex items-center gap-2 disabled:opacity-60"
+            >
+              {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+              Salvar
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
