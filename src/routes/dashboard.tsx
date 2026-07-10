@@ -10,6 +10,7 @@ import {
   Sun,
   Moon,
   CalendarDays,
+  Shirt,
   Menu,
   X,
 } from "lucide-react";
