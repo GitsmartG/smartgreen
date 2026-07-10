@@ -112,9 +112,16 @@ function teamLogo(team: SourceTeam | undefined, origin: string): string | null {
   return null;
 }
 
-function lifecycle(match: SourceMatch): "scheduled" | "live" | "finished" {
+const FINISHED_AFTER_MS = 2.5 * 60 * 60 * 1000; // 2h30 após o kickoff, considera encerrado
+
+function lifecycle(match: SourceMatch, startMs: number | null): "scheduled" | "live" | "finished" {
   if (match.finished) return "finished";
   if (match.live) return "live";
+  if (startMs != null) {
+    const elapsed = Date.now() - startMs;
+    if (elapsed >= FINISHED_AFTER_MS) return "finished";
+    if (elapsed >= 0) return "live";
+  }
   return "scheduled";
 }
 
