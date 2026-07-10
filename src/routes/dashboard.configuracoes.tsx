@@ -117,6 +117,10 @@ function ConfiguracoesPage() {
           <Building2 className="h-4 w-4" />
           Geral
         </button>
+        <button className={navBtn(tab === "bets")} onClick={() => setTab("bets")}>
+          <Wallet className="h-4 w-4" />
+          Bets
+        </button>
         <button className={navBtn(tab === "funcionalidades")} onClick={() => setTab("funcionalidades")}>
           <ToggleLeft className="h-4 w-4" />
           Funcionalidades
