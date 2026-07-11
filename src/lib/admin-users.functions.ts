@@ -14,7 +14,9 @@ export type AdminUserRow = {
 
 export const checkIsAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<{ isAdmin: boolean }> => {
+  .handler(async (ctx): Promise<{ isAdmin: boolean }> => {
+    const context = ctx?.context;
+    if (!context) return { isAdmin: false };
     const { data, error } = await context.supabase.rpc("has_role", {
       _user_id: context.userId,
       _role: "admin",
@@ -23,13 +25,17 @@ export const checkIsAdmin = createServerFn({ method: "GET" })
     return { isAdmin: !!data };
   });
 
+
 export const listAdminUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<{ ok: boolean; users?: AdminUserRow[]; error?: string }> => {
+  .handler(async (ctx): Promise<{ ok: boolean; users?: AdminUserRow[]; error?: string }> => {
+    const context = ctx?.context;
+    if (!context) return { ok: false, error: "unauthorized" };
     const { data, error } = await context.supabase.rpc("admin_list_users");
     if (error) return { ok: false, error: error.message };
     return { ok: true, users: (data ?? []) as AdminUserRow[] };
   });
+
 
 export const setUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
