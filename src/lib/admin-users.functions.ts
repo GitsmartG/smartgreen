@@ -28,11 +28,14 @@ export const checkIsAdmin = createServerFn({ method: "GET" })
 
 export const listAdminUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<{ ok: boolean; users?: AdminUserRow[]; error?: string }> => {
+  .handler(async (ctx): Promise<{ ok: boolean; users?: AdminUserRow[]; error?: string }> => {
+    const context = ctx?.context;
+    if (!context) return { ok: false, error: "unauthorized" };
     const { data, error } = await context.supabase.rpc("admin_list_users");
     if (error) return { ok: false, error: error.message };
     return { ok: true, users: (data ?? []) as AdminUserRow[] };
   });
+
 
 export const setUserRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
