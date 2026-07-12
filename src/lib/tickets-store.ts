@@ -184,6 +184,7 @@ function normalizeTicket(value: unknown): Ticket | null {
     legResults: normalizeLegResults(t.legResults),
     resultCheckedAtMs: Number.isFinite(Number(t.resultCheckedAtMs)) ? Number(t.resultCheckedAtMs) : undefined,
     legStatuses: normalizedLegStatuses,
+    scheduledAtMs: Number.isFinite(Number(t.scheduledAtMs)) ? Number(t.scheduledAtMs) : null,
   };
 }
 
