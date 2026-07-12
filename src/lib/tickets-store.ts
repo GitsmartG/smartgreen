@@ -24,6 +24,7 @@ export type Ticket = {
   legResults?: Record<number, TicketLegResult>;
   resultCheckedAtMs?: number;
   legStatuses?: TipStatus[];
+  scheduledAtMs?: number | null;
 };
 
 export type TicketLegResult = {
