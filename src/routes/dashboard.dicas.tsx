@@ -816,6 +816,15 @@ function TicketCard({
               {parceiroTag.label}
             </span>
           )}
+          {ticket.scheduledAtMs != null && ticket.scheduledAtMs > Date.now() && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border border-amber-500/40 bg-amber-500/15 text-amber-500"
+              title={new Date(ticket.scheduledAtMs).toLocaleString("pt-BR")}
+            >
+              <Clock className="h-3 w-3" />
+              Agendado {new Date(ticket.scheduledAtMs).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+            </span>
+          )}
         </div>
         <div className={`text-[10px] font-mono tracking-wider shrink-0 ${subtle}`}>
           #{ticket.id}
