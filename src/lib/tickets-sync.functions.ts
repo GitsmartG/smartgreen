@@ -242,6 +242,7 @@ export const syncAllTickets = createServerFn({ method: "POST" })
       leg_statuses: t.legStatuses ?? null,
       result_checked_at_ms: t.resultCheckedAtMs ?? null,
       created_at_ms: t.createdAtMs ?? null,
+      scheduled_at_ms: t.scheduledAtMs ?? null,
       updated_at: new Date().toISOString(),
     }));
 
