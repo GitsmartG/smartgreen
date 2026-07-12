@@ -1645,6 +1645,13 @@ function NovoTicketModal({
   const [odd, setOdd] = useState("");
   const [banca, setBanca] = useState("10");
   const [esporte, setEsporte] = useState("Futebol");
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduleAt, setScheduleAt] = useState("");
+  const scheduledAtMs: number | null = (() => {
+    if (!scheduleEnabled || !scheduleAt) return null;
+    const ms = new Date(scheduleAt).getTime();
+    return Number.isFinite(ms) && ms > Date.now() ? ms : null;
+  })();
 
   // auto lookup
   const [loading, setLoading] = useState(false);
