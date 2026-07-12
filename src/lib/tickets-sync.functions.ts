@@ -149,6 +149,7 @@ export function ticketRowToDTO(row: {
     legResults: (row.leg_results as unknown) ?? null,
     legStatuses: Array.isArray(row.leg_statuses) ? (row.leg_statuses as string[]) : null,
     resultCheckedAtMs: num(row.result_checked_at_ms),
+    scheduledAtMs: num(row.scheduled_at_ms),
     updatedAt: row.updated_at,
   };
 }
