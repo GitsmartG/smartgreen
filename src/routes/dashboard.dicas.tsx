@@ -1778,6 +1778,7 @@ function NovoTicketModal({
         url: url ? applyBtag(url, feedResult.parceiro) : undefined,
         createdAtMs: Date.now(),
         startMs: selected.startMs ?? null,
+        scheduledAtMs,
       });
     } else {
       if (!event.trim() || !palpite.trim() || !odd) return;
