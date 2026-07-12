@@ -1802,6 +1802,7 @@ function NovoTicketModal({
         url: url ? applyBtag(url, parceiro) : undefined,
         createdAtMs: Date.now(),
         startMs: null,
+        scheduledAtMs,
       });
     }
   };
