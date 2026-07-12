@@ -98,6 +98,7 @@ export function ticketRowToDTO(row: {
   leg_statuses: unknown;
   result_checked_at_ms: number | string | null;
   created_at_ms: number | string | null;
+  scheduled_at_ms?: number | string | null;
   updated_at: string;
 }): PublicTicketDTO {
   const num = (v: unknown): number | null => {
