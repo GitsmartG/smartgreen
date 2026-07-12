@@ -2245,7 +2245,35 @@ function NovoTicketModal({
               </div>
             </div>
           )}
+
+          {/* Agendamento */}
+          <div className={"rounded-lg border p-3 " + (isDark ? "border-neutral-800 bg-neutral-950/40" : "border-neutral-200 bg-neutral-50")}>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={scheduleEnabled}
+                onChange={(e) => setScheduleEnabled(e.target.checked)}
+                className="h-4 w-4 accent-emerald-500"
+              />
+              <span className="text-sm font-medium">Agendar publicação</span>
+              <span className={`text-xs ${muted}`}>— o ticket só aparece pros usuários na hora marcada</span>
+            </label>
+            {scheduleEnabled && (
+              <div className="mt-2">
+                <input
+                  type="datetime-local"
+                  value={scheduleAt}
+                  onChange={(e) => setScheduleAt(e.target.value)}
+                  className={field}
+                />
+                {scheduleAt && !scheduledAtMs && (
+                  <p className="text-xs text-red-500 mt-1">Escolha uma data/hora no futuro.</p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
+
 
         {/* Footer */}
         <div
