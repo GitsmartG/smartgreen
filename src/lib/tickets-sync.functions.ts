@@ -72,6 +72,7 @@ export type TicketInput = {
   legResults?: unknown;
   legStatuses?: unknown;
   resultCheckedAtMs?: number | null;
+  scheduledAtMs?: number | null;
 };
 
 export function ticketRowToDTO(row: {
