@@ -202,7 +202,8 @@ export const Route = createFileRoute("/api/public/mobile/tickets")({
             .from("tickets")
             .select("*")
             .order("updated_at", { ascending: false })
-            .limit(limit);
+            .limit(limit)
+            .or(`scheduled_at_ms.is.null,scheduled_at_ms.lte.${Date.now()}`);
 
           if (status && ["aguardando", "ao_vivo", "green", "red"].includes(status)) {
             query = query.eq("status", status);
