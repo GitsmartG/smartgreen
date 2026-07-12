@@ -196,6 +196,7 @@ export type Database = {
           palpite: string
           parceiro: string | null
           result_checked_at_ms: number | null
+          scheduled_at_ms: number | null
           score1: number | null
           score2: number | null
           start_ms: number | null
@@ -222,6 +223,7 @@ export type Database = {
           palpite?: string
           parceiro?: string | null
           result_checked_at_ms?: number | null
+          scheduled_at_ms?: number | null
           score1?: number | null
           score2?: number | null
           start_ms?: number | null
@@ -248,6 +250,7 @@ export type Database = {
           palpite?: string
           parceiro?: string | null
           result_checked_at_ms?: number | null
+          scheduled_at_ms?: number | null
           score1?: number | null
           score2?: number | null
           start_ms?: number | null

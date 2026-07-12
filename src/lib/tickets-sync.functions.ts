@@ -44,6 +44,7 @@ export type PublicTicketDTO = {
   legResults: unknown;
   legStatuses: string[] | null;
   resultCheckedAtMs: number | null;
+  scheduledAtMs: number | null;
   updatedAt: string;
 };
 
@@ -71,6 +72,7 @@ export type TicketInput = {
   legResults?: unknown;
   legStatuses?: unknown;
   resultCheckedAtMs?: number | null;
+  scheduledAtMs?: number | null;
 };
 
 export function ticketRowToDTO(row: {
@@ -96,6 +98,7 @@ export function ticketRowToDTO(row: {
   leg_statuses: unknown;
   result_checked_at_ms: number | string | null;
   created_at_ms: number | string | null;
+  scheduled_at_ms?: number | string | null;
   updated_at: string;
 }): PublicTicketDTO {
   const num = (v: unknown): number | null => {
@@ -146,6 +149,7 @@ export function ticketRowToDTO(row: {
     legResults: (row.leg_results as unknown) ?? null,
     legStatuses: Array.isArray(row.leg_statuses) ? (row.leg_statuses as string[]) : null,
     resultCheckedAtMs: num(row.result_checked_at_ms),
+    scheduledAtMs: num(row.scheduled_at_ms),
     updatedAt: row.updated_at,
   };
 }
@@ -238,6 +242,7 @@ export const syncAllTickets = createServerFn({ method: "POST" })
       leg_statuses: t.legStatuses ?? null,
       result_checked_at_ms: t.resultCheckedAtMs ?? null,
       created_at_ms: t.createdAtMs ?? null,
+      scheduled_at_ms: t.scheduledAtMs ?? null,
       updated_at: new Date().toISOString(),
     }));
 

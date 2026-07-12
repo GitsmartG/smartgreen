@@ -26,6 +26,7 @@ import {
   Pencil,
   Sparkles,
   Check,
+  Clock,
 } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
 
@@ -814,6 +815,15 @@ function TicketCard({
               }
             >
               {parceiroTag.label}
+            </span>
+          )}
+          {ticket.scheduledAtMs != null && ticket.scheduledAtMs > Date.now() && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border border-amber-500/40 bg-amber-500/15 text-amber-500"
+              title={new Date(ticket.scheduledAtMs).toLocaleString("pt-BR")}
+            >
+              <Clock className="h-3 w-3" />
+              Agendado {new Date(ticket.scheduledAtMs).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
             </span>
           )}
         </div>
@@ -1645,6 +1655,13 @@ function NovoTicketModal({
   const [odd, setOdd] = useState("");
   const [banca, setBanca] = useState("10");
   const [esporte, setEsporte] = useState("Futebol");
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduleAt, setScheduleAt] = useState("");
+  const scheduledAtMs: number | null = (() => {
+    if (!scheduleEnabled || !scheduleAt) return null;
+    const ms = new Date(scheduleAt).getTime();
+    return Number.isFinite(ms) && ms > Date.now() ? ms : null;
+  })();
 
   // auto lookup
   const [loading, setLoading] = useState(false);
@@ -1735,6 +1752,7 @@ function NovoTicketModal({
           url: url ? applyBtag(url, feedResult.parceiro) : undefined,
           createdAtMs: Date.now(),
           startMs: null,
+          scheduledAtMs,
         });
         return;
       }
@@ -1770,6 +1788,7 @@ function NovoTicketModal({
         url: url ? applyBtag(url, feedResult.parceiro) : undefined,
         createdAtMs: Date.now(),
         startMs: selected.startMs ?? null,
+        scheduledAtMs,
       });
     } else {
       if (!event.trim() || !palpite.trim() || !odd) return;
@@ -1793,6 +1812,7 @@ function NovoTicketModal({
         url: url ? applyBtag(url, parceiro) : undefined,
         createdAtMs: Date.now(),
         startMs: null,
+        scheduledAtMs,
       });
     }
   };
@@ -2235,7 +2255,35 @@ function NovoTicketModal({
               </div>
             </div>
           )}
+
+          {/* Agendamento */}
+          <div className={"rounded-lg border p-3 " + (isDark ? "border-neutral-800 bg-neutral-950/40" : "border-neutral-200 bg-neutral-50")}>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={scheduleEnabled}
+                onChange={(e) => setScheduleEnabled(e.target.checked)}
+                className="h-4 w-4 accent-emerald-500"
+              />
+              <span className="text-sm font-medium">Agendar publicação</span>
+              <span className={`text-xs ${muted}`}>— o ticket só aparece pros usuários na hora marcada</span>
+            </label>
+            {scheduleEnabled && (
+              <div className="mt-2">
+                <input
+                  type="datetime-local"
+                  value={scheduleAt}
+                  onChange={(e) => setScheduleAt(e.target.value)}
+                  className={field}
+                />
+                {scheduleAt && !scheduledAtMs && (
+                  <p className="text-xs text-red-500 mt-1">Escolha uma data/hora no futuro.</p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
+
 
         {/* Footer */}
         <div
