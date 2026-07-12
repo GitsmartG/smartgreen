@@ -26,6 +26,7 @@ import {
   Pencil,
   Sparkles,
   Check,
+  Clock,
 } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
 
