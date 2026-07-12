@@ -44,6 +44,7 @@ export type PublicTicketDTO = {
   legResults: unknown;
   legStatuses: string[] | null;
   resultCheckedAtMs: number | null;
+  scheduledAtMs: number | null;
   updatedAt: string;
 };
 
