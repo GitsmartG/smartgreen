@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
-import { Building2, Save, Check, Activity, RefreshCw, AlertCircle, Gauge, Cable, Copy, ExternalLink, ToggleLeft, Wallet, Plus, Trash2 } from "lucide-react";
+import { Building2, Save, Check, Activity, RefreshCw, AlertCircle, Gauge, Cable, Copy, ExternalLink, ToggleLeft, Wallet, Plus, Trash2, Image as ImageIcon, Loader2, Link as LinkIcon } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
 import { getStatpalUsage, type StatpalUsage } from "@/lib/statpal-usage.functions";
 import { supabase } from "@/integrations/supabase/client";
