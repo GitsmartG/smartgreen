@@ -35,6 +35,42 @@ export type Database = {
         }
         Relationships: []
       }
+      banners: {
+        Row: {
+          active: boolean
+          button_label: string | null
+          created_at: string
+          id: string
+          image_url: string
+          link_url: string | null
+          sort_order: number
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          button_label?: string | null
+          created_at?: string
+          id?: string
+          image_url: string
+          link_url?: string | null
+          sort_order?: number
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          button_label?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string
+          link_url?: string | null
+          sort_order?: number
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       daily_matches: {
         Row: {
           fetched_at: string

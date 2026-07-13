@@ -1,13 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
-import { Building2, Save, Check, Activity, RefreshCw, AlertCircle, Gauge, Cable, Copy, ExternalLink, ToggleLeft, Wallet, Plus, Trash2 } from "lucide-react";
+import { Building2, Save, Check, Activity, RefreshCw, AlertCircle, Gauge, Cable, Copy, ExternalLink, ToggleLeft, Wallet, Plus, Trash2, Image as ImageIcon, Loader2, Link as LinkIcon } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
 import { getStatpalUsage, type StatpalUsage } from "@/lib/statpal-usage.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { getFeatureFlags, setFeatureFlag, FEATURE_KEYS, type FeatureKey, type FeatureFlags } from "@/lib/feature-flags.functions";
+import { getFeatureFlags, setFeatureFlag } from "@/lib/feature-flags.functions";
+import { FEATURE_KEYS, type FeatureKey, type FeatureFlags } from "@/lib/feature-flags";
 import { getInternalApiKey, regenerateApiKey } from "@/lib/internal-api-key.functions";
 import { loadBets, saveBets, type BetConfig, DEFAULT_BETS } from "@/lib/bets-config";
+import { listBannersAdmin, upsertBanner, deleteBanner, uploadBannerImage } from "@/lib/banners.functions";
 
 
 
@@ -50,7 +52,7 @@ const DEFAULTS: Settings = {
 
 const STORAGE_KEY = "sg-settings";
 
-type TabKey = "geral" | "bets" | "funcionalidades" | "monitoramento" | "api";
+type TabKey = "geral" | "bets" | "banners" | "funcionalidades" | "monitoramento" | "api";
 
 function ConfiguracoesPage() {
   const isDark = useIsDark();
@@ -120,6 +122,10 @@ function ConfiguracoesPage() {
         <button className={navBtn(tab === "bets")} onClick={() => setTab("bets")}>
           <Wallet className="h-4 w-4" />
           Bets
+        </button>
+        <button className={navBtn(tab === "banners")} onClick={() => setTab("banners")}>
+          <ImageIcon className="h-4 w-4" />
+          Banners
         </button>
         <button className={navBtn(tab === "funcionalidades")} onClick={() => setTab("funcionalidades")}>
           <ToggleLeft className="h-4 w-4" />
@@ -225,6 +231,7 @@ function ConfiguracoesPage() {
       )}
 
       {tab === "bets" && <BetsPanel isDark={isDark} panel={panel} muted={muted} fieldCls={fieldCls} />}
+      {tab === "banners" && <BannersPanel isDark={isDark} panel={panel} muted={muted} fieldCls={fieldCls} />}
       {tab === "funcionalidades" && <FeaturesPanel isDark={isDark} panel={panel} muted={muted} />}
       {tab === "monitoramento" && <MonitoramentoPanel isDark={isDark} panel={panel} muted={muted} />}
       {tab === "api" && <ApiPanel isDark={isDark} panel={panel} muted={muted} />}
@@ -1495,3 +1502,306 @@ function BetsPanel({
     </div>
   );
 }
+
+// ============================================================
+// BANNERS
+// ============================================================
+
+type BannerRow = {
+  id: string;
+  image_url: string;
+  storage_path: string | null;
+  link_url: string | null;
+  button_label: string | null;
+  title: string | null;
+  active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+const RECOMMENDED_BANNER_SIZE = "1200 × 480 px (proporção 5:2, JPG ou PNG, máx 2 MB)";
+
+function BannersPanel({
+  isDark,
+  panel,
+  muted,
+  fieldCls,
+}: {
+  isDark: boolean;
+  panel: string;
+  muted: string;
+  fieldCls: string;
+}) {
+  const [banners, setBanners] = useState<BannerRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Partial<BannerRow> | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const listFn = useServerFn(listBannersAdmin);
+  const upsertFn = useServerFn(upsertBanner);
+  const deleteFn = useServerFn(deleteBanner);
+  const uploadFn = useServerFn(uploadBannerImage);
+
+  const reload = async () => {
+    try {
+      setError(null);
+      const data = await listFn();
+      setBanners(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro");
+    }
+  };
+
+  useEffect(() => { void reload(); }, []);
+
+  const onPickFile = async (file: File) => {
+    if (!editing) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Arquivo grande demais (máx 5 MB).");
+      return;
+    }
+    setUploading(true);
+    try {
+      const b64 = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => {
+          const s = String(r.result);
+          const idx = s.indexOf(",");
+          resolve(idx >= 0 ? s.slice(idx + 1) : s);
+        };
+        r.onerror = () => reject(r.error);
+        r.readAsDataURL(file);
+      });
+      const res = await uploadFn({
+        data: { filename: file.name, contentType: file.type || "image/jpeg", base64: b64 },
+      });
+      setEditing((e) => e ? { ...e, image_url: res.storage_ref, _preview: res.preview_url } as never : e);
+    } catch (e) {
+      alert("Erro no upload: " + (e instanceof Error ? e.message : "?"));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const save = async () => {
+    if (!editing) return;
+    if (!editing.image_url) {
+      alert("Envie uma imagem ou cole uma URL.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await upsertFn({
+        data: {
+          id: editing.id,
+          image_url: editing.image_url,
+          link_url: editing.link_url ?? null,
+          button_label: (editing.button_label && editing.button_label.trim()) || null,
+          title: (editing.title && editing.title.trim()) || null,
+          active: editing.active ?? true,
+          sort_order: Number(editing.sort_order ?? 0),
+        },
+      });
+      setEditing(null);
+      await reload();
+    } catch (e) {
+      alert("Erro ao salvar: " + (e instanceof Error ? e.message : "?"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Excluir esse banner?")) return;
+    try {
+      await deleteFn({ data: { id } });
+      await reload();
+    } catch (e) {
+      alert("Erro: " + (e instanceof Error ? e.message : "?"));
+    }
+  };
+
+  const toggleActive = async (b: BannerRow) => {
+    try {
+      await upsertFn({
+        data: {
+          id: b.id,
+          image_url: b.storage_path ? `bucket://${b.storage_path}` : b.image_url,
+          link_url: b.link_url,
+          button_label: b.button_label,
+          title: b.title,
+          active: !b.active,
+          sort_order: b.sort_order,
+        },
+      });
+      await reload();
+    } catch (e) {
+      alert("Erro: " + (e instanceof Error ? e.message : "?"));
+    }
+  };
+
+  const previewSrc = (editing as (Partial<BannerRow> & { _preview?: string }) | null)?._preview
+    || (editing?.image_url && !editing.image_url.startsWith("bucket://") ? editing.image_url : "");
+
+  return (
+    <div className="space-y-4">
+      <div className={`rounded-xl border p-5 ${panel}`}>
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div>
+            <h3 className="font-semibold flex items-center gap-2">
+              <ImageIcon className="h-4 w-4 text-emerald-500" /> Banners da Home
+            </h3>
+            <p className={`text-xs ${muted} mt-0.5`}>
+              Tamanho recomendado: <strong>{RECOMMENDED_BANNER_SIZE}</strong>.
+            </p>
+          </div>
+          <button
+            onClick={() => setEditing({ active: true, sort_order: (banners?.length ?? 0) })}
+            style={{ backgroundImage: "linear-gradient(90deg, #0f5f2a 0%, #1f8a3a 55%, #54ee2b 100%)" }}
+            className="h-9 px-4 rounded-md text-white text-sm font-semibold inline-flex items-center gap-2 hover:brightness-110"
+          >
+            <Plus className="h-4 w-4" /> Novo banner
+          </button>
+        </div>
+
+        {error && (
+          <div className="mb-3 rounded-lg border border-red-500/30 bg-red-500/10 text-red-500 text-sm px-3 py-2 flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" /><span>{error}</span>
+          </div>
+        )}
+
+        {!banners && <div className={`text-sm ${muted}`}>Carregando…</div>}
+        {banners && banners.length === 0 && (
+          <div className={`text-sm ${muted}`}>Nenhum banner ainda. Clique em "Novo banner".</div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {banners?.map((b) => (
+            <div key={b.id} className={"rounded-lg border overflow-hidden " + (isDark ? "border-neutral-800 bg-neutral-950" : "border-neutral-200 bg-neutral-50")}>
+              {b.image_url && (
+                <div className="aspect-[5/2] w-full bg-neutral-800 overflow-hidden">
+                  <img src={b.image_url} alt={b.title ?? "banner"} className="w-full h-full object-cover" />
+                </div>
+              )}
+              <div className="p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{b.title || "(sem título)"}</div>
+                    <div className={`text-[11px] ${muted} truncate`}>
+                      {b.button_label ? `Botão: "${b.button_label}"` : "Clique no banner"} · Ordem {b.sort_order}
+                    </div>
+                    {b.link_url && (
+                      <div className={`text-[11px] ${muted} truncate flex items-center gap-1 mt-0.5`}>
+                        <LinkIcon className="h-3 w-3" /> {b.link_url}
+                      </div>
+                    )}
+                  </div>
+                  <span className={"text-[10px] px-2 py-0.5 rounded-full font-medium " + (b.active ? "bg-emerald-500/20 text-emerald-500" : "bg-neutral-500/20 text-neutral-400")}>
+                    {b.active ? "Ativo" : "Inativo"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    onClick={() => setEditing(b)}
+                    className={"h-8 px-3 rounded-md text-xs font-medium border " + (isDark ? "border-neutral-800 hover:bg-neutral-800" : "border-neutral-300 hover:bg-neutral-100")}
+                  >Editar</button>
+                  <button
+                    onClick={() => toggleActive(b)}
+                    className={"h-8 px-3 rounded-md text-xs font-medium border " + (isDark ? "border-neutral-800 hover:bg-neutral-800" : "border-neutral-300 hover:bg-neutral-100")}
+                  >{b.active ? "Desativar" : "Ativar"}</button>
+                  <button
+                    onClick={() => remove(b.id)}
+                    className="h-8 px-3 rounded-md text-xs font-medium border border-red-500/40 text-red-500 hover:bg-red-500/10 inline-flex items-center gap-1"
+                  ><Trash2 className="h-3 w-3" /> Excluir</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {editing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70" onClick={() => !saving && setEditing(null)}>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className={"w-full max-w-2xl rounded-xl border p-5 max-h-[90vh] overflow-y-auto " + panel}
+          >
+            <h3 className="font-semibold mb-4">{editing.id ? "Editar banner" : "Novo banner"}</h3>
+
+            <div className="space-y-3">
+              <Field label={`Imagem — ${RECOMMENDED_BANNER_SIZE}`} muted={muted}>
+                <div className="space-y-2">
+                  {previewSrc && (
+                    <div className="aspect-[5/2] w-full bg-neutral-800 rounded-md overflow-hidden">
+                      <img src={previewSrc} alt="preview" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <label className={"h-10 px-3 rounded-md border text-sm inline-flex items-center gap-2 cursor-pointer " + (isDark ? "border-neutral-800 bg-neutral-950 hover:bg-neutral-800" : "border-neutral-300 bg-white hover:bg-neutral-50")}>
+                      {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                      Enviar arquivo
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                        const f = e.target.files?.[0]; if (f) void onPickFile(f);
+                      }} />
+                    </label>
+                    <span className={`text-xs ${muted}`}>ou</span>
+                    <input
+                      className={fieldCls + " flex-1"}
+                      placeholder="Cole uma URL de imagem (https://...)"
+                      value={editing.image_url?.startsWith("bucket://") ? "" : (editing.image_url ?? "")}
+                      onChange={(e) => setEditing({ ...editing, image_url: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </Field>
+
+              <Field label="Título (opcional, interno)" muted={muted}>
+                <input className={fieldCls} value={editing.title ?? ""} onChange={(e) => setEditing({ ...editing, title: e.target.value })} placeholder="Ex.: Promo Copa" />
+              </Field>
+
+              <Field label="Link de destino (opcional)" muted={muted}>
+                <input className={fieldCls} value={editing.link_url ?? ""} onChange={(e) => setEditing({ ...editing, link_url: e.target.value })} placeholder="https://..." />
+              </Field>
+
+              <Field label='Texto do botão (opcional — deixe vazio pra clicar no banner inteiro)' muted={muted}>
+                <input className={fieldCls} value={editing.button_label ?? ""} onChange={(e) => setEditing({ ...editing, button_label: e.target.value })} placeholder='Ex.: "Apostar agora"' />
+              </Field>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Ordem (menor = primeiro)" muted={muted}>
+                  <input type="number" className={fieldCls} value={editing.sort_order ?? 0} onChange={(e) => setEditing({ ...editing, sort_order: Number(e.target.value) })} />
+                </Field>
+                <Field label="Status" muted={muted}>
+                  <select className={fieldCls} value={String(editing.active ?? true)} onChange={(e) => setEditing({ ...editing, active: e.target.value === "true" })}>
+                    <option value="true">Ativo</option>
+                    <option value="false">Inativo</option>
+                  </select>
+                </Field>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-5">
+              <button
+                onClick={() => setEditing(null)}
+                disabled={saving}
+                className={"h-10 px-4 rounded-md border text-sm " + (isDark ? "border-neutral-800 hover:bg-neutral-800" : "border-neutral-300 hover:bg-neutral-100")}
+              >Cancelar</button>
+              <button
+                onClick={save}
+                disabled={saving || uploading}
+                style={{ backgroundImage: "linear-gradient(90deg, #0f5f2a 0%, #1f8a3a 55%, #54ee2b 100%)" }}
+                className="h-10 px-5 rounded-md text-white text-sm font-semibold inline-flex items-center gap-2 disabled:opacity-60"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+

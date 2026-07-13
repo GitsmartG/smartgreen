@@ -2,19 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
+import { FEATURE_KEYS, FEATURE_DEFAULTS, type FeatureKey, type FeatureFlags } from "./feature-flags";
 
-export type FeatureKey = "jogos" | "ligas" | "banca" | "parceiros" | "indique";
-export const FEATURE_KEYS: FeatureKey[] = ["jogos", "ligas", "banca", "parceiros", "indique"];
-
-export type FeatureFlags = Record<FeatureKey, boolean>;
-
-const DEFAULTS: FeatureFlags = {
-  jogos: true,
-  ligas: true,
-  banca: true,
-  parceiros: true,
-  indique: true,
-};
+export { FEATURE_KEYS, FEATURE_DEFAULTS };
+export type { FeatureKey, FeatureFlags };
 
 function publicClient() {
   return createClient<Database>(
@@ -27,8 +18,8 @@ function publicClient() {
 export const getFeatureFlags = createServerFn({ method: "GET" }).handler(async () => {
   const sb = publicClient();
   const { data, error } = await sb.from("feature_flags").select("key,enabled");
-  if (error) return DEFAULTS;
-  const out: FeatureFlags = { ...DEFAULTS };
+  if (error) return FEATURE_DEFAULTS;
+  const out: FeatureFlags = { ...FEATURE_DEFAULTS };
   for (const row of data ?? []) {
     if ((FEATURE_KEYS as string[]).includes(row.key)) {
       out[row.key as FeatureKey] = Boolean(row.enabled);
