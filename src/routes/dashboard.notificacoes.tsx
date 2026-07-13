@@ -28,6 +28,7 @@ const MODELOS = [
 const CATEGORIAS = ["Nova Tip", "Promoção", "Sistema", "Assinatura"];
 const PUBLICOS = [
   { value: "todos", label: "Todos os Usuários", alcance: 0 },
+  { value: "admins", label: "Apenas Administradores", alcance: 0 },
   { value: "assinantes", label: "Apenas Assinantes", alcance: 0 },
   { value: "free", label: "Usuários Free", alcance: 0 },
   { value: "inativos", label: "Inativos há 7 dias", alcance: 0 },
