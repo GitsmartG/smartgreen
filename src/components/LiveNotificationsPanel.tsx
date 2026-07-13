@@ -43,7 +43,7 @@ export function LiveNotificationsPanel({ isDark }: { isDark: boolean }) {
   const { notifs: raw, dismiss, clear } = hook;
   const notifs = (Array.isArray(raw) ? raw : [])
     .filter((n): n is LiveNotification => !!n && typeof n === "object" && typeof n.id === "string")
-    .slice(0, 3);
+    .slice(0, 2);
 
   const border = isDark ? "border-neutral-800" : "border-neutral-200";
   const item = isDark
