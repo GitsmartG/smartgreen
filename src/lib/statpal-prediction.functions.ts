@@ -116,7 +116,13 @@ export const getMatchPrediction = createServerFn({ method: "GET" })
         signal: controller.signal,
       });
       if (!res.ok) {
-        return { ok: false, error: `HTTP ${res.status}` };
+        if (res.status === 404) {
+          return { ok: false, error: "Sem previsão disponível para essa partida." };
+        }
+        if (res.status === 429) {
+          return { ok: false, error: "Limite de consultas atingido. Tenta de novo em alguns instantes." };
+        }
+        return { ok: false, error: "Não foi possível consultar a previsão agora." };
       }
       const json = (await res.json()) as PredictionResult & { error?: unknown };
       if (!json || typeof json !== "object") {
