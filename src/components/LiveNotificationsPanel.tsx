@@ -125,7 +125,7 @@ export function LiveNotificationsPanel({ isDark }: { isDark: boolean }) {
         <div className="relative flex gap-2">
           <ul
             ref={scrollRef}
-            className="flex-1 min-w-0 space-y-1.5 max-h-[440px] overflow-y-auto pr-1 scrollbar-none"
+            className="flex-1 min-w-0 space-y-1.5 max-h-[180px] overflow-y-auto pr-1 scrollbar-none"
             style={{ scrollbarWidth: "none" }}
           >
             {notifs.map((n) => (
