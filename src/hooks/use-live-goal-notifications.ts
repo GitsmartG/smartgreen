@@ -180,7 +180,12 @@ export function useLiveGoalNotifications() {
 
         snapRef.current = next;
         if (events.length > 0) {
-          setNotifs((cur) => [...events.reverse(), ...cur].slice(0, MAX_NOTIFS));
+          setNotifs((cur) => {
+            const existing = new Set(cur.map((n) => n.id));
+            const fresh = events.reverse().filter((n) => !existing.has(n.id));
+            if (fresh.length === 0) return cur;
+            return [...fresh, ...cur].slice(0, MAX_NOTIFS);
+          });
         }
       } catch {
         // silencioso
