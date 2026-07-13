@@ -5,33 +5,70 @@ import { z } from "zod";
 const LOCAL_MAP: [RegExp, string][] = [
   [/\bmatch\s+winner\b/gi, "Vencedor da Partida"],
   [/\bboth\s+teams\s+to\s+score\b/gi, "Ambas Marcam"],
+  [/\bcorrect\s+score\b/gi, "Placar Exato"],
+  [/\bdouble\s+chance\b/gi, "Dupla Chance"],
+  [/\btotal\s+goals\b/gi, "Total de Gols"],
+  [/\basian\s+handicap\b/gi, "Handicap Asiático"],
+  [/\bhandicap\b/gi, "Handicap"],
+  [/\bclean\s+sheet\b/gi, "Não Sofrer Gol"],
+  [/\bfirst\s+half\b/gi, "Primeiro Tempo"],
+  [/\bsecond\s+half\b/gi, "Segundo Tempo"],
+  [/\bfull\s*time\b/gi, "Tempo Integral"],
+  [/\bhalf\s*time\b/gi, "Intervalo"],
+  [/\bhome\s+win\b/gi, "Vitória do Mandante"],
+  [/\baway\s+win\b/gi, "Vitória do Visitante"],
+  [/\bhome\s+team\b/gi, "Time da casa"],
+  [/\baway\s+team\b/gi, "Time visitante"],
   [/\bover\b/gi, "Mais de"],
   [/\bunder\b/gi, "Menos de"],
   [/\bhome\b/gi, "Casa"],
   [/\baway\b/gi, "Fora"],
   [/\bdraw\b/gi, "Empate"],
   [/\bto\s+win\b/gi, "para vencer"],
-  [/\bwin\b/gi, "Vitória"],
-  [/\bfull\s*time\b/gi, "Tempo Integral"],
-  [/\bhalf\s*time\b/gi, "Primeiro Tempo"],
+  [/\bwins?\b/gi, "vitória"],
+  [/\bloses?\b/gi, "derrota"],
+  [/\bgoals?\b/gi, "gols"],
+  [/\bshots?\b/gi, "chutes"],
+  [/\bpossession\b/gi, "posse de bola"],
+  [/\bform\b/gi, "forma"],
+  [/\brecent\b/gi, "recente"],
+  [/\bagainst\b/gi, "contra"],
+  [/\bfavou?rite\b/gi, "favorito"],
+  [/\bpredict(?:ion|ed|s)?\b/gi, "previsão"],
+  [/\bmodel\b/gi, "modelo"],
+  [/\bmarket\b/gi, "mercado"],
+  [/\bselection\b/gi, "seleção"],
+  [/\bodds?\b/gi, "odds"],
+  [/\bstrong(?:er|est)?\b/gi, "forte"],
+  [/\bweak(?:er|est)?\b/gi, "fraco"],
+  [/\bhistory\b/gi, "histórico"],
+  [/\bmatches?\b/gi, "partidas"],
+  [/\bteams?\b/gi, "times"],
+  [/\bplayers?\b/gi, "jogadores"],
+  [/\binjur(?:y|ies|ed)\b/gi, "lesão"],
+  [/\bsuspended?\b/gi, "suspenso"],
+  [/\bexpected?\b/gi, "esperado"],
+  [/\blikely\b/gi, "provável"],
+  [/\bunlikely\b/gi, "improvável"],
+  [/\bbased on\b/gi, "com base em"],
 ];
 function localTranslate(s?: string): string | undefined {
   if (!s) return s;
   let out = s;
   for (const [re, val] of LOCAL_MAP) out = out.replace(re, val);
-  return out;
+  return out.replace(/\s+/g, " ").trim();
 }
 function applyLocalFallback(
   p: NonNullable<PredictionResult["prediction"]>,
 ): NonNullable<PredictionResult["prediction"]> {
   return {
     choice: localTranslate(p.choice) ?? p.choice,
-    reasoning: p.reasoning, // reasoning é frase longa — sem AI, mantém original
+    reasoning: localTranslate(p.reasoning) ?? p.reasoning,
     prematch_odds: p.prematch_odds
       ? {
           ...p.prematch_odds,
           market: localTranslate(p.prematch_odds.market) ?? p.prematch_odds.market,
-          modifier: p.prematch_odds.modifier,
+          modifier: localTranslate(p.prematch_odds.modifier) ?? p.prematch_odds.modifier,
           selection: localTranslate(p.prematch_odds.selection) ?? p.prematch_odds.selection,
         }
       : undefined,
