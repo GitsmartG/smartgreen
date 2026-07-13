@@ -24,6 +24,7 @@ import { Route as ApiPublicTeamImageIdRouteImport } from './routes/api/public/te
 import { Route as ApiPublicMobileTicketsRouteImport } from './routes/api/public/mobile/tickets'
 import { Route as ApiPublicMobileSignupRouteImport } from './routes/api/public/mobile/signup'
 import { Route as ApiPublicMobileLoginRouteImport } from './routes/api/public/mobile/login'
+import { Route as ApiPublicMobileBannersRouteImport } from './routes/api/public/mobile/banners'
 import { Route as ApiPublicLeagueImageIdRouteImport } from './routes/api/public/league-image.$id'
 import { Route as ApiPublicHooksRefreshDailyMatchesRouteImport } from './routes/api/public/hooks/refresh-daily-matches'
 import { Route as ApiPublicHooksPollLiveNotificationsRouteImport } from './routes/api/public/hooks/poll-live-notifications'
@@ -110,6 +111,11 @@ const ApiPublicMobileSignupRoute = ApiPublicMobileSignupRouteImport.update({
 const ApiPublicMobileLoginRoute = ApiPublicMobileLoginRouteImport.update({
   id: '/api/public/mobile/login',
   path: '/api/public/mobile/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicMobileBannersRoute = ApiPublicMobileBannersRouteImport.update({
+  id: '/api/public/mobile/banners',
+  path: '/api/public/mobile/banners',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicLeagueImageIdRoute = ApiPublicLeagueImageIdRouteImport.update({
@@ -199,6 +205,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/poll-live-notifications': typeof ApiPublicHooksPollLiveNotificationsRoute
   '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
   '/api/public/league-image/$id': typeof ApiPublicLeagueImageIdRoute
+  '/api/public/mobile/banners': typeof ApiPublicMobileBannersRoute
   '/api/public/mobile/login': typeof ApiPublicMobileLoginRoute
   '/api/public/mobile/signup': typeof ApiPublicMobileSignupRoute
   '/api/public/mobile/tickets': typeof ApiPublicMobileTicketsRouteWithChildren
@@ -227,6 +234,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/poll-live-notifications': typeof ApiPublicHooksPollLiveNotificationsRoute
   '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
   '/api/public/league-image/$id': typeof ApiPublicLeagueImageIdRoute
+  '/api/public/mobile/banners': typeof ApiPublicMobileBannersRoute
   '/api/public/mobile/login': typeof ApiPublicMobileLoginRoute
   '/api/public/mobile/signup': typeof ApiPublicMobileSignupRoute
   '/api/public/mobile/tickets': typeof ApiPublicMobileTicketsRouteWithChildren
@@ -257,6 +265,7 @@ export interface FileRoutesById {
   '/api/public/hooks/poll-live-notifications': typeof ApiPublicHooksPollLiveNotificationsRoute
   '/api/public/hooks/refresh-daily-matches': typeof ApiPublicHooksRefreshDailyMatchesRoute
   '/api/public/league-image/$id': typeof ApiPublicLeagueImageIdRoute
+  '/api/public/mobile/banners': typeof ApiPublicMobileBannersRoute
   '/api/public/mobile/login': typeof ApiPublicMobileLoginRoute
   '/api/public/mobile/signup': typeof ApiPublicMobileSignupRoute
   '/api/public/mobile/tickets': typeof ApiPublicMobileTicketsRouteWithChildren
@@ -288,6 +297,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/poll-live-notifications'
     | '/api/public/hooks/refresh-daily-matches'
     | '/api/public/league-image/$id'
+    | '/api/public/mobile/banners'
     | '/api/public/mobile/login'
     | '/api/public/mobile/signup'
     | '/api/public/mobile/tickets'
@@ -316,6 +326,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/poll-live-notifications'
     | '/api/public/hooks/refresh-daily-matches'
     | '/api/public/league-image/$id'
+    | '/api/public/mobile/banners'
     | '/api/public/mobile/login'
     | '/api/public/mobile/signup'
     | '/api/public/mobile/tickets'
@@ -345,6 +356,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/poll-live-notifications'
     | '/api/public/hooks/refresh-daily-matches'
     | '/api/public/league-image/$id'
+    | '/api/public/mobile/banners'
     | '/api/public/mobile/login'
     | '/api/public/mobile/signup'
     | '/api/public/mobile/tickets'
@@ -368,6 +380,7 @@ export interface RootRouteChildren {
   ApiPublicHooksPollLiveNotificationsRoute: typeof ApiPublicHooksPollLiveNotificationsRoute
   ApiPublicHooksRefreshDailyMatchesRoute: typeof ApiPublicHooksRefreshDailyMatchesRoute
   ApiPublicLeagueImageIdRoute: typeof ApiPublicLeagueImageIdRoute
+  ApiPublicMobileBannersRoute: typeof ApiPublicMobileBannersRoute
   ApiPublicMobileLoginRoute: typeof ApiPublicMobileLoginRoute
   ApiPublicMobileSignupRoute: typeof ApiPublicMobileSignupRoute
   ApiPublicMobileTicketsRoute: typeof ApiPublicMobileTicketsRouteWithChildren
@@ -486,6 +499,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/mobile/login'
       fullPath: '/api/public/mobile/login'
       preLoaderRoute: typeof ApiPublicMobileLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/mobile/banners': {
+      id: '/api/public/mobile/banners'
+      path: '/api/public/mobile/banners'
+      fullPath: '/api/public/mobile/banners'
+      preLoaderRoute: typeof ApiPublicMobileBannersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/league-image/$id': {
@@ -624,6 +644,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksRefreshDailyMatchesRoute:
     ApiPublicHooksRefreshDailyMatchesRoute,
   ApiPublicLeagueImageIdRoute: ApiPublicLeagueImageIdRoute,
+  ApiPublicMobileBannersRoute: ApiPublicMobileBannersRoute,
   ApiPublicMobileLoginRoute: ApiPublicMobileLoginRoute,
   ApiPublicMobileSignupRoute: ApiPublicMobileSignupRoute,
   ApiPublicMobileTicketsRoute: ApiPublicMobileTicketsRouteWithChildren,
