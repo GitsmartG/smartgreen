@@ -5,7 +5,8 @@ import { Building2, Save, Check, Activity, RefreshCw, AlertCircle, Gauge, Cable,
 import { useIsDark } from "@/hooks/use-is-dark";
 import { getStatpalUsage, type StatpalUsage } from "@/lib/statpal-usage.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { getFeatureFlags, setFeatureFlag, FEATURE_KEYS, type FeatureKey, type FeatureFlags } from "@/lib/feature-flags.functions";
+import { getFeatureFlags, setFeatureFlag } from "@/lib/feature-flags.functions";
+import { FEATURE_KEYS, type FeatureKey, type FeatureFlags } from "@/lib/feature-flags";
 import { getInternalApiKey, regenerateApiKey } from "@/lib/internal-api-key.functions";
 import { loadBets, saveBets, type BetConfig, DEFAULT_BETS } from "@/lib/bets-config";
 
