@@ -272,7 +272,56 @@ Feed persistente de eventos (gols, cartões, início/fim de partida). Alimentado
 
 ---
 
-## 🎫 Tickets (Tips)
+## 🖼️ Banners da Home
+
+### `GET /api/public/mobile/banners`
+Lista os banners **ativos** ordenados (`sort_order` asc, mais novos depois). Cache 60s.
+
+- Tamanho recomendado da imagem: **1200 × 480 px** (proporção 5:2, JPG ou PNG).
+- Banners podem estar hospedados no bucket privado do backend (URLs assinadas de 7 dias) **ou** em URL externa colada pelo admin. Nos dois casos, o campo `image_url` já vem pronto pra usar no `<Image />`.
+
+```jsonc
+// 200
+{
+  "ok": true,
+  "count": 3,
+  "banners": [
+    {
+      "id": "b1c9-uuid",
+      "title": "Promo Copa",           // opcional (uso interno)
+      "image_url": "https://.../banner.jpg", // URL absoluta pronta pra usar
+      "link_url": "https://h2.bet.br/promo",  // pode ser null
+      "button_label": "Apostar agora",  // null quando NÃO tem botão
+      "has_button": true,               // atalho boolean
+      "sort_order": 0
+    },
+    {
+      "id": "b2d0-uuid",
+      "title": null,
+      "image_url": "https://.../banner2.jpg",
+      "link_url": "https://parceiro.com",
+      "button_label": null,
+      "has_button": false,
+      "sort_order": 1
+    }
+  ]
+}
+```
+
+**Como o app mobile deve renderizar:**
+
+| Cenário                    | `has_button` | `button_label` | Comportamento no app                                                             |
+|----------------------------|--------------|----------------|-----------------------------------------------------------------------------------|
+| Banner clicável inteiro    | `false`      | `null`         | O banner INTEIRO é clicável. Ao tocar, abre `link_url` (se existir).             |
+| Banner com botão dedicado  | `true`       | `"..."`        | Só o botão sobre o banner abre `link_url`. Tocar fora do botão **não** navega.   |
+| Banner sem link            | qualquer     | qualquer       | Se `link_url` é `null`, não navega — apenas exibe.                               |
+
+Abrir `link_url`:
+- `http(s)://...` → abrir no navegador (in-app browser ideal).
+- Você pode aceitar deep-links customizados no futuro (ex.: `smartgreen://tickets/123`).
+
+---
+
 
 ### `GET /api/public/mobile/tickets`
 Lista de tickets publicados.
