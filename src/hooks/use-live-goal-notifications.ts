@@ -117,44 +117,59 @@ export function useLiveGoalNotifications() {
                   league: snap.league,
                   at: Date.now(),
                 };
-                if ((snap.home ?? 0) > (p.home ?? 0)) {
-                  events.push({
-                    id: `${m.id}-h-${snap.home}-${Date.now()}`,
+                // Ids estáveis (sem Date.now) — dedupe entre polls e sessões.
+                const seen = new Set<string>();
+                const pushOnce = (n: LiveNotification) => {
+                  if (seen.has(n.id)) return;
+                  seen.add(n.id);
+                  events.push(n);
+                };
+
+                // Início/fim: um por partida, id estável.
+                if (!p.live && snap.live && !snap.finished) {
+                  pushOnce({ id: `${m.id}-start`, kind: "start", ...base });
+                }
+                if (!p.finished && snap.finished && p.live) {
+                  pushOnce({ id: `${m.id}-end`, kind: "finish", ...base });
+                }
+
+                // Eventos oficiais (gols, cartões, etc.) — fonte única.
+                const eventGoalKeys = new Set<string>();
+                for (const event of m.events ?? []) {
+                  if (p.events.has(event.id)) continue;
+                  const kind: LiveNotification["kind"] =
+                    event.type === "goal"
+                      ? "goal"
+                      : event.type.includes("card")
+                        ? "card"
+                        : "event";
+                  if (kind === "goal" && (event.team === "home" || event.team === "away")) {
+                    eventGoalKeys.add(`${event.team}-${event.result ?? event.minute}`);
+                  }
+                  pushOnce({
+                    id: `${m.id}-event-${event.id}`,
+                    kind,
+                    scorer: event.team === "home" || event.team === "away" ? event.team : undefined,
+                    minute: event.extraMin ? `${event.minute}+${event.extraMin}'` : event.minute ? `${event.minute}'` : undefined,
+                    text: eventLabel(event),
+                    ...base,
+                  });
+                }
+
+                // Fallback: gol detectado só pelo placar (fonte não mandou evento).
+                if ((snap.home ?? 0) > (p.home ?? 0) && !eventGoalKeys.size) {
+                  pushOnce({
+                    id: `${m.id}-goal-h-${snap.home}`,
                     kind: "goal",
                     scorer: "home",
                     ...base,
                   });
                 }
-                if ((snap.away ?? 0) > (p.away ?? 0)) {
-                  events.push({
-                    id: `${m.id}-a-${snap.away}-${Date.now()}`,
+                if ((snap.away ?? 0) > (p.away ?? 0) && !eventGoalKeys.size) {
+                  pushOnce({
+                    id: `${m.id}-goal-a-${snap.away}`,
                     kind: "goal",
                     scorer: "away",
-                    ...base,
-                  });
-                }
-                if (!p.live && snap.live && !snap.finished) {
-                  events.push({
-                    id: `${m.id}-start-${Date.now()}`,
-                    kind: "start",
-                    ...base,
-                  });
-                }
-                if (!p.finished && snap.finished && p.live) {
-                  events.push({
-                    id: `${m.id}-end-${Date.now()}`,
-                    kind: "finish",
-                    ...base,
-                  });
-                }
-                for (const event of m.events ?? []) {
-                  if (p.events.has(event.id)) continue;
-                  events.push({
-                    id: `${m.id}-event-${event.id}-${Date.now()}`,
-                    kind: event.type === "goal" ? "goal" : event.type.includes("card") ? "card" : "event",
-                    scorer: event.team === "home" || event.team === "away" ? event.team : undefined,
-                    minute: event.extraMin ? `${event.minute}+${event.extraMin}'` : event.minute ? `${event.minute}'` : undefined,
-                    text: eventLabel(event),
                     ...base,
                   });
                 }
