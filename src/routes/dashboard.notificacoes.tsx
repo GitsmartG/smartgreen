@@ -78,7 +78,7 @@ function NotificacoesPage() {
 
   const alcance = useMemo(() => {
     // fake
-    const base = { todos: 0, assinantes: 0, free: 0, inativos: 0 } as Record<string, number>;
+    const base = { todos: 0, admins: 0, assinantes: 0, free: 0, inativos: 0 } as Record<string, number>;
     return base[publico] ?? 0;
   }, [publico]);
 
