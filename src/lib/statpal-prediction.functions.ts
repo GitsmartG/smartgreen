@@ -208,7 +208,7 @@ export const getMatchPrediction = createServerFn({ method: "GET" })
         }
       };
       const prediction = json.prediction
-        ? await translatePrediction(json.prediction)
+        ? await translatePrediction(applyLocalFallback(json.prediction))
         : undefined;
       return { ok: true, meta: json.meta, prediction };
     } catch (e) {
