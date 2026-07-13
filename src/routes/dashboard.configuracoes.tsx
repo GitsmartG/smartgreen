@@ -122,6 +122,10 @@ function ConfiguracoesPage() {
           <Wallet className="h-4 w-4" />
           Bets
         </button>
+        <button className={navBtn(tab === "banners")} onClick={() => setTab("banners")}>
+          <ImageIcon className="h-4 w-4" />
+          Banners
+        </button>
         <button className={navBtn(tab === "funcionalidades")} onClick={() => setTab("funcionalidades")}>
           <ToggleLeft className="h-4 w-4" />
           Funcionalidades
