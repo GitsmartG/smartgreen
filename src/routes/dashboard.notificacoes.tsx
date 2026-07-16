@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import {
   Megaphone,
   Send,
@@ -13,6 +13,8 @@ import {
   XCircle,
 } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard/notificacoes")({
   component: NotificacoesPage,
@@ -64,6 +66,10 @@ function NotificacoesPage() {
   const [publico, setPublico] = useState("todos");
   const [agendar, setAgendar] = useState(false);
   const [dataAgendada, setDataAgendada] = useState("");
+  const [alcance, setAlcance] = useState(0);
+  const [loadingAlcance, setLoadingAlcance] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   type HistItem = {
     id: string;
@@ -76,30 +82,175 @@ function NotificacoesPage() {
   };
   const [historico, setHistorico] = useState<HistItem[]>([]);
 
-  const alcance = useMemo(() => {
-    // fake
-    const base = { todos: 0, admins: 0, assinantes: 0, free: 0, inativos: 0 } as Record<string, number>;
-    return base[publico] ?? 0;
+  // Carrega alcance estimado
+  useEffect(() => {
+    const fetchAlcance = async () => {
+      setLoadingAlcance(true);
+      try {
+        if (publico === "todos") {
+          const { count, error } = await supabase
+            .from("user_fcm_tokens")
+            .select("*", { count: "exact", head: true });
+          if (!error) setAlcance(count || 0);
+        } else if (publico === "admins") {
+          const { data: admins } = await supabase
+            .from("user_roles")
+            .select("user_id")
+            .eq("role", "admin");
+          const adminIds = (admins || []).map((a) => a.user_id);
+          if (adminIds.length === 0) {
+            setAlcance(0);
+          } else {
+            const { count, error } = await supabase
+              .from("user_fcm_tokens")
+              .select("*", { count: "exact", head: true })
+              .in("user_id", adminIds);
+            if (!error) setAlcance(count || 0);
+          }
+        } else if (publico === "assinantes") {
+          const { data: premium } = await supabase
+            .from("profiles")
+            .select("id")
+            .gt("access_expires_at", new Date().toISOString());
+          const premiumIds = (premium || []).map((p) => p.id);
+          if (premiumIds.length === 0) {
+            setAlcance(0);
+          } else {
+            const { count, error } = await supabase
+              .from("user_fcm_tokens")
+              .select("*", { count: "exact", head: true })
+              .in("user_id", premiumIds);
+            if (!error) setAlcance(count || 0);
+          }
+        } else if (publico === "free") {
+          const { data: free } = await supabase
+            .from("profiles")
+            .select("id")
+            .or(`access_expires_at.is.null,access_expires_at.lte.${new Date().toISOString()}`);
+          const freeIds = (free || []).map((f) => f.id);
+          if (freeIds.length === 0) {
+            setAlcance(0);
+          } else {
+            const { count, error } = await supabase
+              .from("user_fcm_tokens")
+              .select("*", { count: "exact", head: true })
+              .in("user_id", freeIds);
+            if (!error) setAlcance(count || 0);
+          }
+        } else {
+          setAlcance(0);
+        }
+      } catch (err) {
+        console.error("Error fetching reach:", err);
+      } finally {
+        setLoadingAlcance(false);
+      }
+    };
+    fetchAlcance();
   }, [publico]);
 
   const publicoLabel = PUBLICOS.find((p) => p.value === publico)?.label ?? "";
 
   const canSend = titulo.trim().length > 0 && mensagem.trim().length > 0;
 
-  const enviar = () => {
-    if (!canSend) return;
-    const item: HistItem = {
-      id: crypto.randomUUID(),
-      titulo,
-      categoria,
-      publico: publicoLabel,
-      entregue: agendar ? 0 : Math.max(alcance, 1),
-      status: agendar ? "agendada" : "enviada",
-      data: agendar && dataAgendada ? dataAgendada : new Date().toLocaleString("pt-BR"),
-    };
-    setHistorico((h) => [item, ...h]);
-    setTitulo("");
-    setMensagem("");
+  // Carrega histórico de notificações do banco de dados
+  const fetchHistory = useCallback(async () => {
+    setLoadingHistory(true);
+    try {
+      const { data, error } = await supabase
+        .from("push_notifications_history")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+
+      const items: HistItem[] = (data || []).map((d) => ({
+        id: d.id,
+        titulo: d.title,
+        categoria: d.category || "Geral",
+        publico: PUBLICOS.find((p) => p.value === d.target_audience)?.label || d.target_audience,
+        entregue: d.sent_count || 0,
+        status: d.status as "enviada" | "agendada" | "falha",
+        data: new Date(d.created_at).toLocaleString("pt-BR"),
+      }));
+      setHistorico(items);
+    } catch (err) {
+      console.error("Error fetching history:", err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
+
+  const stats = useMemo(() => {
+    let totalEntregue = 0;
+    let ultimos7Dias = 0;
+    let agendadas = 0;
+    let falhas = 0;
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    historico.forEach((h) => {
+      totalEntregue += h.entregue;
+      if (h.status === "agendada") agendadas++;
+      if (h.status === "falha") falhas++;
+
+      try {
+        const parts = h.data.split(",")[0].split("/");
+        const date = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+        if (date >= sevenDaysAgo) {
+          ultimos7Dias += h.entregue;
+        }
+      } catch {
+        // fallback
+      }
+    });
+
+    return { totalEntregue, ultimos7Dias, agendadas, falhas };
+  }, [historico]);
+
+  const enviar = async () => {
+    if (!canSend || enviando) return;
+    setEnviando(true);
+
+    const loadingToast = toast.loading("Enviando notificações push...");
+    try {
+      const { data, error } = await supabase.functions.invoke("send-push-notification", {
+        body: {
+          titulo,
+          mensagem,
+          categoria,
+          publico,
+        },
+      });
+
+      toast.dismiss(loadingToast);
+
+      if (error) {
+        throw new Error(error.message || "Erro no envio");
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast.success(
+        `Notificação enviada! Sucesso: ${data.sent_count || 0}, Falhas: ${data.failed_count || 0}`
+      );
+
+      setTitulo("");
+      setMensagem("");
+      fetchHistory();
+    } catch (err) {
+      toast.dismiss(loadingToast);
+      console.error("Error sending notification:", err);
+      toast.error(err instanceof Error ? err.message : "Erro ao enviar notificações");
+    } finally {
+      setEnviando(false);
+    }
   };
 
   return (
@@ -113,10 +264,10 @@ function NotificacoesPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard panel={panel} muted={muted} icon={<Send className="h-5 w-5" />} color="emerald" label="Total entregue" value="0" />
-        <StatCard panel={panel} muted={muted} icon={<Activity className="h-5 w-5" />} color="neutral" label="Últimos 7 dias" value="0" />
-        <StatCard panel={panel} muted={muted} icon={<Calendar className="h-5 w-5" />} color="neutral" label="Agendadas" value={String(historico.filter((h) => h.status === "agendada").length)} />
-        <StatCard panel={panel} muted={muted} icon={<XCircle className="h-5 w-5" />} color="red" label="Com falha" value="0" />
+        <StatCard panel={panel} muted={muted} icon={<Send className="h-5 w-5" />} color="emerald" label="Total entregue" value={String(stats.totalEntregue)} />
+        <StatCard panel={panel} muted={muted} icon={<Activity className="h-5 w-5" />} color="neutral" label="Últimos 7 dias" value={String(stats.ultimos7Dias)} />
+        <StatCard panel={panel} muted={muted} icon={<Calendar className="h-5 w-5" />} color="neutral" label="Agendadas" value={String(stats.agendadas)} />
+        <StatCard panel={panel} muted={muted} icon={<XCircle className="h-5 w-5" />} color="red" label="Com falha" value={String(stats.falhas)} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -195,7 +346,9 @@ function NotificacoesPage() {
             </select>
             <div className={`text-[11px] ${muted} mt-1.5 inline-flex items-center gap-1`}>
               <Users2 className="h-3 w-3" /> Alcance estimado:{" "}
-              <span className="text-emerald-500 font-semibold">{alcance} usuários</span>
+              <span className="text-emerald-500 font-semibold">
+                {loadingAlcance ? "carregando..." : `${alcance} aparelhos`}
+              </span>
               <span className={subtle}>(com push ativado)</span>
             </div>
           </div>
@@ -258,9 +411,9 @@ function NotificacoesPage() {
 
           <button
             onClick={enviar}
-            disabled={!canSend}
+            disabled={!canSend || enviando}
             style={
-              canSend
+              canSend && !enviando
                 ? {
                     backgroundImage: "linear-gradient(90deg, #0f5f2a 0%, #1f8a3a 55%, #54ee2b 100%)",
                   }
@@ -268,13 +421,13 @@ function NotificacoesPage() {
             }
             className={
               "h-11 w-full rounded-md text-white text-sm font-semibold inline-flex items-center justify-center gap-2 transition " +
-              (canSend
+              (canSend && !enviando
                 ? "hover:brightness-110 active:brightness-95 shadow-sm"
                 : "bg-neutral-700 opacity-50 cursor-not-allowed")
             }
           >
             <Zap className="h-4 w-4" />
-            {agendar ? "Agendar Envio" : "Enviar Agora"}
+            {enviando ? "Enviando..." : agendar ? "Agendar Envio" : "Enviar Agora"}
           </button>
         </div>
 

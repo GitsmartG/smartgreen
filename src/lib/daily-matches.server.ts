@@ -338,11 +338,12 @@ async function statpalFetchLive(): Promise<unknown> {
   return await res.json();
 }
 
-async function statpalFetchDaily(offset: number): Promise<unknown> {
+async function statpalFetchDaily(dateISO: string): Promise<unknown> {
   const key = process.env.STATPAL_API_KEY;
   if (!key) throw new Error("STATPAL_API_KEY não configurada");
+  const dateFormatted = statpalDateFromISO(dateISO);
   const res = await fetch(
-    `https://statpal.io/api/v2/soccer/matches/daily?access_key=${encodeURIComponent(key)}&offset=${offset}`,
+    `https://statpal.io/api/v2/soccer/matches/daily?access_key=${encodeURIComponent(key)}&date=${dateFormatted}`,
     { headers: { Accept: "application/json" } },
   );
   if (!res.ok) throw new Error(`Statpal daily HTTP ${res.status}`);
@@ -350,22 +351,20 @@ async function statpalFetchDaily(offset: number): Promise<unknown> {
 }
 
 async function fetchMatchesPayloadForDate(dateISO: string): Promise<DailyMatchesPayload> {
-  const utcBase = utcTodayISO();
-  const offsets = Array.from(
+  const datesToFetch = Array.from(
     new Set([
-      dateDiffDays(dateISO, utcBase),
-      // O dia de Brasília entre 21h e 23h59 cai no dia seguinte do calendário UTC da API.
-      dateDiffDays(addDaysISO(dateISO, 1), utcBase),
-    ]),
+      dateISO,
+      addDaysISO(dateISO, 1),
+    ])
   );
 
-  // Endpoint /daily traz a agenda completa (agendados + ao vivo + encerrados).
-  // O /live só devolve partidas rolando agora. Pra "hoje" (offset 0 UTC) precisamos
-  // dos dois: daily como base e live pra atualizar placar/status em tempo real.
   const dailyPayloads: DailyMatchesPayload[] = [];
-  for (const offset of offsets) {
-    if (offset >= -7 && offset <= 7) {
-      dailyPayloads.push(normalizeStatpalLive(await statpalFetchDaily(offset), dateISO));
+  for (const d of datesToFetch) {
+    try {
+      const raw = await statpalFetchDaily(d);
+      dailyPayloads.push(normalizeStatpalLive(raw, dateISO));
+    } catch (err) {
+      console.warn(`Falha ao buscar jogos diários para data ${d}:`, err);
     }
   }
 
