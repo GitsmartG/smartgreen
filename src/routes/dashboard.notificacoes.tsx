@@ -55,10 +55,10 @@ function NotificacoesPage() {
       ? "bg-neutral-950 border-neutral-800 text-neutral-100 placeholder:text-neutral-600 focus:border-emerald-600"
       : "bg-white border-neutral-300 text-neutral-900 placeholder:text-neutral-400 focus:border-emerald-700");
   const chipCls =
-    "text-left px-3 py-2 rounded-md border text-xs font-medium transition-colors " +
+    "text-left px-3 py-2 rounded-md border text-xs font-medium transition-all duration-200 truncate " +
     (isDark
-      ? "border-neutral-800 bg-neutral-950 text-neutral-300 hover:border-emerald-700 hover:bg-neutral-800"
-      : "border-neutral-200 bg-white text-neutral-700 hover:border-emerald-600 hover:bg-neutral-50");
+      ? "border-neutral-800 bg-neutral-950/60 text-neutral-300 hover:border-emerald-500 hover:bg-neutral-900 hover:text-white"
+      : "border-neutral-200 bg-white text-neutral-700 hover:border-emerald-600 hover:bg-emerald-50/50 hover:text-emerald-700");
 
   const [categoria, setCategoria] = useState(CATEGORIAS[0]);
   const [titulo, setTitulo] = useState("");
@@ -432,7 +432,7 @@ function NotificacoesPage() {
         </div>
 
         {/* Histórico */}
-        <div className={`rounded-xl border p-5 ${panel}`}>
+        <div className={`rounded-xl border p-5 ${panel} overflow-hidden`}>
           <div>
             <h3 className="font-semibold">Histórico</h3>
             <p className={`text-xs ${muted} mt-0.5`}>
