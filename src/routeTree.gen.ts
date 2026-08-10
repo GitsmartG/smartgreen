@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as CredenciaisRouteImport } from './routes/credenciais'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as DashboardUsuariosRouteImport } from './routes/dashboard.usuarios'
@@ -46,6 +47,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CredenciaisRoute = CredenciaisRouteImport.update({
+  id: '/credenciais',
+  path: '/credenciais',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -191,6 +197,7 @@ const ApiPublicMobileLineupsMatchIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/credenciais': typeof CredenciaisRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
@@ -221,6 +228,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/credenciais': typeof CredenciaisRoute
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
   '/dashboard/dicas': typeof DashboardDicasRoute
@@ -251,6 +259,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/credenciais': typeof CredenciaisRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard/configuracoes': typeof DashboardConfiguracoesRoute
@@ -283,6 +292,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/credenciais'
     | '/dashboard'
     | '/reset-password'
     | '/dashboard/configuracoes'
@@ -313,6 +323,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/credenciais'
     | '/reset-password'
     | '/dashboard/configuracoes'
     | '/dashboard/dicas'
@@ -342,6 +353,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/credenciais'
     | '/dashboard'
     | '/reset-password'
     | '/dashboard/configuracoes'
@@ -373,6 +385,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CredenciaisRoute: typeof CredenciaisRoute
   DashboardRoute: typeof DashboardRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiPublicFeaturesRoute: typeof ApiPublicFeaturesRoute
@@ -408,6 +421,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/credenciais': {
+      id: '/credenciais'
+      path: '/credenciais'
+      fullPath: '/credenciais'
+      preLoaderRoute: typeof CredenciaisRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -635,6 +655,7 @@ const ApiPublicMobileTicketsRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CredenciaisRoute: CredenciaisRoute,
   DashboardRoute: DashboardRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiPublicFeaturesRoute: ApiPublicFeaturesRoute,
