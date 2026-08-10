@@ -14,6 +14,10 @@ import {
 } from "lucide-react";
 import { useIsDark } from "@/hooks/use-is-dark";
 import { supabase } from "@/integrations/supabase/client";
+
+// Tabelas ainda não presentes nos tipos gerados do banco.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sb: any = supabase;
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard/notificacoes")({
@@ -88,7 +92,7 @@ function NotificacoesPage() {
       setLoadingAlcance(true);
       try {
         if (publico === "todos") {
-          const { count, error } = await supabase
+          const { count, error } = await sb
             .from("user_fcm_tokens")
             .select("*", { count: "exact", head: true });
           if (!error) setAlcance(count || 0);
@@ -101,7 +105,7 @@ function NotificacoesPage() {
           if (adminIds.length === 0) {
             setAlcance(0);
           } else {
-            const { count, error } = await supabase
+            const { count, error } = await sb
               .from("user_fcm_tokens")
               .select("*", { count: "exact", head: true })
               .in("user_id", adminIds);
@@ -116,7 +120,7 @@ function NotificacoesPage() {
           if (premiumIds.length === 0) {
             setAlcance(0);
           } else {
-            const { count, error } = await supabase
+            const { count, error } = await sb
               .from("user_fcm_tokens")
               .select("*", { count: "exact", head: true })
               .in("user_id", premiumIds);
@@ -131,7 +135,7 @@ function NotificacoesPage() {
           if (freeIds.length === 0) {
             setAlcance(0);
           } else {
-            const { count, error } = await supabase
+            const { count, error } = await sb
               .from("user_fcm_tokens")
               .select("*", { count: "exact", head: true })
               .in("user_id", freeIds);
@@ -157,13 +161,13 @@ function NotificacoesPage() {
   const fetchHistory = useCallback(async () => {
     setLoadingHistory(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await sb
         .from("push_notifications_history")
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
 
-      const items: HistItem[] = (data || []).map((d) => ({
+      const items: HistItem[] = (data || []).map((d: any) => ({
         id: d.id,
         titulo: d.title,
         categoria: d.category || "Geral",
